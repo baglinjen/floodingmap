@@ -4,7 +4,6 @@ import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
 import dk.itu.drawing.models.MapModel;
 import dk.itu.drawing.components.MouseEventOverlayComponent;
-import dk.itu.models.OsmParser;
 import dk.itu.drawing.components.BufferedMapComponent;
 import javafx.scene.Cursor;
 import javafx.scene.layout.StackPane;

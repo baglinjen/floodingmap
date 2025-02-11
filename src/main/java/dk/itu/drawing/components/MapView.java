@@ -1,7 +1,7 @@
 package dk.itu.drawing.components;
 
 import dk.itu.drawing.models.MapModel;
-import dk.itu.models.OsmParser;
+import dk.itu.OsmParser;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.layout.StackPane;

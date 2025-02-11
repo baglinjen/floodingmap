@@ -1,7 +1,8 @@
-package dk.itu.models;
+package dk.itu;
 
-import dk.itu.JavaFxApp;
 import dk.itu.drawing.models.MapModel;
+import dk.itu.models.OsmNode;
+import dk.itu.models.OsmWay;
 import dk.itu.utils.Search;
 
 import javax.xml.stream.XMLInputFactory;
