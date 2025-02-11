@@ -1,13 +1,18 @@
 package dk.itu.models;
 
+import dk.itu.drawing.utils.ColorUtils;
+
+import java.awt.*;
+import java.awt.geom.Area;
 import java.awt.geom.Path2D;
 import java.util.List;
 
-public class OsmWay implements OsmElement {
+public class OsmWay extends OsmElement {
     private final long id;
     private final OsmNode[] osmNodes;
     private float minX, minY, maxX, maxY;
-    private final Path2D.Float path;
+    private final Shape shape;
+    private final int color;
 
     public OsmWay(long _id, List<OsmNode> _osmNodes) {
         id = _id;
@@ -31,13 +36,15 @@ public class OsmWay implements OsmElement {
             }
         }
 
-        path = new Path2D.Float();
+        color = ColorUtils.generateColorArgb();
 
+        Path2D.Float path = new Path2D.Float();
         path.moveTo(0.56* osmNodes[0].getMinX(), -osmNodes[0].getMinY());
-
         for (int i = 1; i < osmNodes.length; i+=1) {
             path.lineTo(0.56* osmNodes[i].getMinX(), -osmNodes[i].getMinY());
         }
+
+        shape = osmNodes[0].equals(osmNodes[osmNodes.length - 1]) ? new Area(path) : path;
     }
 
     public OsmNode[] getOsmNodes() {
@@ -48,7 +55,6 @@ public class OsmWay implements OsmElement {
     public long getId() {
         return id;
     }
-
     @Override
     public float getMinX() {
         return minX;
@@ -65,7 +71,10 @@ public class OsmWay implements OsmElement {
     public float getMaxY() {
         return maxY;
     }
-    public Path2D.Float getPath() {
-        return path;
+    public Shape getShape() {
+        return shape;
+    }
+    public int getColor() {
+        return color;
     }
 }

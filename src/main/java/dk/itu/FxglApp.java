@@ -54,7 +54,7 @@ public class FxglApp extends GameApplication {
         settings.setWidth(W);
         settings.setHeight(H);
         settings.setTitle("Flooding Visualisation");
-        settings.setVersion("0.1");
+        settings.setVersion("");
     }
 
     @Override

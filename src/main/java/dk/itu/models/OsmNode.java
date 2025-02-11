@@ -1,6 +1,8 @@
 package dk.itu.models;
 
-public class OsmNode implements OsmElement {
+import org.jetbrains.annotations.NotNull;
+
+public class OsmNode extends OsmElement {
     protected final long id;
     protected final float y, x;
 

@@ -2,10 +2,13 @@ package dk.itu.models;
 
 import java.io.Serializable;
 
-public interface OsmElement extends Serializable {
-    long getId();
-    float getMinX();
-    float getMaxX();
-    float getMinY();
-    float getMaxY();
+public abstract class OsmElement implements Serializable {
+    public abstract long getId();
+    abstract float getMinX();
+    abstract float getMaxX();
+    abstract float getMinY();
+    abstract float getMaxY();
+    public boolean equals(OsmElement obj) {
+        return this.getId() == obj.getId();
+    }
 }

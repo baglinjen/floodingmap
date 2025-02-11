@@ -8,12 +8,14 @@ import dk.itu.models.OsmWay;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static dk.itu.drawing.utils.ColorUtils.toARGB;
 
 public class MapModel {
     private final float minX, minY, maxY;
+    private final List<List<OsmElement>> layers = new ArrayList<>();
     private final List<OsmElement> ways;
     private static final int BACKGROUND_COLOR = toARGB(Color.web("#aad3df"));
 
@@ -22,6 +24,7 @@ public class MapModel {
         this.minY = minY;
         this.maxY = maxY;
         this.ways = ways;
+        this.layers.add(ways);
     }
 
     public float getMinX() {
@@ -38,11 +41,12 @@ public class MapModel {
 
     public void draw(BufferedMapComponent buffer) {
         buffer.clear(BACKGROUND_COLOR);
-
-        ways.parallelStream().forEach(element -> {
-            if (element instanceof OsmWay way) {
-                ShapeRasterizer.rasterizeOutline(way.getPath(), buffer, toARGB(Color.BLACK));
-            }
+        layers.forEach(layer -> {
+            layer.forEach(element -> {
+                if (element instanceof OsmWay way) {
+                    ShapeRasterizer.drawShapeInBuffer(way.getShape(), buffer, way.getColor());
+                }
+            });
         });
     }
 
