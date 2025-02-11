@@ -1,5 +1,8 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="FxglApp" type="Application" factoryName="Application" nameIsGenerated="true">
+    <envs>
+      <env name="db" value="Host=localhost;Port=5432;Database=postgres;Username=postgres;Password=1015;" />
+    </envs>
     <option name="MAIN_CLASS_NAME" value="dk.itu.FxglApp" />
     <module name="floodingmap" />
     <extension name="coverage">
