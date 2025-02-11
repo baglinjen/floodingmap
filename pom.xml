@@ -15,6 +15,9 @@
 
         <javafx.version>23.0.2</javafx.version>
         <javafx.maven.plugin.version>0.0.8</javafx.maven.plugin.version>
+        <fxgl.version>21.1</fxgl.version>
+        <log4j.version>2.19.0</log4j.version>
+        <hibernate.version>6.6.6.Final</hibernate.version>
     </properties>
 
     <dependencies>
@@ -23,11 +26,27 @@
             <artifactId>javafx-controls</artifactId>
             <version>${javafx.version}</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.github.almasb</groupId>
+            <artifactId>fxgl</artifactId>
+            <version>${fxgl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${log4j.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-core</artifactId>
-            <version>6.6.6.Final</version>
+            <version>${hibernate.version}</version>
         </dependency>
     </dependencies>
 
@@ -37,9 +56,25 @@
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>${javafx.maven.plugin.version}</version>
-                <configuration>
-                    <mainClass>dk.itu.Main</mainClass>
-                </configuration>
+                <executions>
+                    <execution>
+                        <!-- Default configuration for running -->
+                        <id>default</id>
+                        <configuration>
+                            <mainClass>dk.itu.JavaFxApp</mainClass>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <!-- Configuration for debugging -->
+                        <id>debug</id>
+                        <configuration>
+                            <options>
+                                <option>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:8000</option>
+                            </options>
+                            <mainClass>dk.itu.JavaFxApp</mainClass>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

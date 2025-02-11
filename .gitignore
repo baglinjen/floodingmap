@@ -36,3 +36,21 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+# Logs #
+*.log
+logs/
+*.lck
+
+# FXGL #
+saves/
+profiles/
+system/
+editor_json/
+*.json
+
+# FXGL Tests #
+testprofiles/
+
+# OSM #
+*.osm
