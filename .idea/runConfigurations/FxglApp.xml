@@ -1,7 +1,9 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="FxglApp" type="Application" factoryName="Application" nameIsGenerated="true">
     <envs>
-      <env name="db" value="Host=localhost;Port=5432;Database=postgres;Username=postgres;Password=1015;" />
+      <env name="DBNAME" value="bsctest" />
+      <env name="DBUSER" value="postgres" />
+      <env name="DBPASSWORD" value="password" />
     </envs>
     <option name="MAIN_CLASS_NAME" value="dk.itu.FxglApp" />
     <module name="floodingmap" />

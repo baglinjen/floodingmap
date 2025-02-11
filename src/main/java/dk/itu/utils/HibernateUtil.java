@@ -8,7 +8,14 @@ public class HibernateUtil {
 
     private static SessionFactory buildSessionFactory() {
         try {
-            return new Configuration().configure("hibernate.cfg.xml").buildSessionFactory();
+            Configuration conf = new Configuration();
+            conf.configure("hibernate.cfg.xml");
+
+            conf.setProperty("hibernate.connection.url", String.format("jdbc:postgresql://localhost:5432/%s", System.getenv("DBNAME")));
+            conf.setProperty("hibernate.connection.username", System.getenv("DBUSER"));
+            conf.setProperty("hibernate.connection.password", System.getenv("DBPASSWORD"));
+
+            return conf.buildSessionFactory();
         } catch (Throwable ex) {
             throw new ExceptionInInitializerError(ex);
         }

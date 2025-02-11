@@ -38,9 +38,9 @@ public class FxglApp extends GameApplication {
 
     public static void main(String[] args) {
         WayService service = new WayService();
-        // List<DbNode> nodes = service.getNodesInWay(4120948);
+
         DbWay way = service.loadWayWithNodes(4120948L);
-        System.out.println();
+        service.loadAllWays();
 
         launch(args);
     }
