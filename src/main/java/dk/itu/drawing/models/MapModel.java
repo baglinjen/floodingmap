@@ -39,12 +39,13 @@ public class MapModel {
     public void draw(BufferedMapComponent buffer) {
         buffer.clear(BACKGROUND_COLOR);
 
-        ways.forEach(element -> {
+        ways.parallelStream().forEach(element -> {
             if (element instanceof OsmWay way) {
                 ShapeRasterizer.rasterizeOutline(way.getPath(), buffer, toARGB(Color.BLACK));
             }
         });
     }
+
     public void draw(GraphicsContext gc) {
         ways.forEach(element -> {
             switch (element) {
