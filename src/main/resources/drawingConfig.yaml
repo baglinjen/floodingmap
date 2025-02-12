@@ -1,0 +1,121 @@
+# https://wiki.openstreetmap.org/wiki/Map_features
+specification:
+  # How many layers there are => used for efficient drawing
+  levels: 6
+  # Re-used colors
+  rgbColors:
+    white: "#000000"
+    blue: "#a9d3de"
+    gray: "#d8d0c9"
+    red: "#0000ff"
+    motorway: "#e990a0"
+    trunk: "#fbc0ab"
+    primary: "#fdd6a1"
+    secondary: "#f6fabb"
+    path_gray: "#dddddd"
+    light_green: "#ccf7c9"
+    dark_green: "#abd29c"
+    sand: "#fff1bb"
+features:
+  building:
+    level: 5
+    def:
+      rgb: "gray"
+  emergency:
+    level: 5
+    individuals:
+      ambulance_station:
+        rgb: "red"
+      landing_site:
+        rgb: "red"
+  highway:
+    level: 4
+    groupings:
+      - tags:
+          - "motorway"
+          - "motorway_link"
+        rgb: "motorway"
+      - tags:
+          - "trunk"
+          - "trunk_link"
+        rgb: "trunk"
+      - tags:
+          - "primary"
+          - "primary_link"
+        rgb: "primary"
+      - tags:
+          - "secondary"
+          - "secondary_link"
+        rgb: "secondary"
+      - tags:
+          - "tertiary"
+          - "tertiary_link"
+        rgb: "tertiary"
+      - tags:
+          - "unclassified"
+          - "residential"
+          - "living_street"
+          - "service"
+          - "road"
+        rgb: "white"
+      - tags:
+          - "pedestrian"
+          - "footway"
+          - "bridleway"
+          - "steps"
+          - "corridor"
+          - "path"
+          - "track"
+        rgb: "path_gray"
+#  landuse:
+#    level: 0
+  leisure:
+    level: 3
+    groupings:
+      # Greens
+      - tags:
+          - "garden"
+          - "park"
+        rgb: "light_green"
+  natural:
+    level: 1
+    groupings:
+      # Greens
+      - tags:
+          - "grassland"
+          - "heath"
+          - "scrub"
+          - "wood"
+        rgb: "dark_green"
+      # Waters
+      - tags:
+          - "bay"
+          - "water"
+        rgb: "blue"
+      # Borders
+      - tags:
+          - "beach"
+          - "coastline"
+          - "peninsula"
+          - "sand"
+        rgb: "sand"
+  water:
+    level: 2
+    def:
+      rgb: "blue"
+  waterway:
+    level: 2
+    groupings:
+      - tags:
+          - "river"
+          - "riverbank"
+          - "stream"
+          - "canal"
+          - "drain"
+          - "ditch"
+        rgb: "blue"
+infoToKeep:
+  - "building:levels"
+  - "height"
+  - "maxspeed"
+  - "oneway"

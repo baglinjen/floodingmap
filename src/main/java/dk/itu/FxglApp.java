@@ -62,7 +62,7 @@ public class FxglApp extends GameApplication {
         // Set cursor
         getGameScene().setCursor(Cursor.DEFAULT);
         // Load Models
-        mapModel = OsmParser.parse("osm/tuna.osm");
+        mapModel = OsmParser.parse("osm/tuna.osm", DrawingConfigParser.parse());
         // Create Components
         Affine affine = new Affine();
         root = new StackPane(new MouseEventOverlayComponent(affine));

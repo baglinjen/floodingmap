@@ -1,7 +1,5 @@
 package dk.itu.models;
 
-import dk.itu.drawing.utils.ColorUtils;
-
 import java.awt.*;
 import java.awt.geom.Area;
 import java.awt.geom.Path2D;
@@ -14,9 +12,10 @@ public class OsmWay extends OsmElement {
     private final Shape shape;
     private final int color;
 
-    public OsmWay(long _id, List<OsmNode> _osmNodes) {
+    public OsmWay(long _id, List<OsmNode> _osmNodes, int _color) {
         id = _id;
         osmNodes = _osmNodes.toArray(new OsmNode[0]);
+        color = _color;
 
         minX = Float.MAX_VALUE;
         minY = Float.MAX_VALUE;
@@ -35,8 +34,6 @@ public class OsmWay extends OsmElement {
                 maxY = osmNode.getMaxY();
             }
         }
-
-        color = ColorUtils.generateColorArgb();
 
         Path2D.Float path = new Path2D.Float();
         path.moveTo(0.56* osmNodes[0].getMinX(), -osmNodes[0].getMinY());

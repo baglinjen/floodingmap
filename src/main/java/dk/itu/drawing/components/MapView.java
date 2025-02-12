@@ -1,5 +1,6 @@
 package dk.itu.drawing.components;
 
+import dk.itu.DrawingConfigParser;
 import dk.itu.drawing.models.MapModel;
 import dk.itu.OsmParser;
 import javafx.scene.canvas.Canvas;
@@ -19,7 +20,7 @@ public class MapView extends StackPane {
         super();
 
         // Get Model
-        mapModel = OsmParser.parse("osm/bornholm.osm");
+        mapModel = OsmParser.parse("osm/bornholm.osm", DrawingConfigParser.parse());
 
         // Set base zoom
         affine.prependTranslation(-0.56 * mapModel.getMinX(), mapModel.getMaxY());
