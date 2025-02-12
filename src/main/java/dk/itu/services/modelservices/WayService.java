@@ -63,8 +63,4 @@ public class WayService {
 
         return ways;
     }
-
-    public Map<String, String> GetTagsForWay(){
-
-    }
 }

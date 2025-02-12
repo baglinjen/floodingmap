@@ -11,6 +11,8 @@ import dk.itu.utils.Search;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
+import java.awt.geom.Area;
+import java.awt.geom.Path2D;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -27,10 +29,8 @@ public class OsmParser {
             float minY = -181, maxY = 181, minX = -181;
             List<OsmNode> allNodes = new ArrayList<>();
             List<OsmWay> allWays = new ArrayList<>();
-            List<List<OsmElement>> levels = new ArrayList<>(drawingConfig.getLevelsCount());
-            for (int i = 0; i < drawingConfig.getLevelsCount(); i++) {
-                levels.add(new ArrayList<>());
-            }
+            List<OsmElement> allAreaElements = new ArrayList<>();
+            List<OsmElement> allPathElements = new ArrayList<>();
 
             long currentId = -1L;
             float currentX = 0f, currentY = 0f;
@@ -93,10 +93,19 @@ public class OsmParser {
                             }
 
                             var pair = drawingConfig.getColor(currentTags);
-
                             if (pair != null) {
                                 OsmWay way = new OsmWay(currentId, currentNodesList, pair.component1());
-                                levels.get(pair.component2()).add(way);
+                                switch (way.getShape()) {
+                                    case Area _:
+                                        allAreaElements.add(way);
+                                        break;
+                                    case Path2D _:
+                                        allPathElements.add(way);
+                                        break;
+                                    default:
+                                        break;
+                                }
+                                allWays.add(way);
                             }
                             currentNodesList.clear();
                             currentTags.clear();
@@ -107,18 +116,13 @@ public class OsmParser {
             }
             reader.close();
 
-            return new MapModelOsmFile(minX, minY, maxY, levels);
+            return new MapModelOsmFile(minX, minY, maxY, allWays, allAreaElements, allPathElements);
         } catch (IOException | XMLStreamException e) {
             throw new UnsupportedOperationException("Failed to parse custom file");
         }
     }
 
     public static MapModel parseDB(DrawingConfig drawingConfig){
-        List<List<OsmElement>> levels = new ArrayList<>(drawingConfig.getLevelsCount());
-        for (int i = 0; i < drawingConfig.getLevelsCount(); i++) {
-            levels.add(new ArrayList<>());
-        }
-
         WayService wayService = new WayService();
 
         List<OsmWay> ways = wayService.GetAllWays();
