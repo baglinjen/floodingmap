@@ -5,8 +5,7 @@ import com.almasb.fxgl.app.GameSettings;
 import dk.itu.drawing.models.MapModel;
 import dk.itu.drawing.components.MouseEventOverlayComponent;
 import dk.itu.drawing.components.BufferedMapComponent;
-import dk.itu.models.dbmodels.DbNode;
-import dk.itu.models.dbmodels.DbWay;
+import dk.itu.models.OsmWay;
 import dk.itu.services.DbService;
 import dk.itu.services.modelservices.WayService;
 import javafx.scene.Cursor;
@@ -15,7 +14,6 @@ import javafx.scene.transform.Affine;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -37,11 +35,6 @@ public class FxglApp extends GameApplication {
     private StackPane root;
 
     public static void main(String[] args) {
-        WayService service = new WayService();
-
-        DbWay way = service.loadWayWithNodes(4120948L);
-        service.loadAllWays();
-
         launch(args);
     }
 

@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.List;
 
 @Converter
+//Used for deserializing jsonB from Postgres
 public class JsonConverter implements AttributeConverter<List<Long>, String> {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();

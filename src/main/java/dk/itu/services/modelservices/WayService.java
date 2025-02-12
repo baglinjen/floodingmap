@@ -1,7 +1,7 @@
 package dk.itu.services.modelservices;
 
-import dk.itu.models.dbmodels.DbNode;
-import dk.itu.models.dbmodels.DbWay;
+import dk.itu.models.OsmNode;
+import dk.itu.models.OsmWay;
 import dk.itu.utils.HibernateUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -11,10 +11,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class WayService {
-
     private Session session;
     private Transaction transaction;
     @PersistenceContext
@@ -25,26 +25,44 @@ public class WayService {
         Transaction transaction = session.beginTransaction();
     }
 
-    public DbWay loadWayWithNodes(Long wayId) {
-        DbWay way = session.find(DbWay.class, wayId);
+    public OsmWay LoadWayFromDb(Long wayId) throws Exception {
+        OsmWay way = session.find(OsmWay.class, wayId);
+        if(way == null) throw new Exception("The way could not be extracted from the database");
 
-        // Fetch associated nodes based on the nodeIds
-        if (way != null && way.getNodeIds() != null && !way.getNodeIds().isEmpty()) {
-            List<DbNode> nodes = session.createQuery(
-                            "SELECT n FROM DbNode n WHERE n.id IN :ids", DbNode.class)
-                    .setParameter("ids", way.getNodeIds())
-                    .getResultList();
-            way.setNodes(nodes);
+        //Retrive all nodes related to way
+        var query = "SELECT n FROM OsmNode n WHERE n.id IN :ids ORDER BY CASE n.id ";
+        List<Long> nodeIds = way.getNodeIds();
+        for (int i = 0; i < nodeIds.size(); i++) {
+            query += "WHEN " + nodeIds.get(i) + " THEN " + i + " ";
         }
+        query += "END";
+
+        List<OsmNode> nodes = session.createQuery(query, OsmNode.class)
+                .setParameter("ids", nodeIds)
+                .getResultList();
+
+        //Ensure way "close" if needed
+        if(Objects.equals(way.getNodeIds().getFirst(), way.getNodeIds().getLast())){
+            nodes.add(nodes.getFirst());
+        }
+
+        way.setNodes(nodes);
+
+        //Generate 2D path based on nodes
+        way.GeneratePath();
 
         return way;
     }
 
-    public List<DbWay> loadAllWays(){
-        List<DbWay> ways = new ArrayList<>();
-        List x = session.createQuery("SELECT id FROM DbWay").getResultList();
+    public List<OsmWay> loadAllWays(){
+        List<OsmWay> ways = new ArrayList<>();
+        List x = session.createQuery("SELECT id FROM OsmWay").getResultList();
         for(Object l : x){
-            ways.add(loadWayWithNodes((Long)l));
+            try{
+                ways.add(LoadWayFromDb((Long)l));
+            } catch(Exception e){
+                System.out.println("A way was not loaded");
+            }
         }
 
         return ways;

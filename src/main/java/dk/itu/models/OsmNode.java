@@ -1,16 +1,27 @@
 package dk.itu.models;
 
-import org.jetbrains.annotations.NotNull;
+import jakarta.persistence.*;
 
-public class OsmNode extends OsmElement {
-    protected final long id;
-    protected final float y, x;
+@Entity
+@Table(name="nodes")
+public class OsmNode implements OsmElement {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
+
+    @Column(name = "lat", nullable = false)
+    private float lat;
+
+    @Column(name = "lon", nullable = false)
+    private float lon;
 
     public OsmNode(long _id, float _y, float _x) {
         id = _id;
-        y = _y;
-        x = _x;
+        lat = _y;
+        lon = _x;
     }
+
+    public OsmNode(){}
 
     public long getId () {
         return id;
@@ -18,21 +29,21 @@ public class OsmNode extends OsmElement {
 
     @Override
     public float getMinX() {
-        return x;
+        return lon;
     }
 
     @Override
     public float getMaxX() {
-        return x;
+        return lon;
     }
 
     @Override
     public float getMinY() {
-        return y;
+        return lat;
     }
 
     @Override
     public float getMaxY() {
-        return y;
+        return lat;
     }
 }
