@@ -1,16 +1,39 @@
 package dk.itu.models;
 
+import dk.itu.utils.converters.JsonConverter;
+import jakarta.persistence.*;
 import java.awt.*;
 import java.awt.geom.Area;
 import java.awt.geom.Path2D;
 import java.util.List;
 
+@Entity
+@Table(name = "ways")
 public class OsmWay extends OsmElement {
-    private final long id;
-    private final OsmNode[] osmNodes;
+    private Path2D.Float path;
+    private int color;
+    @Transient
     private float minX, minY, maxX, maxY;
-    private final Shape shape;
-    private final int color;
+    @Transient
+    private Shape shape;
+    @Transient
+    private OsmNode[] osmNodes = new OsmNode[0];
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
+
+    @Column(name = "Nodes", columnDefinition = "jsonb")
+    @Convert(converter = JsonConverter.class)
+    private List<Long> nodeIds;
+
+    public List<Long> getNodeIds(){
+        return nodeIds;
+    }
+
+    public void setNodes(List<OsmNode> nodes){
+        osmNodes = nodes.toArray(new OsmNode[nodes.size()]);
+    }
 
     public OsmWay(long _id, List<OsmNode> _osmNodes, int _color) {
         id = _id;
@@ -35,13 +58,21 @@ public class OsmWay extends OsmElement {
             }
         }
 
-        Path2D.Float path = new Path2D.Float();
+        path = new Path2D.Float();
+
         path.moveTo(0.56* osmNodes[0].getMinX(), -osmNodes[0].getMinY());
         for (int i = 1; i < osmNodes.length; i+=1) {
             path.lineTo(0.56* osmNodes[i].getMinX(), -osmNodes[i].getMinY());
         }
 
         shape = osmNodes[0].equals(osmNodes[osmNodes.length - 1]) ? new Area(path) : path;
+    }
+
+    //For deserialization
+    public OsmWay(){}
+
+    public void GeneratePath(){
+
     }
 
     public OsmNode[] getOsmNodes() {
