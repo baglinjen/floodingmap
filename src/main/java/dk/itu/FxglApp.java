@@ -2,6 +2,7 @@ package dk.itu;
 
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
+import dk.itu.drawing.components.MapBuffers;
 import dk.itu.drawing.models.MapModel;
 import dk.itu.drawing.components.MouseEventOverlayComponent;
 import dk.itu.drawing.components.BufferedMapComponent;
@@ -27,6 +28,7 @@ public class FxglApp extends GameApplication {
     private final BlockingQueue<BufferedMapComponent> fullBuffers = new ArrayBlockingQueue<>(BUFFER_SIZE);
     private final BlockingQueue<BufferedMapComponent> emptyBuffers = new ArrayBlockingQueue<>(BUFFER_SIZE);
     private BufferedMapComponent currentBuffer;
+    private MapBuffers buffers;
     // Models
     private MapModel mapModel;
     // UI Components

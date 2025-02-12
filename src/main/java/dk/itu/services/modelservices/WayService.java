@@ -34,7 +34,7 @@ public class WayService {
                 way.setNodes(nodes);
                 way.GeneratePath();
             }
-
+          
             return ways;
         } catch (Exception e){
             System.out.println(e);
