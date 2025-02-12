@@ -1,5 +1,6 @@
 package dk.itu.services.modelservices;
 import dk.itu.drawing.utils.ColorUtils;
+import dk.itu.models.OsmElement;
 import dk.itu.models.OsmNode;
 import dk.itu.models.OsmWay;
 import dk.itu.models.dbmodels.DbLine;
@@ -15,8 +16,8 @@ import java.util.List;
 public class LineService {
     private static Session session;
 
-    public static List<OsmWay> LoadLinesFromDb() throws Exception {
-        List<OsmWay> ways = new ArrayList<>();
+    public static List<OsmElement> LoadLinesFromDb() throws Exception {
+        List<OsmElement> ways = new ArrayList<>();
         List<DbLine> lines;
         try {
             session = HibernateUtil.getSessionFactory().openSession();
@@ -37,6 +38,7 @@ public class LineService {
                     nodes.add(node);
                 }
                 OsmWay way = new OsmWay(0L, nodes, colorCode);
+                way.setShape();
                 ways.add(way);
             }
 

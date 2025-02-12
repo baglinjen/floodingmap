@@ -44,6 +44,11 @@ public abstract class MapModel {
         });
     }
 
+    public void addLayer(List<OsmElement> layer)
+    {
+        layers.add(layer);
+    }
+
     public void draw(GraphicsContext gc) {
         layers.forEach(layer -> {
             layer.forEach(element -> {

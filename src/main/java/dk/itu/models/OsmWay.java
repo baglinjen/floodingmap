@@ -2,9 +2,11 @@ package dk.itu.models;
 
 import dk.itu.utils.converters.JsonConverter;
 import jakarta.persistence.*;
+
 import java.awt.*;
 import java.awt.geom.Area;
 import java.awt.geom.Path2D;
+import java.awt.geom.Point2D;
 import java.util.List;
 
 @Entity
@@ -103,6 +105,10 @@ public class OsmWay extends OsmElement {
     public Shape getShape() {
         return shape;
     }
+    public void setShape() {
+        shape = new Path2D.Float(shape);
+    }
+
     public int getColor() {
         return color;
     }
