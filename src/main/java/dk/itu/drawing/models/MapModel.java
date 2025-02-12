@@ -7,43 +7,45 @@ import dk.itu.models.OsmNode;
 import dk.itu.models.OsmWay;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+
+import java.util.ArrayList;
 import java.util.List;
 
 import static dk.itu.drawing.utils.ColorUtils.toARGB;
 
-public class MapModel {
-    private final float minX, minY, maxY;
-    private final List<List<OsmElement>> layers;
+public abstract class MapModel {
+    protected float minX, minY, maxY;
+    protected List<List<OsmElement>> layers = new ArrayList<>();
     private static final int BACKGROUND_COLOR = toARGB(Color.web("#aad3df"));
 
-    public MapModel(float minX, float minY, float maxY, List<List<OsmElement>> layers) {
-        this.minX = minX;
-        this.minY = minY;
-        this.maxY = maxY;
-        this.layers = layers;
-    }
+    public MapModel() {}
 
     public float getMinX() {
         return minX;
     }
-
     public float getMinY() {
         return minY;
     }
-
     public float getMaxY() {
         return maxY;
     }
 
     public void draw(BufferedMapComponent buffer) {
         buffer.clear(BACKGROUND_COLOR);
-        layers.forEach(layer -> {
-            layer.parallelStream().forEach(element -> {
+        for (int i = 0; i <= 6; i++) {
+            layers.get(i).parallelStream().forEach(element -> {
                 if (element instanceof OsmWay way) {
                     ShapeRasterizer.drawShapeInBuffer(way.getShape(), buffer, way.getColor());
                 }
             });
-        });
+        }
+//        layers.forEach(layer -> {
+//            layer.parallelStream().forEach(element -> {
+//                if (element instanceof OsmWay way) {
+//                    ShapeRasterizer.drawShapeInBuffer(way.getShape(), buffer, way.getColor());
+//                }
+//            });
+//        });
     }
 
     public void draw(GraphicsContext gc) {

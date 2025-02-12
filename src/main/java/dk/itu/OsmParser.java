@@ -1,6 +1,7 @@
 package dk.itu;
 
 import dk.itu.drawing.models.MapModel;
+import dk.itu.drawing.models.MapModelOsmFile;
 import dk.itu.models.DrawingConfig;
 import dk.itu.models.OsmElement;
 import dk.itu.models.OsmNode;
@@ -33,6 +34,7 @@ public class OsmParser {
 
             long currentId = -1L;
             float currentX = 0f, currentY = 0f;
+            boolean invalidWay = false;
             Map<String, String> currentTags = new HashMap<>();
             List<OsmNode> currentNodesList = new ArrayList<>();
 
@@ -58,12 +60,15 @@ public class OsmParser {
                         }
                         case "way", "relation" -> {
                             currentId = Long.parseUnsignedLong(reader.getAttributeValue(null, "id"));
+                            invalidWay = false;
                             continue;
                         }
                         case "nd" -> {
                             int target = Search.fibSearch(allNodes, Long.parseUnsignedLong(reader.getAttributeValue(null, "ref")));
                             if(target != -1){
                                 currentNodesList.add(allNodes.get(target));
+                            } else {
+                                invalidWay = true;
                             }
                             continue;
                         }
@@ -81,7 +86,7 @@ public class OsmParser {
                             currentTags.clear();
                         }
                         case "way" -> {
-                            if(currentNodesList.isEmpty() || currentId < 0) {
+                            if(currentNodesList.isEmpty() || currentId < 0 || invalidWay) {
                                 currentNodesList.clear();
                                 currentTags.clear();
                                 continue;
@@ -102,7 +107,7 @@ public class OsmParser {
             }
             reader.close();
 
-            return new MapModel(minX, minY, maxY, levels);
+            return new MapModelOsmFile(minX, minY, maxY, levels);
         } catch (IOException | XMLStreamException e) {
             throw new UnsupportedOperationException("Failed to parse custom file");
         }

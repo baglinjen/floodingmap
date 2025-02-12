@@ -10,6 +10,9 @@ import java.util.Map;
 public record DrawingConfig(Specification specification, Map<String, Feature> features, List<String> infoToKeep) {
     public Pair<Integer, Integer> getColor(Map<String, String> tags) {
         for (String key : tags.keySet()) {
+            if (key.equals("building")) {
+                System.out.println("");
+            }
             if (features.containsKey(key)) {
                 // Found key
                 String value = tags.get(key);
@@ -17,18 +20,21 @@ public record DrawingConfig(Specification specification, Map<String, Feature> fe
                 if (feature.individuals != null) {
                     // Check individuals
                     if (feature.individuals.containsKey(value)) {
-                        return new Pair<>(ColorUtils.toARGB(Color.web(specification.getColorHex(feature.individuals.get(value).rgb))), feature.level);
+                        Integer level = feature.individuals.get(value).level;
+                        return new Pair<>(ColorUtils.toARGB(Color.web(specification.getColorHex(feature.individuals.get(value).rgb))), level == null ? specification.levels - 1 : level);
                     }
                 }
                 if (feature.groupings != null) {
                     for (Feature.Grouping grouping : feature.groupings) {
                         if (grouping.tags.contains(value)) {
-                            return new Pair<>(ColorUtils.toARGB(Color.web(specification.getColorHex(grouping.rgb))), feature.level);
+                            Integer level = grouping.level;
+                            return new Pair<>(ColorUtils.toARGB(Color.web(specification.getColorHex(grouping.rgb))), level == null ? specification.levels - 1 : level);
                         }
                     }
                 }
                 if (feature.def != null) {
-                    return new Pair<>(ColorUtils.toARGB(Color.web(specification.getColorHex(feature.def.rgb))), feature.level);
+                    Integer level = feature.def.level;
+                    return new Pair<>(ColorUtils.toARGB(Color.web(specification.getColorHex(feature.def.rgb))), level == null ? specification.levels - 1 : level);
                 }
             }
         }
@@ -45,12 +51,11 @@ public record DrawingConfig(Specification specification, Map<String, Feature> fe
         }
     }
     private record Feature(
-            int level,
             List<Grouping> groupings,
-            Map<String, ColorSpecification> individuals,
-            ColorSpecification def
+            Map<String, Individual> individuals,
+            Individual def
     ) {
-        private record Grouping(List<String> tags, String rgb) {}
-        private record ColorSpecification(String rgb) {}
+        private record Grouping(List<String> tags, String rgb, Integer level) {}
+        private record Individual(String rgb, Integer level) {}
     }
 }
