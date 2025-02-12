@@ -23,8 +23,8 @@ public class MapView extends StackPane {
         mapModel = OsmParser.parse("osm/bornholm.osm", DrawingConfigParser.parse());
 
         // Set base zoom
-        affine.prependTranslation(-0.56 * mapModel.getMinX(), mapModel.getMaxY());
-        affine.prependScale(canvas.getHeight() / (mapModel.getMaxY() - mapModel.getMinY()), canvas.getHeight() / (mapModel.getMaxY() - mapModel.getMinY()));
+        affine.prependTranslation(-0.56 * mapModel.getMinLon(), mapModel.getMaxLat());
+        affine.prependScale(canvas.getHeight() / (mapModel.getMaxLat() - mapModel.getMinLat()), canvas.getHeight() / (mapModel.getMaxLat() - mapModel.getMinLat()));
 
         // Load events
         loadEventHandlers();

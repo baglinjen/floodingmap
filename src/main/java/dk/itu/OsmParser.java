@@ -121,18 +121,4 @@ public class OsmParser {
             throw new UnsupportedOperationException("Failed to parse custom file");
         }
     }
-
-    public static MapModel parseDB(DrawingConfig drawingConfig){
-        WayService wayService = new WayService();
-
-        List<OsmWay> ways = wayService.GetAllWays();
-
-        for(OsmWay way : ways){
-            //TODO: Implement color of way
-        }
-
-        return null;//TODO: REMOVE
-
-
-    }
 }

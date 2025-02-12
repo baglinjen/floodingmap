@@ -9,11 +9,11 @@ import java.util.List;
 import java.util.Map;
 
 public class MapModelOsmFile extends MapModel {
-    public MapModelOsmFile(float minX, float minY, float maxY, List<OsmWay> ways, List<OsmElement> areaElements, List<OsmElement> pathElements) {
+    public MapModelOsmFile(float minLon, float minLat, float maxLat, List<OsmWay> ways, List<OsmElement> areaElements, List<OsmElement> pathElements) {
         super();
-        this.minX = minX;
-        this.minY = minY;
-        this.maxY = maxY;
+        this.minLon = minLon;
+        this.minLat = minLat;
+        this.maxLat = maxLat;
         this.elements.addAll(ways);
         this.areaElements.addAll(areaElements);
         this.pathElements.addAll(pathElements);

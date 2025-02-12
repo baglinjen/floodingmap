@@ -4,10 +4,10 @@ import java.io.Serializable;
 
 public abstract class OsmElement implements Serializable {
     public abstract long getId();
-    abstract float getMinX();
-    abstract float getMaxX();
-    abstract float getMinY();
-    abstract float getMaxY();
+    abstract float getMinLon();
+    abstract float getMaxLon();
+    abstract float getMinLat();
+    abstract float getMaxLat();
     public boolean equals(OsmElement obj) {
         return this.getId() == obj.getId();
     }

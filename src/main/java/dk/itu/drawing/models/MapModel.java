@@ -14,7 +14,7 @@ import java.util.List;
 import static dk.itu.drawing.utils.ColorUtils.toARGB;
 
 public abstract class MapModel {
-    protected float minX, minY, maxY;
+    protected float minLon, minLat, maxLat;
     protected List<OsmElement> elements = new ArrayList<>();
     protected List<OsmElement> areaElements = new ArrayList<>();
     protected List<OsmElement> pathElements = new ArrayList<>();
@@ -23,14 +23,14 @@ public abstract class MapModel {
 
     public MapModel() {}
 
-    public float getMinX() {
-        return minX;
+    public float getMinLon() {
+        return minLon;
     }
-    public float getMinY() {
-        return minY;
+    public float getMinLat() {
+        return minLat;
     }
-    public float getMaxY() {
-        return maxY;
+    public float getMaxLat() {
+        return maxLat;
     }
 
     public void draw(BufferedMapComponent buffer) {
@@ -52,10 +52,10 @@ public abstract class MapModel {
                         OsmNode[] osmNodes = way.getOsmNodes();
 
                         gc.beginPath();
-                        gc.moveTo(0.56* osmNodes[0].getMinX(), -osmNodes[0].getMinY());
+                        gc.moveTo(0.56* osmNodes[0].getMinLon(), -osmNodes[0].getMinLat());
 
                         for (int i = 1; i < osmNodes.length; i+=1) {
-                            gc.lineTo(0.56* osmNodes[i].getMinX(), -osmNodes[i].getMinY());
+                            gc.lineTo(0.56* osmNodes[i].getMinLon(), -osmNodes[i].getMinLat());
                         }
 
                         gc.setStroke(Color.BLACK);
