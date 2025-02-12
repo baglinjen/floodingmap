@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(name="nodes")
-public class OsmNode implements OsmElement {
+public class OsmNode extends OsmElement {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;

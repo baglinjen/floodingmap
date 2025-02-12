@@ -8,9 +8,9 @@ import jakarta.persistence.PersistenceContext;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.springframework.stereotype.Service;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -42,19 +42,15 @@ public class WayService {
                 .getResultList();
 
         //Ensure way "close" if needed
-        if(Objects.equals(way.getNodeIds().getFirst(), way.getNodeIds().getLast())){
-            nodes.add(nodes.getFirst());
-        }
+        if(Objects.equals(way.getNodeIds().getFirst(), way.getNodeIds().getLast())) nodes.add(nodes.getFirst());
 
         way.setNodes(nodes);
-
-        //Generate 2D path based on nodes
         way.GeneratePath();
 
         return way;
     }
 
-    public List<OsmWay> loadAllWays(){
+    public List<OsmWay> GetAllWays(){
         List<OsmWay> ways = new ArrayList<>();
         List x = session.createQuery("SELECT id FROM OsmWay").getResultList();
         for(Object l : x){
@@ -66,5 +62,9 @@ public class WayService {
         }
 
         return ways;
+    }
+
+    public Map<String, String> GetTagsForWay(){
+
     }
 }

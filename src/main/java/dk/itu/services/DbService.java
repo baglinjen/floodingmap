@@ -31,9 +31,9 @@ public class DbService {
     public MapModel GenerateMapModel()
     {
         DbMetadata dbMetadata = getMetadata();
-        List<OsmWay> ways = wayService.loadAllWays();
-
-        return new MapModel(dbMetadata.getMinlon(), dbMetadata.getMinlat(), dbMetadata.getMaxlat(), new ArrayList<>(ways));
+        List<OsmWay> ways = wayService.GetAllWays();
+        return null;
+        //return new MapModel(dbMetadata.getMinlon(), dbMetadata.getMinlat(), dbMetadata.getMaxlat(), new ArrayList<>(ways));
     }
 
     public DbMetadata getMetadata(){
