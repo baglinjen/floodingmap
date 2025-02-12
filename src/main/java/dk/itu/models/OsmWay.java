@@ -40,6 +40,15 @@ public class OsmWay extends OsmElement {
 
     public OsmWay(long _id, List<OsmNode> _osmNodes, int _color, Boolean shouldFill) {
         id = _id;
+
+        if(id == 3003806L){
+            System.out.println("Break here -> FAULTY");
+        }
+
+        if(id == 532264315L){
+            System.out.println("Break here -> VALID");
+        }
+
         osmNodes = _osmNodes.toArray(new OsmNode[0]);
         color = _color;
 

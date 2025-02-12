@@ -27,6 +27,10 @@ public class OsmNode extends OsmElement {
         return id;
     }
 
+    public void setId(long id){
+        this.id = id;
+    }
+
     @Override
     public double getMinLon() {
         return lon;

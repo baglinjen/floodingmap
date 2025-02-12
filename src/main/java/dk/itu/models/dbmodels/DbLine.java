@@ -25,5 +25,7 @@ public class DbLine {
 
     public List<DbLineCoord> getCoords() { return coords; }
 
+    public double getAltitude(){return altitude;}
+
 }
 

@@ -38,6 +38,16 @@ public abstract class MapModel {
         layers.forEach(layer -> {
             layer.parallelStream().forEach(element -> {
                 if (element instanceof OsmWay way) {
+
+                    if(way.getId() == 532264315L){
+                        System.out.println("test");
+                    }
+
+                    if(way.getId() == 3003806L){
+                        System.out.println("test");
+                    }
+
+
                     ShapeRasterizer.drawShapeInBuffer(way.getShape(), buffer, way.getColor());
                 }
             });
@@ -46,9 +56,7 @@ public abstract class MapModel {
 
     public void addLayer(List<OsmElement> layer)
     {
-        //layers.clear();
         layers.add(layer);
-
     }
 
     public void draw(GraphicsContext gc) {
