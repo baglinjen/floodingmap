@@ -16,59 +16,36 @@ import java.util.Objects;
 public class WayService {
     private static Session session;
 
-    public static OsmWay LoadWayFromDb(Long wayId) throws Exception {
-        OsmWay way = null;
+    public static List<OsmWay> LoadWaysFromDb() throws Exception {
+        List<OsmWay> ways = null;
         try {
             session = HibernateUtil.getSessionFactory().openSession();
             session.beginTransaction();
-            way = session.get(OsmWay.class, wayId);
-            if (way == null) throw new Exception("The way could not be extracted from the database");
+            ways = session.createQuery("FROM OsmWay", OsmWay.class).getResultList();
+            if (ways == null) throw new Exception("The ways could not be extracted from the database");
 
-//            //Retrive all nodes related to way
-//            var query = "SELECT n FROM OsmNode n WHERE n.id IN :ids ORDER BY CASE n.id ";
-            List<Long> nodeIds = way.getNodeIds();
-//
-//            for (int i = 0; i < nodeIds.size(); i++) {
-//                query += "WHEN " + nodeIds.get(i) + " THEN " + i + " ";
-//            }
-//            query += "END";
+            // Retrieve all nodes related to way
+            // List<Long> nodeIds = way.getNodeIds();
+            for(OsmWay way : ways)
+            {
+                List<Long> nodeIds = way.getNodeIds();
+                List<OsmNode> nodes = session.createNativeQuery(
+                                "SELECT * FROM nodes n WHERE n.id = ANY(:ids) ORDER BY array_position(:ids, n.id)", OsmNode.class)
+                        .setParameter("ids", nodeIds.toArray(new Long[0]))
+                        .getResultList();
 
-//            List<OsmNode> nodes = session.createQuery(query, OsmNode.class)
-//                    .setParameter("ids", nodeIds)
-//                    .getResultList();
+                // Ensure way "close" if needed
+                if (Objects.equals(nodeIds.getFirst(), nodeIds.getLast())) nodes.add(nodes.getFirst());
+                way.setNodes(nodes);
+                way.GeneratePath();
+            }
 
-            List<OsmNode> nodes = session.createNativeQuery(
-                    "SELECT * FROM nodes n WHERE n.id = ANY(:ids) ORDER BY array_position(:ids, n.id)", OsmNode.class)
-                    .setParameter("ids", nodeIds.toArray(new Long[0]))
-                    .getResultList();
-
-            //Ensure way "close" if needed
-            if (Objects.equals(way.getNodeIds().getFirst(), way.getNodeIds().getLast())) nodes.add(nodes.getFirst());
-
-            way.setNodes(nodes);
-            way.GeneratePath();
-            return way;
+            return ways;
         } catch (Exception e){
             System.out.println(e);
-            return way;
+            return ways;
         } finally {
             session.close();
         }
-    }
-
-    public List<OsmWay> GetAllWays(){
-        session = HibernateUtil.getSessionFactory().openSession();
-        session.beginTransaction();
-        List<OsmWay> ways = new ArrayList<>();
-        List x = session.createQuery("SELECT id FROM OsmWay").getResultList();
-        for(Object l : x){
-            try{
-                ways.add(LoadWayFromDb((Long)l));
-            } catch(Exception e){
-                System.out.println("A way was not loaded");
-            }
-        }
-
-        return ways;
     }
 }

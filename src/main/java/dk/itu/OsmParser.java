@@ -112,23 +112,4 @@ public class OsmParser {
             throw new UnsupportedOperationException("Failed to parse custom file");
         }
     }
-
-    public static MapModel parseDB(DrawingConfig drawingConfig){
-        List<List<OsmElement>> levels = new ArrayList<>(drawingConfig.getLevelsCount());
-        for (int i = 0; i < drawingConfig.getLevelsCount(); i++) {
-            levels.add(new ArrayList<>());
-        }
-
-        WayService wayService = new WayService();
-
-        List<OsmWay> ways = wayService.GetAllWays();
-
-        for(OsmWay way : ways){
-            //TODO: Implement color of way
-        }
-
-        return null;//TODO: REMOVE
-
-
-    }
 }
