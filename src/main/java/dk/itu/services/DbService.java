@@ -7,8 +7,6 @@ import dk.itu.services.modelservices.WayService;
 import dk.itu.utils.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
-
-import java.util.ArrayList;
 import java.util.List;
 
 public class DbService {
@@ -30,7 +28,7 @@ public class DbService {
 
     public MapModel GenerateMapModel()
     {
-        DbMetadata dbMetadata = getMetadata();
+        // DbMetadata dbMetadata = getMetadata();
         List<OsmWay> ways = wayService.GetAllWays();
         return null;
         //return new MapModel(dbMetadata.getMinlon(), dbMetadata.getMinlat(), dbMetadata.getMaxlat(), new ArrayList<>(ways));

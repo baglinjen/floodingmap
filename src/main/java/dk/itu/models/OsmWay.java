@@ -11,6 +11,7 @@ import java.util.List;
 @Table(name = "ways")
 public class OsmWay extends OsmElement {
     private Path2D.Float path;
+    @Transient
     private int color;
     @Transient
     private float minX, minY, maxX, maxY;
