@@ -9,4 +9,3 @@
 - [osm2pgsql](https://osm2pgsql.org/) is a tool for osm => pgsql and back
 - [osm-carto](https://github.com/gravitystorm/openstreetmap-carto/blob/master/project.mml) is the drawing specification for OSM
 - [Rendering order OSM](https://wiki.openstreetmap.org/wiki/OpenStreetMap_Carto#Rendering_order)
-- 
