@@ -1,10 +1,10 @@
 # https://wiki.openstreetmap.org/wiki/Map_features
 specification:
   # How many layers there are => used for efficient drawing
-  levels: 6
+  levels: 11
   # Re-used colors
   rgbColors:
-    white: "#000000"
+    white: "#ffffff"
     blue: "#a9d3de"
     gray: "#d8d0c9"
     red: "#0000ff"
@@ -13,44 +13,54 @@ specification:
     primary: "#fdd6a1"
     secondary: "#f6fabb"
     path_gray: "#dddddd"
-    light_green: "#ccf7c9"
-    dark_green: "#abd29c"
+    light_green: "#cdebb0"
+    green: "c8d7ab"
+    dark_green: "#add19e"
     sand: "#fff1bb"
+    coast: "#f2efe9"
+    salmon: "#f5dcba"
+    fun_green: "#dffce2"
+    area_gray: "#e0dfdf"
+    beige: "#d6d99f"
+    black: "#000000"
 features:
   building:
-    level: 5
     def:
+      level: 7
       rgb: "gray"
   emergency:
-    level: 5
     individuals:
       ambulance_station:
         rgb: "red"
       landing_site:
         rgb: "red"
   highway:
-    level: 4
     groupings:
       - tags:
           - "motorway"
           - "motorway_link"
         rgb: "motorway"
+        level: 6
       - tags:
           - "trunk"
           - "trunk_link"
         rgb: "trunk"
+        level: 6
       - tags:
           - "primary"
           - "primary_link"
         rgb: "primary"
+        level: 6
       - tags:
           - "secondary"
           - "secondary_link"
         rgb: "secondary"
+        level: 6
       - tags:
           - "tertiary"
           - "tertiary_link"
         rgb: "tertiary"
+        level: 6
       - tags:
           - "unclassified"
           - "residential"
@@ -58,53 +68,92 @@ features:
           - "service"
           - "road"
         rgb: "white"
+        level: 6
       - tags:
-          - "pedestrian"
           - "footway"
           - "bridleway"
           - "steps"
-          - "corridor"
           - "path"
           - "track"
         rgb: "path_gray"
-#  landuse:
-#    level: 0
-  leisure:
-    level: 3
+        level: 6
+  landuse:
     groupings:
       # Greens
       - tags:
-          - "garden"
-          - "park"
+          - "meadow"
+          - "grass"
+        level: 1
         rgb: "light_green"
+      - tags:
+          - "forest"
+        level: 3
+        rgb: "dark_green"
+      # Areas
+      - tags:
+          - "residential"
+        level: 4
+        rgb: "area_gray"
+      - tags:
+          - "farmyard"
+          - "farmland" # Consider lighter color
+        level: 4
+        rgb: "salmon"
+      - tags:
+          - "recreation_ground"
+        level: 4
+        rgb: "fun_green"
+  leisure:
+    groupings:
+      # Greens
+      - tags:
+          - "park"
+        level: 4
+        rgb: "fun_green"
   natural:
-    level: 1
     groupings:
       # Greens
       - tags:
           - "grassland"
-          - "heath"
+        level: 1
+        rgb: "light_green"
+      - tags:
           - "scrub"
           - "wood"
+          - "wetland"
+        level: 2
+        rgb: "green"
+      - tags:
+          - "wood"
+          - "wetland"
+        level: 3
         rgb: "dark_green"
+      - tags:
+          - "heath"
+        level: 3
+        rgb: "beige"
       # Waters
       - tags:
           - "bay"
           - "water"
+        level: 5
         rgb: "blue"
       # Borders
       - tags:
-          - "beach"
           - "coastline"
           - "peninsula"
+        level: 0
+        rgb: "coast"
+      - tags:
           - "sand"
+          - "beach"
+        level: 1
         rgb: "sand"
   water:
-    level: 2
     def:
+      level: 5
       rgb: "blue"
   waterway:
-    level: 2
     groupings:
       - tags:
           - "river"
@@ -114,6 +163,7 @@ features:
           - "drain"
           - "ditch"
         rgb: "blue"
+        level: 5
 infoToKeep:
   - "building:levels"
   - "height"
