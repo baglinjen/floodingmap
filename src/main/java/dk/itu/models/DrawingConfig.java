@@ -28,7 +28,7 @@ public record DrawingConfig(Specification specification, Map<String, Feature> fe
                     }
                 }
                 if (feature.def != null) {
-                    return new Pair<>(ColorUtils.toARGB(Color.web(specification.getColorHex(feature.def.rgb))), 0);
+                    return new Pair<>(ColorUtils.toARGB(Color.web(specification.getColorHex(feature.def.rgb))), feature.level);
                 }
             }
         }
