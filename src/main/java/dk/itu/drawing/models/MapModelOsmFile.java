@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 public class MapModelOsmFile extends MapModel {
-    public MapModelOsmFile(float minLon, float minLat, float maxLat, List<OsmWay> ways, List<OsmElement> areaElements, List<OsmElement> pathElements) {
+    public MapModelOsmFile(double minLon, double minLat, double maxLat, List<OsmWay> ways, List<OsmElement> areaElements, List<OsmElement> pathElements) {
         super();
         this.minLon = minLon;
         this.minLat = minLat;

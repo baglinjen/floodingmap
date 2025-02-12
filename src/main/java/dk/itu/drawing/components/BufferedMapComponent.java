@@ -43,7 +43,7 @@ public class BufferedMapComponent extends ImageView {
         }
     }
 
-    public void setPixelSuper(float inputX, float inputY, int colorARGB) {
+    public void setPixelSuper(double inputX, double inputY, int colorARGB) {
         int baseX = (int)(inputX * superSampleFactor);
         int baseY = (int)(inputY * superSampleFactor);
 

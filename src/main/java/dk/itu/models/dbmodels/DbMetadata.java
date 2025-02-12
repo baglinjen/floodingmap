@@ -21,19 +21,19 @@ public class DbMetadata {
     @Column(name = "maxlat", nullable = false)
     private double maxlat;
 
-    public float getMinlat() {
-        return (float)minlat;
+    public double getMinlat() {
+        return minlat;
     }
 
-    public float getMinlon(){
-        return (float)minlon;
+    public double getMinlon(){
+        return minlon;
     }
 
-    public float getMaxlat() {
-        return (float)maxlat;
+    public double getMaxlat() {
+        return maxlat;
     }
 
-    public float getMaxlon(){
-        return (float)maxlon;
+    public double getMaxlon(){
+        return maxlon;
     }
 }

@@ -11,6 +11,7 @@ import org.hibernate.Session;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class LineService {
@@ -30,15 +31,16 @@ public class LineService {
             for(DbLine line : lines)
             {
                 List<OsmNode> nodes = new ArrayList<>();
+
                 for(DbLineCoord coord : line.getCoords())
                 {
                     OsmNode node = new OsmNode();
-                    node.setLat((float)coord.getLatitude());
-                    node.setLon((float)coord.getLongitude());
+                    node.setLat(coord.getLatitude());
+                    node.setLon(coord.getLongitude());
                     nodes.add(node);
                 }
-                OsmWay way = new OsmWay(0L, nodes, colorCode);
-                way.setShape();
+
+                OsmWay way = new OsmWay(0L, nodes, colorCode, true);
                 ways.add(way);
             }
 

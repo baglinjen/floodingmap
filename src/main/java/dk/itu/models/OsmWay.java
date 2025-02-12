@@ -12,11 +12,11 @@ import java.util.List;
 @Entity
 @Table(name = "ways")
 public class OsmWay extends OsmElement {
-    private Path2D.Float path;
+    private Path2D.Double path;
     @Transient
     private int color;
     @Transient
-    private float minLon, minLat, maxLon, maxLat;
+    private double minLon, minLat, maxLon, maxLat;
     @Transient
     private Shape shape;
     @Transient
@@ -38,15 +38,15 @@ public class OsmWay extends OsmElement {
         osmNodes = nodes.toArray(new OsmNode[nodes.size()]);
     }
 
-    public OsmWay(long _id, List<OsmNode> _osmNodes, int _color) {
+    public OsmWay(long _id, List<OsmNode> _osmNodes, int _color, Boolean shouldFill) {
         id = _id;
         osmNodes = _osmNodes.toArray(new OsmNode[0]);
         color = _color;
 
-        minLon = Float.MAX_VALUE;
-        minLat = Float.MAX_VALUE;
-        maxLon = Float.MIN_VALUE;
-        maxLat = Float.MIN_VALUE;
+        minLon = Double.MAX_VALUE;
+        minLat = Double.MAX_VALUE;
+        maxLon = Double.MIN_VALUE;
+        maxLat = Double.MIN_VALUE;
 
         for (OsmElement osmNode : _osmNodes) {
             if (osmNode.getMinLon() < minLon) {
@@ -61,14 +61,15 @@ public class OsmWay extends OsmElement {
             }
         }
 
-        path = new Path2D.Float();
+        path = new Path2D.Double();
 
         path.moveTo(0.56* osmNodes[0].getMinLon(), -osmNodes[0].getMinLat());
         for (int i = 1; i < osmNodes.length; i+=1) {
             path.lineTo(0.56* osmNodes[i].getMinLon(), -osmNodes[i].getMinLat());
         }
 
-        shape = osmNodes[0].equals(osmNodes[osmNodes.length - 1]) ? new Area(path) : path;
+        if(shouldFill == null) shape = osmNodes[0].equals(osmNodes[osmNodes.length - 1]) ? new Area(path) : path;
+        else shape = shouldFill ? new Area(path) : path;
     }
 
     // For deserialization
@@ -87,26 +88,23 @@ public class OsmWay extends OsmElement {
         return id;
     }
     @Override
-    public float getMinLon() {
+    public double getMinLon() {
         return minLon;
     }
     @Override
-    public float getMaxLon() {
+    public double getMaxLon() {
         return maxLon;
     }
     @Override
-    public float getMinLat() {
+    public double getMinLat() {
         return minLat;
     }
     @Override
-    public float getMaxLat() {
+    public double getMaxLat() {
         return maxLat;
     }
     public Shape getShape() {
         return shape;
-    }
-    public void setShape() {
-        shape = new Path2D.Float(shape);
     }
 
     public int getColor() {

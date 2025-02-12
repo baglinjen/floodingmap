@@ -10,12 +10,12 @@ public class OsmNode extends OsmElement {
     private long id;
 
     @Column(name = "lat", nullable = false)
-    private float lat;
+    private double lat;
 
     @Column(name = "lon", nullable = false)
-    private float lon;
+    private double lon;
 
-    public OsmNode(long _id, float _y, float _x) {
+    public OsmNode(long _id, double _y, double _x) {
         id = _id;
         lat = _y;
         lon = _x;
@@ -28,26 +28,26 @@ public class OsmNode extends OsmElement {
     }
 
     @Override
-    public float getMinLon() {
+    public double getMinLon() {
         return lon;
     }
 
     @Override
-    public float getMaxLon() {
+    public double getMaxLon() {
         return lon;
     }
 
-    public void setLon(float lon) { this.lon = lon; }
+    public void setLon(double lon) { this.lon = lon; }
 
     @Override
-    public float getMinLat() {
+    public double getMinLat() {
         return lat;
     }
 
     @Override
-    public float getMaxLat() {
+    public double getMaxLat() {
         return lat;
     }
 
-    public void setLat(float lat) { this.lat = lat; }
+    public void setLat(double lat) { this.lat = lat; }
 }

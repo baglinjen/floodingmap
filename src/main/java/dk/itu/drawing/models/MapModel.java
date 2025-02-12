@@ -14,7 +14,7 @@ import java.util.List;
 import static dk.itu.drawing.utils.ColorUtils.toARGB;
 
 public abstract class MapModel {
-    protected float minLon, minLat, maxLat;
+    protected double minLon, minLat, maxLat;
     protected List<OsmElement> elements = new ArrayList<>();
     protected List<OsmElement> areaElements = new ArrayList<>();
     protected List<OsmElement> pathElements = new ArrayList<>();
@@ -23,13 +23,13 @@ public abstract class MapModel {
 
     public MapModel() {}
 
-    public float getMinLon() {
+    public double getMinLon() {
         return minLon;
     }
-    public float getMinLat() {
+    public double getMinLat() {
         return minLat;
     }
-    public float getMaxLat() {
+    public double getMaxLat() {
         return maxLat;
     }
 
@@ -46,7 +46,9 @@ public abstract class MapModel {
 
     public void addLayer(List<OsmElement> layer)
     {
+        //layers.clear();
         layers.add(layer);
+
     }
 
     public void draw(GraphicsContext gc) {
