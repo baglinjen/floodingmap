@@ -28,22 +28,26 @@ public class OsmNode extends OsmElement {
     }
 
     @Override
-    public float getMinX() {
+    public float getMinLon() {
         return lon;
     }
 
     @Override
-    public float getMaxX() {
+    public float getMaxLon() {
         return lon;
     }
 
+    public void setLon(float lon) { this.lon = lon; }
+
     @Override
-    public float getMinY() {
+    public float getMinLat() {
         return lat;
     }
 
     @Override
-    public float getMaxY() {
+    public float getMaxLat() {
         return lat;
     }
+
+    public void setLat(float lat) { this.lat = lat; }
 }

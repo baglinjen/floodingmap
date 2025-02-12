@@ -3,12 +3,8 @@ package dk.itu.services.modelservices;
 import dk.itu.models.OsmNode;
 import dk.itu.models.OsmWay;
 import dk.itu.utils.HibernateUtil;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.hibernate.Session;
-import org.hibernate.Transaction;
 import org.springframework.stereotype.Service;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -25,7 +21,6 @@ public class WayService {
             if (ways == null) throw new Exception("The ways could not be extracted from the database");
 
             // Retrieve all nodes related to way
-            // List<Long> nodeIds = way.getNodeIds();
             for(OsmWay way : ways)
             {
                 List<Long> nodeIds = way.getNodeIds();

@@ -14,7 +14,7 @@ public class OsmWay extends OsmElement {
     @Transient
     private int color;
     @Transient
-    private float minX, minY, maxX, maxY;
+    private float minLon, minLat, maxLon, maxLat;
     @Transient
     private Shape shape;
     @Transient
@@ -41,35 +41,35 @@ public class OsmWay extends OsmElement {
         osmNodes = _osmNodes.toArray(new OsmNode[0]);
         color = _color;
 
-        minX = Float.MAX_VALUE;
-        minY = Float.MAX_VALUE;
-        maxX = Float.MIN_VALUE;
-        maxY = Float.MIN_VALUE;
+        minLon = Float.MAX_VALUE;
+        minLat = Float.MAX_VALUE;
+        maxLon = Float.MIN_VALUE;
+        maxLat = Float.MIN_VALUE;
 
         for (OsmElement osmNode : _osmNodes) {
-            if (osmNode.getMinX() < minX) {
-                minX = osmNode.getMinX();
-            } else if (osmNode.getMaxX() > maxX) {
-                maxX = osmNode.getMaxX();
+            if (osmNode.getMinLon() < minLon) {
+                minLon = osmNode.getMinLon();
+            } else if (osmNode.getMaxLon() > maxLon) {
+                maxLon = osmNode.getMaxLon();
             }
-            if (osmNode.getMinY() < minY) {
-                minY = osmNode.getMinY();
-            } else if (osmNode.getMaxY() > maxY) {
-                maxY = osmNode.getMaxY();
+            if (osmNode.getMinLat() < minLat) {
+                minLat = osmNode.getMinLat();
+            } else if (osmNode.getMaxLat() > maxLat) {
+                maxLat = osmNode.getMaxLat();
             }
         }
 
         path = new Path2D.Float();
 
-        path.moveTo(0.56* osmNodes[0].getMinX(), -osmNodes[0].getMinY());
+        path.moveTo(0.56* osmNodes[0].getMinLon(), -osmNodes[0].getMinLat());
         for (int i = 1; i < osmNodes.length; i+=1) {
-            path.lineTo(0.56* osmNodes[i].getMinX(), -osmNodes[i].getMinY());
+            path.lineTo(0.56* osmNodes[i].getMinLon(), -osmNodes[i].getMinLat());
         }
 
         shape = osmNodes[0].equals(osmNodes[osmNodes.length - 1]) ? new Area(path) : path;
     }
 
-    //For deserialization
+    // For deserialization
     public OsmWay(){}
 
     public void GeneratePath(){
@@ -85,20 +85,20 @@ public class OsmWay extends OsmElement {
         return id;
     }
     @Override
-    public float getMinX() {
-        return minX;
+    public float getMinLon() {
+        return minLon;
     }
     @Override
-    public float getMaxX() {
-        return maxX;
+    public float getMaxLon() {
+        return maxLon;
     }
     @Override
-    public float getMinY() {
-        return minY;
+    public float getMinLat() {
+        return minLat;
     }
     @Override
-    public float getMaxY() {
-        return maxY;
+    public float getMaxLat() {
+        return maxLat;
     }
     public Shape getShape() {
         return shape;

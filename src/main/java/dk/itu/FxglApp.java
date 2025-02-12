@@ -5,9 +5,7 @@ import com.almasb.fxgl.app.GameSettings;
 import dk.itu.drawing.models.MapModel;
 import dk.itu.drawing.components.MouseEventOverlayComponent;
 import dk.itu.drawing.components.BufferedMapComponent;
-import dk.itu.models.OsmWay;
 import dk.itu.services.DbService;
-import dk.itu.services.modelservices.WayService;
 import javafx.scene.Cursor;
 import javafx.scene.layout.StackPane;
 import javafx.scene.transform.Affine;
@@ -75,8 +73,8 @@ public class FxglApp extends GameApplication {
         addUINode(root);
 
         // Original scaling and translation
-        affine.prependTranslation(-0.56 * mapModel.getMinX(), mapModel.getMaxY());
-        affine.prependScale(H / (mapModel.getMaxY() - mapModel.getMinY()), H / (mapModel.getMaxY() - mapModel.getMinY()));
+        affine.prependTranslation(-0.56 * mapModel.getMinLon(), mapModel.getMaxLat());
+        affine.prependScale(H / (mapModel.getMaxLat() - mapModel.getMinLat()), H / (mapModel.getMaxLat() - mapModel.getMinLat()));
 
         for (int i = 0; i < BUFFER_SIZE; i++) {
             emptyBuffers.add(new BufferedMapComponent(W, H, SUPER_SAMPLE_FACTOR, affine));
