@@ -2,12 +2,10 @@ package dk.itu;
 
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
+import dk.itu.drawing.components.MapBuffers;
 import dk.itu.drawing.models.MapModel;
 import dk.itu.drawing.components.MouseEventOverlayComponent;
 import dk.itu.drawing.components.BufferedMapComponent;
-import dk.itu.models.OsmWay;
-import dk.itu.services.DbService;
-import dk.itu.services.modelservices.WayService;
 import javafx.scene.Cursor;
 import javafx.scene.layout.StackPane;
 import javafx.scene.transform.Affine;
@@ -29,6 +27,7 @@ public class FxglApp extends GameApplication {
     private final BlockingQueue<BufferedMapComponent> fullBuffers = new ArrayBlockingQueue<>(BUFFER_SIZE);
     private final BlockingQueue<BufferedMapComponent> emptyBuffers = new ArrayBlockingQueue<>(BUFFER_SIZE);
     private BufferedMapComponent currentBuffer;
+    private MapBuffers buffers;
     // Models
     private MapModel mapModel;
     // UI Components
