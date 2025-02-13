@@ -2,15 +2,11 @@ package dk.itu.models;
 
 import dk.itu.utils.converters.JsonConverter;
 import jakarta.persistence.*;
-
-import java.awt.*;
-import java.awt.geom.Path2D;
 import java.util.List;
 
 @Entity
 @Table(name = "relations")
-public class OsmRelation {
-
+public class OsmRelation extends OsmElement {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
@@ -29,9 +25,49 @@ public class OsmRelation {
     @Transient
     private OsmWay[] innerWays = new OsmWay[0];
 
+    @Transient
+    private double minLon;
+
+    @Transient
+    private double maxLon;
+
+    @Transient
+    private double minLat;
+
+    @Transient
+    private double maxLat;
+
     // TODO: Consider if tags are necessary
 
     public long getId() { return id; }
+
+    @Override
+    public double getMinLon() {
+        return 0;
+    }
+
+    public void setMinLon(double lon) { minLon = lon; }
+
+    @Override
+    public double getMaxLon() {
+        return 0;
+    }
+
+    public void setMaxLon(double lon) { maxLon = lon; }
+
+    @Override
+    public double getMinLat() {
+        return 0;
+    }
+
+    public void setMinLat(double lat) { minLat = lat; }
+
+    @Override
+    public double getMaxLat() {
+        return 0;
+    }
+
+    public void setMaxLat(double lat) { maxLat = lat; }
 
     public List<Long> getOuterWaysIds() { return outerWaysIds; }
 
@@ -40,4 +76,8 @@ public class OsmRelation {
     public List<Long> getInnerWaysIds() { return innerWaysIds; }
 
     public void setInnerWays(List<OsmWay> ways) { innerWays = ways.toArray(new OsmWay[ways.size()]); }
+
+    public OsmWay[] getOuterWays() { return outerWays; }
+
+    public OsmWay[] getInnerWays() { return innerWays; }
 }

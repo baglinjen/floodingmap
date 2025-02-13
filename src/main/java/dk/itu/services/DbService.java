@@ -15,6 +15,9 @@ import org.hibernate.Session;
 import org.hibernate.Transaction;
 
 import javax.management.relation.Relation;
+import java.awt.geom.Area;
+import java.awt.geom.Path2D;
+import java.util.ArrayList;
 import java.util.List;
 
 public class DbService {
@@ -38,22 +41,36 @@ public class DbService {
 
     public MapModel GenerateMapModel()
     {
-        try
-        {
-            // DbMetadata dbMetadata = getMetadata();
-            // List<OsmElement> dbLines = lineService.LoadLinesFromDb(0);
-            List<OsmRelation> relations = RelationService.LoadRelationsFromDb();
-            System.out.println(relations.size());
-            // MapModelDb mapModelDb = new MapModelDb(dbMetadata.getMinlon(), dbMetadata.getMinlat(), dbMetadata.getMaxlat(), null);
-        } catch (Exception e) { System.out.println(e); }
-//        try {
-//            List<OsmWay> ways = wayService.LoadWaysFromDb();
-//            System.out.println(ways.size());
-//        } catch (Exception e)
-//        {
-//            return null;
-//        }
-//
+        try {
+            DbMetadata dbMetadata = getMetadata();
+
+            // List<OsmRelation> relations = RelationService.LoadRelationsFromDb();
+            List<OsmWay> allWays = WayService.LoadWaysFromDb();
+            List<OsmElement> allAreaElements = new ArrayList<>();
+            List<OsmElement> allPathElements = new ArrayList<>();
+
+            for (OsmWay way : allWays) {
+                switch (way.getShape()) {
+                    case Area _:
+                        allAreaElements.add(way);
+                        break;
+                    case Path2D _:
+                        allPathElements.add(way);
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            double minLon = dbMetadata.getMinlon();
+            double minLat = dbMetadata.getMinlat();
+            double maxLat = dbMetadata.getMaxlat();
+
+            return new MapModelDb(minLon, minLat, maxLat, allWays, allAreaElements, allPathElements);
+
+        } catch (Exception e) {
+            System.out.println(e);
+        }
         return null;
     }
 

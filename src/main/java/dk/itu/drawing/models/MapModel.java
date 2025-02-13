@@ -49,8 +49,6 @@ public abstract class MapModel {
         layers.add(layer);
     }
 
-    public void clearLayers() { layers.clear(); }
-
     public void draw(GraphicsContext gc) {
         layers.forEach(layer -> {
             layer.forEach(element -> {

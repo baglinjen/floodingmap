@@ -36,6 +36,7 @@ public class RelationService {
 
                 // Ensure way "close" if needed
 //                if (Objects.equals(nodeIds.getFirst(), nodeIds.getLast())) nodes.add(nodes.getFirst());
+                // TODO: Consider calculating max/min lat/lon in the data tool instead to improve performance
 
                 relation.setInnerWays(innerWays);
                 relation.setOuterWays(outerWays);

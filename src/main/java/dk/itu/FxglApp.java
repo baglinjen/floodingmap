@@ -67,9 +67,8 @@ public class FxglApp extends GameApplication {
     @Override
     protected void initGame() {
         getGameScene().setCursor(Cursor.DEFAULT);
-        DbService dbService = new DbService();
-
-        dbService.GenerateMapModel();
+        // DbService dbService = new DbService();
+        // mapModel = dbService.GenerateMapModel();
         mapModel = OsmParser.parse("osm/tuna.osm", DrawingConfigParser.parse());
         try {
             mapModel.addLayer(LineService.LoadLinesFromDb(0));

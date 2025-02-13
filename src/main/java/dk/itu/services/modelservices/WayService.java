@@ -1,5 +1,6 @@
 package dk.itu.services.modelservices;
 
+import dk.itu.models.DrawingConfig;
 import dk.itu.models.OsmNode;
 import dk.itu.models.OsmWay;
 import dk.itu.utils.HibernateUtil;
