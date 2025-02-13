@@ -1,8 +1,8 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="FxglApp" type="Application" factoryName="Application" nameIsGenerated="true">
     <envs>
-      <env name="DBNAME" value="bsctest" />
-      <env name="DBPASSWORD" value="password" />
+      <env name="DBNAME" value="postgres" />
+      <env name="DBPASSWORD" value="1015" />
       <env name="DBUSER" value="postgres" />
       <env name="WL" value="10" />
     </envs>

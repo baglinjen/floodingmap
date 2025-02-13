@@ -3,14 +3,18 @@ package dk.itu.services;
 import dk.itu.drawing.models.MapModel;
 import dk.itu.drawing.models.MapModelDb;
 import dk.itu.models.OsmElement;
+import dk.itu.models.OsmRelation;
 import dk.itu.models.OsmWay;
 import dk.itu.models.dbmodels.DbLine;
 import dk.itu.models.dbmodels.DbMetadata;
 import dk.itu.services.modelservices.LineService;
+import dk.itu.services.modelservices.RelationService;
 import dk.itu.services.modelservices.WayService;
 import dk.itu.utils.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+
+import javax.management.relation.Relation;
 import java.util.List;
 
 public class DbService {
@@ -36,10 +40,11 @@ public class DbService {
     {
         try
         {
-            DbMetadata dbMetadata = getMetadata();
-            List<OsmElement> dbLines = lineService.LoadLinesFromDb();
-            System.out.println(dbLines.size());
-            MapModelDb mapModelDb = new MapModelDb(dbMetadata.getMinlon(), dbMetadata.getMinlat(), dbMetadata.getMaxlat(), null);
+            // DbMetadata dbMetadata = getMetadata();
+            // List<OsmElement> dbLines = lineService.LoadLinesFromDb(0);
+            List<OsmRelation> relations = RelationService.LoadRelationsFromDb();
+            System.out.println(relations.size());
+            // MapModelDb mapModelDb = new MapModelDb(dbMetadata.getMinlon(), dbMetadata.getMinlat(), dbMetadata.getMaxlat(), null);
         } catch (Exception e) { System.out.println(e); }
 //        try {
 //            List<OsmWay> ways = wayService.LoadWaysFromDb();

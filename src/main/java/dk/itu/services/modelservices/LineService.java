@@ -20,7 +20,7 @@ import java.util.Objects;
 public class LineService {
     private static Session session;
 
-    public static List<OsmElement> LoadLinesFromDb() throws Exception {
+    public static List<OsmElement> LoadLinesFromDb(int _waterLevel) throws Exception {
         List<OsmElement> ways = new ArrayList<>();
         List<DbLine> lines;
         try {
@@ -29,13 +29,12 @@ public class LineService {
             lines = session.createQuery("FROM DbLine", DbLine.class).getResultList();
             if (lines == null) throw new Exception("The ways could not be extracted from the database");
 
-            int waterLevel = Integer.parseInt(System.getenv("WL"));
             int blackColorCode = ColorUtils.toARGB(Color.BLACK);
             int blueColorCode = ColorUtils.toARGB(Color.BLUE);
 
             for(DbLine line : lines)
             {
-                boolean isUnderwater = waterLevel > line.getAltitude();
+                boolean isUnderwater = _waterLevel > line.getAltitude();
                 List<OsmNode> nodes = new ArrayList<>();
 
                 //for(DbLineCoord coord : line.getCoords())
@@ -50,7 +49,6 @@ public class LineService {
                 }
 
                 //nodes.add(nodes.getFirst());
-
                 OsmWay way = new OsmWay(Long.parseLong(line.getId()), nodes, (isUnderwater ? blueColorCode : blackColorCode), false);
                 ways.add(way);
             }

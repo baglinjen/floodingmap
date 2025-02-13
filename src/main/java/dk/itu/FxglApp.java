@@ -3,11 +3,13 @@ package dk.itu;
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
 import dk.itu.drawing.components.MapBuffers;
+import dk.itu.drawing.components.ScalerComponent;
 import dk.itu.drawing.models.MapModel;
 import dk.itu.drawing.components.MouseEventOverlayComponent;
 import dk.itu.drawing.components.BufferedMapComponent;
 import dk.itu.services.DbService;
 import dk.itu.services.modelservices.LineService;
+import javafx.application.Platform;
 import javafx.scene.Cursor;
 import javafx.scene.layout.StackPane;
 import javafx.scene.transform.Affine;
@@ -64,23 +66,32 @@ public class FxglApp extends GameApplication {
 
     @Override
     protected void initGame() {
-        // Set cursor
         getGameScene().setCursor(Cursor.DEFAULT);
-        // Load Models
+        DbService dbService = new DbService();
+
+        dbService.GenerateMapModel();
         mapModel = OsmParser.parse("osm/tuna.osm", DrawingConfigParser.parse());
         try {
-            mapModel.addLayer(LineService.LoadLinesFromDb());
-        } catch (Exception e)
-        {
+            mapModel.addLayer(LineService.LoadLinesFromDb(0));
+        } catch (Exception e) {
             System.out.println(e);
         }
-        // Create Components
+
+//        ScalerComponent scaler = new ScalerComponent();
+//        scaler.setScalerListener(waterLevel -> {
+//            Platform.runLater(() -> {
+//                try {
+//                    mapModel.addLayer(LineService.LoadLinesFromDb(waterLevel));
+//                } catch (Exception e) {
+//                    System.out.println(e);
+//                }
+//            });
+//        });
+
         Affine affine = new Affine();
         root = new StackPane(new MouseEventOverlayComponent(affine));
-        // Add components
         addUINode(root);
 
-        // Original scaling and translation
         affine.prependTranslation(-0.56 * mapModel.getMinLon(), mapModel.getMaxLat());
         affine.prependScale(H / (mapModel.getMaxLat() - mapModel.getMinLat()), H / (mapModel.getMaxLat() - mapModel.getMinLat()));
 
@@ -93,6 +104,7 @@ public class FxglApp extends GameApplication {
             getExecutor().startAsyncFX(() -> getGameController().exit());
         });
     }
+
 
     @Override
     protected void onUpdate(double tpf) {

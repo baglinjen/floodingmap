@@ -6,7 +6,6 @@ import jakarta.persistence.*;
 import java.awt.*;
 import java.awt.geom.Area;
 import java.awt.geom.Path2D;
-import java.awt.geom.Point2D;
 import java.util.List;
 
 @Entity
@@ -40,14 +39,6 @@ public class OsmWay extends OsmElement {
 
     public OsmWay(long _id, List<OsmNode> _osmNodes, int _color, Boolean shouldFill) {
         id = _id;
-
-        if(id == 3003806L){
-            System.out.println("Break here -> FAULTY");
-        }
-
-        if(id == 532264315L){
-            System.out.println("Break here -> VALID");
-        }
 
         osmNodes = _osmNodes.toArray(new OsmNode[0]);
         color = _color;
