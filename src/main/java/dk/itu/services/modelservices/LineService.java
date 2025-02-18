@@ -26,7 +26,7 @@ public class LineService {
         try {
             session = HibernateUtil.getSessionFactory().openSession();
             session.beginTransaction();
-            lines = session.createQuery("FROM DbLine", DbLine.class).getResultList();
+            lines = session.createQuery("FROM DbLine ORDER BY altitude ASC", DbLine.class).getResultList();
             if (lines == null) throw new Exception("The ways could not be extracted from the database");
 
             int waterLevel = Integer.parseInt(System.getenv("WL"));
@@ -38,7 +38,6 @@ public class LineService {
                 boolean isUnderwater = waterLevel > line.getAltitude();
                 List<OsmNode> nodes = new ArrayList<>();
 
-                //for(DbLineCoord coord : line.getCoords())
                 for(int i = 0; i < line.getCoords().size(); i++)
                 {
                     DbLineCoord coord = line.getCoords().get(i);
@@ -49,9 +48,7 @@ public class LineService {
                     nodes.add(node);
                 }
 
-                //nodes.add(nodes.getFirst());
-
-                OsmWay way = new OsmWay(Long.parseLong(line.getId()), nodes, (isUnderwater ? blueColorCode : blackColorCode), false);
+                OsmWay way = new OsmWay(Long.parseLong(line.getId()), nodes, (isUnderwater ? blueColorCode : blackColorCode), true);
                 ways.add(way);
             }
 

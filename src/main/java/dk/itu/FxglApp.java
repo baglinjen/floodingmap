@@ -7,6 +7,7 @@ import dk.itu.drawing.models.MapModel;
 import dk.itu.drawing.components.MouseEventOverlayComponent;
 import dk.itu.drawing.components.BufferedMapComponent;
 import dk.itu.services.DbService;
+import dk.itu.services.RoutingService;
 import dk.itu.services.modelservices.LineService;
 import javafx.scene.Cursor;
 import javafx.scene.layout.StackPane;
@@ -74,6 +75,7 @@ public class FxglApp extends GameApplication {
         {
             System.out.println(e);
         }
+
         // Create Components
         Affine affine = new Affine();
         root = new StackPane(new MouseEventOverlayComponent(affine));

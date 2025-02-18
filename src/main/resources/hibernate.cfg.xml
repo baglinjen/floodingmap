@@ -31,5 +31,6 @@
         <mapping class="dk.itu.models.OsmElement" />
         <mapping class="dk.itu.models.dbmodels.DbMetadata" />
         <mapping class="dk.itu.models.dbmodels.DbLine" />
+        <mapping class="dk.itu.models.dbmodels.DbRouting"/>
     </session-factory>
 </hibernate-configuration>

@@ -18,4 +18,6 @@ public class ColorUtils {
                 | random.nextInt(256) << 8     // Green
                 | random.nextInt(256);         // Blue
     }
+
+
 }
