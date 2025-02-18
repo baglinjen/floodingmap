@@ -26,6 +26,8 @@ public class WayService {
                         .setParameter("ids", nodeIds.toArray(new Long[0]))
                         .getResultList();
 
+                // Make sure the way closes itself
+                // TODO: Maybe this computation could be done in the db tool?
                 if (Objects.equals(nodeIds.getFirst(), nodeIds.getLast())) nodes.add(nodes.getFirst());
                 way.setNodes(nodes);
             }
