@@ -7,12 +7,15 @@ import dk.itu.drawing.models.MapModel;
 import dk.itu.drawing.components.MouseEventOverlayComponent;
 import dk.itu.drawing.components.BufferedMapComponent;
 import dk.itu.services.DbService;
+import dk.itu.services.RoutingService;
+import dk.itu.services.modelservices.LineService;
 import javafx.scene.Cursor;
 import javafx.scene.layout.StackPane;
 import javafx.scene.transform.Affine;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import javax.sound.sampled.Line;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -65,9 +68,14 @@ public class FxglApp extends GameApplication {
         // Set cursor
         getGameScene().setCursor(Cursor.DEFAULT);
         // Load Models
-        // mapModel = OsmParser.parse("osm/tuna.osm", DrawingConfigParser.parse());
-        DbService service = new DbService();
-        mapModel = service.GenerateMapModel();
+        mapModel = OsmParser.parse("osm/tuna.osm", DrawingConfigParser.parse());
+        try {
+            mapModel.addLayer(LineService.LoadLinesFromDb());
+        } catch (Exception e)
+        {
+            System.out.println(e);
+        }
+
         // Create Components
         Affine affine = new Affine();
         root = new StackPane(new MouseEventOverlayComponent(affine));

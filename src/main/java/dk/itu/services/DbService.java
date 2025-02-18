@@ -2,6 +2,7 @@ package dk.itu.services;
 
 import dk.itu.drawing.models.MapModel;
 import dk.itu.drawing.models.MapModelDb;
+import dk.itu.models.OsmElement;
 import dk.itu.models.OsmWay;
 import dk.itu.models.dbmodels.DbLine;
 import dk.itu.models.dbmodels.DbMetadata;
@@ -36,7 +37,7 @@ public class DbService {
         try
         {
             DbMetadata dbMetadata = getMetadata();
-            List<OsmWay> dbLines = lineService.LoadLinesFromDb();
+            List<OsmElement> dbLines = lineService.LoadLinesFromDb();
             System.out.println(dbLines.size());
             MapModelDb mapModelDb = new MapModelDb(dbMetadata.getMinlon(), dbMetadata.getMinlat(), dbMetadata.getMaxlat(), null);
         } catch (Exception e) { System.out.println(e); }

@@ -9,14 +9,14 @@ import java.util.Collections;
 import java.util.List;
 
 public class ShapeRasterizer {
-    private static final float STEP_SIZE = 0.5f; // Increased step size for better performance
+    private static final double STEP_SIZE = 0.5f; // Increased step size for better performance
 
     public static void drawShapeInBuffer(Shape shape, BufferedMapComponent buffer, int color) {
         switch (shape) {
             case Area area:
                 drawArea(area, buffer, color);
                 break;
-            case Path2D.Float path:
+            case Path2D.Double path:
                 drawPath(path, buffer, color);
                 break;
             default:
@@ -27,12 +27,12 @@ public class ShapeRasterizer {
     private static void drawArea(Area area, BufferedMapComponent buffer, int color) {
         // Fill the area
         PathIterator pathIterator = area.getPathIterator(buffer.getAffineTransform());
-        float[] coords = new float[6];
+        double[] coords = new double[6];
         List<Edge> edges = new ArrayList<>();
-        float startX = 0, startY = 0;
-        float lastX = 0, lastY = 0;
-        float minY = Float.MAX_VALUE;
-        float maxY = Float.MIN_VALUE;
+        double startX = 0, startY = 0;
+        double lastX = 0, lastY = 0;
+        double minY = Double.MAX_VALUE;
+        double maxY = Double.MIN_VALUE;
 
         // Build edge table
         while (!pathIterator.isDone()) {
@@ -72,9 +72,9 @@ public class ShapeRasterizer {
         List<Edge> activeEdges = new ArrayList<>();
 
         // Scan line algorithm
-        for (float y = minY; y <= maxY; y += STEP_SIZE) {
+        for (double y = minY; y <= maxY; y += STEP_SIZE) {
             // Remove completed edges
-            float finalY = y;
+            double finalY = y;
             activeEdges.removeIf(edge -> finalY >= edge.yMax);
 
             // Add new edges that start at this scanline
@@ -85,14 +85,14 @@ public class ShapeRasterizer {
             }
 
             // Sort active edges by x intersection
-            activeEdges.sort((e1, e2) -> Float.compare(e1.xIntersect(finalY), e2.xIntersect(finalY)));
+            activeEdges.sort((e1, e2) -> Double.compare(e1.xIntersect(finalY), e2.xIntersect(finalY)));
 
             // Fill between pairs of intersections
             for (int i = 0; i < activeEdges.size() - 1; i += 2) {
                 if (i + 1 < activeEdges.size()) {
-                    float x1 = activeEdges.get(i).xIntersect(y);
-                    float x2 = activeEdges.get(i + 1).xIntersect(y);
-                    for (float x = x1; x <= x2; x += STEP_SIZE) {
+                    double x1 = activeEdges.get(i).xIntersect(y);
+                    double x2 = activeEdges.get(i + 1).xIntersect(y);
+                    for (double x = x1; x <= x2; x += STEP_SIZE) {
                         buffer.setPixelSuper(x, y, color);
                     }
                 }
@@ -133,11 +133,11 @@ public class ShapeRasterizer {
     }
 
     private static class Edge implements Comparable<Edge> {
-        final float x1, y1, x2, y2;
-        final float yMin, yMax;
-        final float inverseSlope;
+        final double x1, y1, x2, y2;
+        final double yMin, yMax;
+        final double inverseSlope;
 
-        Edge(float x1, float y1, float x2, float y2) {
+        Edge(double x1, double y1, double x2, double y2) {
             this.x1 = x1;
             this.y1 = y1;
             this.x2 = x2;
@@ -147,21 +147,21 @@ public class ShapeRasterizer {
             this.inverseSlope = (x2 - x1) / (y2 - y1);
         }
 
-        float xIntersect(float y) {
+        double xIntersect(double y) {
             return x1 + (y - y1) * inverseSlope;
         }
 
         @Override
         public int compareTo(Edge other) {
-            return Float.compare(this.yMin, other.yMin);
+            return Double.compare(this.yMin, other.yMin);
         }
     }
 
-    private static void drawPath(Path2D.Float path, BufferedMapComponent buffer, int color) {
+    private static void drawPath(Path2D.Double path, BufferedMapComponent buffer, int color) {
         PathIterator pathIterator = path.getPathIterator(buffer.getAffineTransform());
-        float[] coords = new float[6];
-        float startX = 0, startY = 0;
-        float lastX = 0, lastY = 0;
+        double[] coords = new double[6];
+        double startX = 0, startY = 0;
+        double lastX = 0, lastY = 0;
         boolean first = true;
 
         while (!pathIterator.isDone()) {
@@ -192,26 +192,26 @@ public class ShapeRasterizer {
         }
     }
 
-    private static void drawPreciseLine(float x0, float y0, float x1, float y1, BufferedMapComponent buffer, int color) {
-        float dx = x1 - x0;
-        float dy = y1 - y0;
-        float length = (float) Math.sqrt(dx * dx + dy * dy);
+    private static void drawPreciseLine(double x0, double y0, double x1, double y1, BufferedMapComponent buffer, int color) {
+        double dx = x1 - x0;
+        double dy = y1 - y0;
+        double length = Math.sqrt(dx * dx + dy * dy);
 
         if (length < STEP_SIZE) {
             buffer.setPixelSuper(x0, y0, color);
             return;
         }
 
-        float unitX = dx / length;
-        float unitY = dy / length;
-        float steps = length / STEP_SIZE;
+        double unitX = dx / length;
+        double unitY = dy / length;
+        double steps = length / STEP_SIZE;
 
         // Pre-multiply step values
-        float stepX = unitX * STEP_SIZE;
-        float stepY = unitY * STEP_SIZE;
+        double stepX = unitX * STEP_SIZE;
+        double stepY = unitY * STEP_SIZE;
 
-        float x = x0;
-        float y = y0;
+        double x = x0;
+        double y = y0;
 
         // Unrolled loop for better performance
         int fullSteps = (int) steps;

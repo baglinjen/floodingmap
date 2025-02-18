@@ -19,7 +19,11 @@ public class DbLine {
     @Convert(converter = CoordinateConverter.class)
     private List<DbLineCoord> coords;
 
+    public String getId(){
+        return id;
+    }
+
     public List<DbLineCoord> getCoords() { return coords; }
 
+    public double getAltitude(){return altitude;}
 }
-
