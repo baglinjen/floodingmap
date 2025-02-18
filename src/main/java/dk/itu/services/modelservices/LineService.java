@@ -1,5 +1,5 @@
 package dk.itu.services.modelservices;
-import dk.itu.drawing.utils.ColorUtils;
+import dk.itu.models.DrawingConfig;
 import dk.itu.models.OsmElement;
 import dk.itu.models.OsmNode;
 import dk.itu.models.OsmWay;
@@ -14,7 +14,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+
+import static dk.itu.utils.DrawingUtils.toARGB;
 
 @Service
 public class LineService {
@@ -30,8 +31,8 @@ public class LineService {
             if (lines == null) throw new Exception("The ways could not be extracted from the database");
 
             int waterLevel = Integer.parseInt(System.getenv("WL"));
-            int blackColorCode = ColorUtils.toARGB(Color.BLACK);
-            int blueColorCode = ColorUtils.toARGB(Color.BLUE);
+            DrawingConfig.Style blackColorStyle = new DrawingConfig.Style(toARGB(Color.BLACK), 0);
+            DrawingConfig.Style blueColorStyle = new DrawingConfig.Style(toARGB(Color.BLUE), 0);
 
             for(DbLine line : lines)
             {
@@ -48,7 +49,7 @@ public class LineService {
                     nodes.add(node);
                 }
 
-                OsmWay way = new OsmWay(Long.parseLong(line.getId()), nodes, (isUnderwater ? blueColorCode : blackColorCode), true);
+                OsmWay way = new OsmWay(Long.parseLong(line.getId()), nodes, (isUnderwater ? blueColorStyle : blackColorStyle), true);
                 ways.add(way);
             }
 

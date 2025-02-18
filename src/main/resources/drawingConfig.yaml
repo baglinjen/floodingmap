@@ -1,9 +1,7 @@
 # https://wiki.openstreetmap.org/wiki/Map_features
 specification:
-  # How many layers there are => used for efficient drawing
-  levels: 11
   # Re-used colors
-  rgbColors:
+  rgbaColors:
     white: "#ffffff"
     blue: "#a9d3de"
     gray: "#d8d0c9"
@@ -12,7 +10,7 @@ specification:
     trunk: "#fbc0ab"
     primary: "#fdd6a1"
     secondary: "#f6fabb"
-    path_gray: "#dddddd"
+    path_brown: "#b99855"
     light_green: "#cdebb0"
     green: "c8d7ab"
     dark_green: "#add19e"
@@ -22,137 +20,126 @@ specification:
     fun_green: "#dffce2"
     area_gray: "#e0dfdf"
     beige: "#d6d99f"
+    pale_green: "#eff0d5"
     black: "#000000"
 features:
   building:
     def:
-      level: 7
-      rgb: "gray"
+      rgba: "gray"
   emergency:
     individuals:
       ambulance_station:
-        rgb: "red"
+        rgba: "red"
       landing_site:
-        rgb: "red"
+        rgba: "red"
   highway:
     groupings:
       - tags:
           - "motorway"
           - "motorway_link"
-        rgb: "motorway"
-        level: 6
+        rgba: "motorway"
+        stroke: 7
       - tags:
           - "trunk"
           - "trunk_link"
-        rgb: "trunk"
-        level: 6
+        rgba: "trunk"
+        stroke: 6
       - tags:
           - "primary"
           - "primary_link"
-        rgb: "primary"
-        level: 6
+        rgba: "primary"
+        stroke: 5
       - tags:
           - "secondary"
           - "secondary_link"
-        rgb: "secondary"
-        level: 6
+        rgba: "secondary"
+        stroke: 4
       - tags:
           - "tertiary"
           - "tertiary_link"
-        rgb: "tertiary"
-        level: 6
+        rgba: "white"
+        stroke: 3
       - tags:
           - "unclassified"
           - "residential"
           - "living_street"
           - "service"
           - "road"
-        rgb: "white"
-        level: 6
+        rgba: "white"
+        stroke: 2
       - tags:
           - "footway"
           - "bridleway"
           - "steps"
           - "path"
           - "track"
-        rgb: "path_gray"
-        level: 6
+        rgba: "path_brown"
+        stroke: 1
   landuse:
     groupings:
       # Greens
       - tags:
           - "meadow"
           - "grass"
-        level: 1
-        rgb: "light_green"
+        rgba: "light_green"
       - tags:
           - "forest"
-        level: 3
-        rgb: "dark_green"
+        rgba: "dark_green"
       # Areas
       - tags:
           - "residential"
-        level: 4
-        rgb: "area_gray"
+        rgba: "area_gray"
       - tags:
           - "farmyard"
-          - "farmland" # Consider lighter color
-        level: 4
-        rgb: "salmon"
+        rgba: "salmon"
+      - tags:
+          - "farmland"
+        rgba: "pale_green"
       - tags:
           - "recreation_ground"
-        level: 4
-        rgb: "fun_green"
+        rgba: "fun_green"
   leisure:
     groupings:
       # Greens
       - tags:
           - "park"
-        level: 4
-        rgb: "fun_green"
+          - "pitch"
+        rgba: "fun_green"
   natural:
     groupings:
       # Greens
       - tags:
           - "grassland"
-        level: 1
-        rgb: "light_green"
+        rgba: "light_green"
       - tags:
           - "scrub"
           - "wood"
           - "wetland"
-        level: 2
-        rgb: "green"
+        rgba: "green"
       - tags:
           - "wood"
           - "wetland"
-        level: 3
-        rgb: "dark_green"
+        rgba: "dark_green"
       - tags:
           - "heath"
-        level: 3
-        rgb: "beige"
+        rgba: "beige"
       # Waters
       - tags:
           - "bay"
           - "water"
-        level: 5
-        rgb: "blue"
+        rgba: "blue"
       # Borders
       - tags:
           - "coastline"
           - "peninsula"
-        level: 0
-        rgb: "coast"
+        rgba: "coast"
       - tags:
           - "sand"
           - "beach"
-        level: 1
-        rgb: "sand"
+        rgba: "sand"
   water:
     def:
-      level: 5
-      rgb: "blue"
+      rgba: "blue"
   waterway:
     groupings:
       - tags:
@@ -162,8 +149,8 @@ features:
           - "canal"
           - "drain"
           - "ditch"
-        rgb: "blue"
-        level: 5
+        rgba: "blue"
+        stroke: 3
 infoToKeep:
   - "building:levels"
   - "height"

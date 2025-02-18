@@ -13,8 +13,6 @@
         <maven.compiler.target>23</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <javafx.version>23.0.2</javafx.version>
-        <javafx.maven.plugin.version>0.0.8</javafx.maven.plugin.version>
         <fxgl.version>21.1</fxgl.version>
         <log4j.version>2.19.0</log4j.version>
         <hibernate.version>6.6.6.Final</hibernate.version>
@@ -22,11 +20,6 @@
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-controls</artifactId>
-            <version>${javafx.version}</version>
-        </dependency>
         <dependency>
             <groupId>com.github.almasb</groupId>
             <artifactId>fxgl</artifactId>
@@ -70,40 +63,4 @@
             <version>6.1.14</version>
         </dependency>
     </dependencies>
-
-    <build>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>true</filtering><!--This is needed to dynamically replace environment variables-->
-            </resource>
-        </resources>
-        <plugins>
-            <plugin>
-                <groupId>org.openjfx</groupId>
-                <artifactId>javafx-maven-plugin</artifactId>
-                <version>${javafx.maven.plugin.version}</version>
-                <executions>
-                    <execution>
-                        <!-- Default configuration for running -->
-                        <id>default</id>
-                        <configuration>
-                            <mainClass>dk.itu.JavaFxApp</mainClass>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <!-- Configuration for debugging -->
-                        <id>debug</id>
-                        <configuration>
-                            <options>
-                                <option>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:8000</option>
-                            </options>
-                            <mainClass>dk.itu.JavaFxApp</mainClass>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
-
 </project>

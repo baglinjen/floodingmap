@@ -5,13 +5,20 @@
                    https://logging.apache.org/xml/ns
                    https://logging.apache.org/xml/ns/log4j-config-2.xsd">
     <Appenders>
-        <Console name="CONSOLE">
-            <PatternLayout pattern="%d [%t] %p %c - %m%n"/>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%highlight{[%d{HH:mm:ss.SSS} - %-5level- %logger{36}]}{
+                FATAL=red,
+                ERROR=red,
+                WARN=yellow,
+                INFO=green,
+                DEBUG=blue,
+                TRACE=white} %msg%n"/>
         </Console>
     </Appenders>
+
     <Loggers>
-        <Root level="INFO">
-            <AppenderRef ref="CONSOLE" level="FATAL"/>
+        <Root level="DEBUG">
+            <AppenderRef ref="Console"/>
         </Root>
     </Loggers>
 </Configuration>

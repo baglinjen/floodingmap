@@ -2,56 +2,67 @@ package dk.itu;
 
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
-import dk.itu.drawing.components.MapBuffers;
-import dk.itu.drawing.models.MapModel;
+import dk.itu.drawing.LayerManager;
 import dk.itu.drawing.components.MouseEventOverlayComponent;
-import dk.itu.drawing.components.BufferedMapComponent;
-import dk.itu.services.DbService;
-import dk.itu.services.RoutingService;
-import dk.itu.services.modelservices.LineService;
+import dk.itu.drawing.models.MapModel;
 import javafx.scene.Cursor;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
-import javafx.scene.transform.Affine;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import javax.sound.sampled.Line;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 
 import static com.almasb.fxgl.dsl.FXGLForKtKt.*;
 
 public class FxglApp extends GameApplication {
     // Logger
-    private static final Logger logger = LogManager.getLogger();
+    Logger logger = LogManager.getLogger();
     // Constants
-    private static final int W = 1920, H = 1080;
-    private static final int SUPER_SAMPLE_FACTOR = 2, BUFFER_SIZE = 3;
-    // Buffers
-    private final BlockingQueue<BufferedMapComponent> fullBuffers = new ArrayBlockingQueue<>(BUFFER_SIZE);
-    private final BlockingQueue<BufferedMapComponent> emptyBuffers = new ArrayBlockingQueue<>(BUFFER_SIZE);
-    private BufferedMapComponent currentBuffer;
-    private MapBuffers buffers;
-    // Models
-    private MapModel mapModel;
-    // UI Components
-    private StackPane root;
+    public static final int W = 1920, H = 1080;
+    private static final boolean SHOULD_LAZY_REDRAW = true;
+    // Managers
+    private LayerManager layerManager;
+    // State
+    private boolean firstDraw = true;
 
-    public static void main(String[] args) {
-        launch(args);
-    }
-
-    private void renderLoop() {
+    private void renderLoop() throws InterruptedException {
         try {
             while (true) {
-                BufferedMapComponent buffer = emptyBuffers.take();
-
-                mapModel.draw(buffer);
-
-                fullBuffers.add(buffer);
+                if (!layerManager.hasTransformChanged() && !firstDraw) {
+                    // No changes and it is not the first render => sleep 1 frame
+                    Thread.sleep(16);
+                    continue;
+                } else {
+                    if (firstDraw) {
+                        // First draw => render without lazy
+                        layerManager
+                                .startPreparingLayers()
+                                .awaitLayerPreparation()
+                                .setLayerImages()
+                                .awaitWithTimeout();
+                        firstDraw = false;
+                    } else if (SHOULD_LAZY_REDRAW) {
+                        // Nth draw => render with lazy
+                        // TODO: Test if lazy rendering is an optimization
+                        layerManager
+                                .startPreparingLayers()
+                                .startPreparingLazyLayers()
+                                .awaitLazyLayerPreparation()
+                                .setLazyLayerImages()
+                                .awaitLayerPreparation()
+                                .setLayerImages();
+                    } else {
+                        // Nth draw => render without lazy
+                        layerManager
+                                .startPreparingLayers()
+                                .awaitLayerPreparation()
+                                .setLayerImages()
+                                .awaitWithTimeout();
+                    }
+                }
             }
-        } catch (Exception e) {
-            logger.fatal(e);
+        } catch (InterruptedException e) {
+            logger.error("Layer preparation interrupted", e);
+            throw RuntimeException.class.cast(e);
         }
     }
 
@@ -68,50 +79,37 @@ public class FxglApp extends GameApplication {
         // Set cursor
         getGameScene().setCursor(Cursor.DEFAULT);
         // Load Models
-        mapModel = OsmParser.parse("osm/tuna.osm", DrawingConfigParser.parse());
-        try {
-            mapModel.addLayer(LineService.LoadLinesFromDb());
-        } catch (Exception e)
-        {
-            System.out.println(e);
-        }
-
+        // Models
+        MapModel mapModel = OsmParser.parse("osm/bornholm.osm", DrawingConfigParser.parse());
+        // Create Layer Manager
+        layerManager = new LayerManager(mapModel);
         // Create Components
-        Affine affine = new Affine();
-        root = new StackPane(new MouseEventOverlayComponent(affine));
-        // Add components
+        StackPane root = new StackPane();
+        // Add background to root
+        BorderPane background = new BorderPane();
+        background.setPrefSize(W, H);
+        background.setStyle("-fx-background-color: #aad3df");
+        root.getChildren().add(background);
+        // Add drawing layers to root
+        root.getChildren().addAll(layerManager.getLayersAsImageViews());
+        // Add event observer to root
+        root.getChildren().add(new MouseEventOverlayComponent(layerManager));
+        // Add root component to screen
         addUINode(root);
 
-        // Original scaling and translation
-        affine.prependTranslation(-0.56 * mapModel.getMinLon(), mapModel.getMaxLat());
-        affine.prependScale(H / (mapModel.getMaxLat() - mapModel.getMinLat()), H / (mapModel.getMaxLat() - mapModel.getMinLat()));
-
-        for (int i = 0; i < BUFFER_SIZE; i++) {
-            emptyBuffers.add(new BufferedMapComponent(W, H, SUPER_SAMPLE_FACTOR, affine));
-        }
-
+        // Start render loop
         getExecutor().startAsync(() -> {
-            renderLoop();
+            try {
+                renderLoop();
+            } catch (InterruptedException e) {
+                logger.error("Render loop interrupted", e);
+                throw new RuntimeException(e);
+            }
             getExecutor().startAsyncFX(() -> getGameController().exit());
         });
     }
 
-    @Override
-    protected void onUpdate(double tpf) {
-        try {
-            BufferedMapComponent buffer = fullBuffers.take();
-
-            root.getChildren().addFirst(buffer); // Show drawn image
-
-            if (currentBuffer != null) {
-                root.getChildren().remove(1); // Remove stale image
-                emptyBuffers.add(currentBuffer);
-            }
-
-            currentBuffer = buffer.updateBuffer(); // TODO: Check what it does
-
-        } catch (InterruptedException e) {
-            logger.fatal(e);
-        }
+    public static void main(String[] args) {
+        launch(args);
     }
 }

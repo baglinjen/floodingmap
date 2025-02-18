@@ -1,25 +1,28 @@
 package dk.itu.drawing.models;
 
-import dk.itu.drawing.components.BufferedMapComponent;
-import dk.itu.drawing.utils.ShapeRasterizer;
+import dk.itu.FxglApp;
+import dk.itu.drawing.SuperAffine;
 import dk.itu.models.OsmElement;
-import dk.itu.models.OsmNode;
 import dk.itu.models.OsmWay;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
+import kotlin.Pair;
 
-import java.util.ArrayList;
+import java.awt.*;
+import java.awt.geom.Area;
+import java.awt.geom.Path2D;
+import java.awt.image.BufferedImage;
+import java.util.*;
 import java.util.List;
 
-import static dk.itu.drawing.utils.ColorUtils.toARGB;
+import static dk.itu.drawing.SuperAffine.combineWithInverse;
 
 public abstract class MapModel {
-    protected double minLon, minLat, maxLat;
-    protected List<OsmElement> elements = new ArrayList<>();
-    protected List<OsmElement> areaElements = new ArrayList<>();
-    protected List<OsmElement> pathElements = new ArrayList<>();
+    protected static final int AREA_LAYERS = 8;
+    protected double minLon, minLat, maxLat, maxLon;
     protected List<List<OsmElement>> layers = new ArrayList<>();
-    private static final int BACKGROUND_COLOR = toARGB(Color.web("#aad3df"));
+    private final GraphicsConfiguration gfxConfig = GraphicsEnvironment
+            .getLocalGraphicsEnvironment()
+            .getDefaultScreenDevice()
+            .getDefaultConfiguration();
 
     public MapModel() {}
 
@@ -32,46 +35,70 @@ public abstract class MapModel {
     public double getMaxLat() {
         return maxLat;
     }
-
-    public void draw(BufferedMapComponent buffer) {
-        buffer.clear(BACKGROUND_COLOR);
-        layers.forEach(layer -> {
-            layer.parallelStream().forEach(element -> {
-                if (element instanceof OsmWay way) {
-                    ShapeRasterizer.drawShapeInBuffer(way.getShape(), buffer, way.getColor());
-                }
-            });
-        });
+    public int layerCount() {
+        return layers.size();
     }
-
     public void addLayer(List<OsmElement> layer)
     {
         layers.add(layer);
     }
 
-    public void draw(GraphicsContext gc) {
-        layers.forEach(layer -> {
-            layer.forEach(element -> {
-                switch (element) {
-                    case OsmWay way:
-                        OsmNode[] osmNodes = way.getOsmNodes();
+    public BufferedImage prepareLayer(int layerIndex, SuperAffine transform) {
+        List<OsmElement> shapes = layers.get(layerIndex);
+        var baseStrokeSize = (float) (1/Math.sqrt(transform.getDeterminant()));
 
-                        gc.beginPath();
-                        gc.moveTo(0.56* osmNodes[0].getMinLon(), -osmNodes[0].getMinLat());
+        Pair<BufferedImage, Graphics2D> preparedLayerGraphics = prepareLayerGraphics(transform);
+        BufferedImage image = preparedLayerGraphics.getFirst();
+        Graphics2D g2d = preparedLayerGraphics.getSecond();
 
-                        for (int i = 1; i < osmNodes.length; i+=1) {
-                            gc.lineTo(0.56* osmNodes[i].getMinLon(), -osmNodes[i].getMinLat());
-                        }
-
-                        gc.setStroke(Color.BLACK);
-
-                        gc.stroke();
-
+        // Draw each shape with its color
+        for (OsmElement cs : shapes) {
+            if (cs instanceof OsmWay way) {
+                switch (way.getShape()) {
+                    case Area _:
+                        g2d.setColor(way.getColorObj());
+                        g2d.fill(way.getShape());
+                        break;
+                    case Path2D _:
+                        g2d.setColor(way.getColorObj());
+                        g2d.setStroke(way.getStrokeWidth(baseStrokeSize));
+                        g2d.draw(way.getShape());
                         break;
                     default:
                         break;
                 }
-            });
-        });
+            }
+        }
+
+        g2d.dispose();
+        return image;
+    }
+
+    public BufferedImage prepareLazyLayer(BufferedImage oldBufferedImage, SuperAffine oldSuperAffine, SuperAffine superAffine) {
+        Pair<BufferedImage, Graphics2D> preparedLayerGraphics = prepareLayerGraphics(combineWithInverse(oldSuperAffine, superAffine));
+        BufferedImage image = preparedLayerGraphics.getFirst();
+        Graphics2D g2d = preparedLayerGraphics.getSecond();
+
+        g2d.drawImage(oldBufferedImage, 0, 0, null);
+
+        g2d.dispose();
+
+        oldSuperAffine.setTransform(superAffine);
+
+        return image;
+    }
+
+    private Pair<BufferedImage, Graphics2D> prepareLayerGraphics(SuperAffine superAffine) {
+        BufferedImage image = gfxConfig.createCompatibleImage(FxglApp.W, FxglApp.H, BufferedImage.TYPE_INT_ARGB_PRE);
+        Graphics2D g2d = image.createGraphics();
+
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
+        g2d.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
+        g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED);
+
+        g2d.setTransform(superAffine);
+
+        return new Pair<>(image, g2d);
     }
 }
