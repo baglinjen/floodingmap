@@ -2,6 +2,7 @@ package dk.itu.drawing.components;
 
 import dk.itu.drawing.LayerManager;
 import javafx.geometry.Insets;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import java.awt.geom.Point2D;
@@ -11,7 +12,7 @@ public class MouseEventOverlayComponent extends BorderPane {
     private double mouseX, mouseY;
     private final Label mouseCoordinatesLabel = new Label();
 
-    public MouseEventOverlayComponent(LayerManager layerManager) {
+    public MouseEventOverlayComponent(LayerManager layerManager, Node node) {
         super();
         this.layerManager = layerManager;
 
@@ -45,6 +46,7 @@ public class MouseEventOverlayComponent extends BorderPane {
         // Add Visuals
         BorderPane bp = new BorderPane();
         bp.setRight(mouseCoordinatesLabel);
+        bp.setLeft(node);
         bp.setPadding(new Insets(12));
         bp.setStyle("-fx-background-color: white;");
         setBottom(bp);

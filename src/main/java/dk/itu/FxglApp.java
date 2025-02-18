@@ -4,6 +4,7 @@ import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
 import dk.itu.drawing.LayerManager;
 import dk.itu.drawing.components.MouseEventOverlayComponent;
+import dk.itu.drawing.components.ScalerComponent;
 import dk.itu.drawing.models.MapModel;
 import dk.itu.services.DbService;
 import dk.itu.services.modelservices.LineService;
@@ -12,6 +13,8 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.almasb.fxgl.dsl.FXGLForKtKt.*;
 
@@ -25,11 +28,15 @@ public class FxglApp extends GameApplication {
     private LayerManager layerManager;
     // State
     private boolean firstDraw = true;
+    private MapModel mapModel;
+    private final AtomicReference<Float> waterLevel = new AtomicReference<>(0.0f);
 
     private void renderLoop() throws InterruptedException {
         try {
             while (true) {
-                if (!layerManager.hasTransformChanged() && !firstDraw) {
+                mapModel.removeTopLayer();
+                mapModel.addLayer(LineService.LoadLinesFromDb(waterLevel.get()));
+                if (!layerManager.hasTransformChanged() && !firstDraw && waterLevel.get() != null) {
                     // No changes and it is not the first render => sleep 1 frame
                     Thread.sleep(16);
                     continue;
@@ -83,9 +90,9 @@ public class FxglApp extends GameApplication {
         // Load Models
         // Models
         DbService dbService = new DbService();
-        //MapModel mapModel = dbService.generateMapModel();
-        MapModel mapModel = OsmParser.parse("osm/tuna.osm", DrawingConfigParser.parse());
-        mapModel.addLayer(LineService.LoadLinesFromDb(0));
+//        MapModel mapModel = dbService.generateMapModel();
+        mapModel = OsmParser.parse("osm/tuna.osm", DrawingConfigParser.parse());
+        mapModel.addLayer(LineService.LoadLinesFromDb(waterLevel.get()));
         // Create Layer Manager
         layerManager = new LayerManager(mapModel);
         // Create Components
@@ -98,7 +105,7 @@ public class FxglApp extends GameApplication {
         // Add drawing layers to root
         root.getChildren().addAll(layerManager.getLayersAsImageViews());
         // Add event observer to root
-        root.getChildren().add(new MouseEventOverlayComponent(layerManager));
+        root.getChildren().add(new MouseEventOverlayComponent(layerManager, new ScalerComponent(waterLevel)));
         // Add root component to screen
         addUINode(root);
 

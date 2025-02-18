@@ -46,6 +46,10 @@ public abstract class MapModel {
     {
         layers.add(layer);
     }
+    public void removeTopLayer()
+    {
+        layers.removeLast();
+    }
 
     public void sortAndSplitLayers(List<OsmElement> areaElements, List<OsmElement> pathElements) {
         AtomicReference<List<OsmElement>> atomicSortedAreaElements = new AtomicReference<>(new ArrayList<>());

@@ -3,31 +3,23 @@ package dk.itu.drawing.components;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.VBox;
 
-public class ScalerComponent extends VBox {
-    private ScalerListener listener;
+import java.util.concurrent.atomic.AtomicReference;
 
-    public ScalerComponent() {
-        Slider slider = new Slider(1, 30, 0); // Min, Max, Initial
+public class ScalerComponent extends VBox {
+    public ScalerComponent(AtomicReference<Float> waterLevel) {
+        Slider slider = new Slider(0, 25, waterLevel.get()); // Min, Max, Initial
         slider.setShowTickMarks(true);
         slider.setShowTickLabels(true);
-        slider.setMajorTickUnit(1);
-        slider.setBlockIncrement(1);
         slider.setSnapToTicks(true);
+        slider.setMajorTickUnit(5);
+        slider.setBlockIncrement(5);
 
-        slider.valueProperty().addListener((observable, oldValue, newValue) -> {
-            if (listener != null) {
-                listener.onScaleChanged(newValue.intValue());
+        slider.valueProperty().addListener((_, oldValue, newValue) -> {
+            if (oldValue.floatValue() != newValue.floatValue()) {
+                waterLevel.set(newValue.floatValue());
             }
         });
 
         getChildren().add(slider);
-    }
-
-    public void setScalerListener(ScalerListener listener) {
-        this.listener = listener;
-    }
-
-    public interface ScalerListener {
-        void onScaleChanged(int newValue);
     }
 }

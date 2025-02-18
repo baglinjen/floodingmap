@@ -21,7 +21,7 @@ import static dk.itu.utils.DrawingUtils.toARGB;
 public class LineService {
     private static Session session;
 
-    public static List<OsmElement> LoadLinesFromDb(int _waterLevel) {
+    public static List<OsmElement> LoadLinesFromDb(Float _waterLevel) {
         List<OsmElement> ways = new ArrayList<>();
         List<DbLine> lines;
         try {
@@ -30,12 +30,12 @@ public class LineService {
             lines = session.createQuery("FROM DbLine ORDER BY altitude ASC", DbLine.class).getResultList();
             if (lines == null) throw new Exception("The ways could not be extracted from the database");
 
-            DrawingConfig.Style blackColorStyle = new DrawingConfig.Style(toARGB(Color.BLACK), 0);
-            DrawingConfig.Style blueColorStyle = new DrawingConfig.Style(toARGB(Color.BLUE), 0);
+            DrawingConfig.Style blackColorStyle = new DrawingConfig.Style(toARGB(Color.web("#ff450030")), 0);
+            DrawingConfig.Style blueColorStyle = new DrawingConfig.Style(toARGB(Color.web("#40739e60")), 0);
 
             for(DbLine line : lines)
             {
-                boolean isUnderwater = _waterLevel > line.getAltitude();
+                boolean isUnderwater = _waterLevel >= line.getAltitude();
                 List<OsmNode> nodes = new ArrayList<>();
 
                 for(int i = 0; i < line.getCoords().size(); i++)
