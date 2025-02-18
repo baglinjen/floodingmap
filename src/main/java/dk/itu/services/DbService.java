@@ -4,13 +4,16 @@ import dk.itu.drawing.models.MapModel;
 import dk.itu.drawing.models.MapModelDb;
 import dk.itu.models.OsmElement;
 import dk.itu.models.OsmWay;
-import dk.itu.models.dbmodels.DbLine;
 import dk.itu.models.dbmodels.DbMetadata;
 import dk.itu.services.modelservices.LineService;
 import dk.itu.services.modelservices.WayService;
 import dk.itu.utils.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+
+import java.awt.geom.Area;
+import java.awt.geom.Path2D;
+import java.util.ArrayList;
 import java.util.List;
 
 public class DbService {
@@ -37,18 +40,34 @@ public class DbService {
         try
         {
             DbMetadata dbMetadata = getMetadata();
-            List<OsmElement> dbLines = lineService.LoadLinesFromDb();
-            System.out.println(dbLines.size());
-            MapModelDb mapModelDb = new MapModelDb(dbMetadata.getMinlon(), dbMetadata.getMinlat(), dbMetadata.getMaxlat(), null);
-        } catch (Exception e) { System.out.println(e); }
-//        try {
-//            List<OsmWay> ways = wayService.LoadWaysFromDb();
-//            System.out.println(ways.size());
-//        } catch (Exception e)
-//        {
-//            return null;
-//        }
-//
+
+            // List<OsmRelation> relations = RelationService.LoadRelationsFromDb();
+            List<OsmWay> allWays = WayService.loadWaysFromDb();
+            List<OsmElement> allAreaElements = new ArrayList<>();
+            List<OsmElement> allPathElements = new ArrayList<>();
+
+            for (OsmWay way : allWays) {
+                switch (way.getShape()) {
+                    case Area _:
+                        allAreaElements.add(way);
+                        break;
+                    case Path2D _:
+                        allPathElements.add(way);
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            double minLon = dbMetadata.getMinlon();
+            double minLat = dbMetadata.getMinlat();
+            double maxLat = dbMetadata.getMaxlat();
+            double maxLon = dbMetadata.getMaxlon();
+
+            return new MapModelDb(minLon, minLat, maxLat, maxLon, allAreaElements, allPathElements);
+        } catch (Exception e) {
+            System.out.println(e);
+        }
         return null;
     }
 
