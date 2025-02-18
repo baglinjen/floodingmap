@@ -1,50 +1,48 @@
 package dk.itu.drawing.components;
 
+import dk.itu.drawing.LayerManager;
 import javafx.geometry.Insets;
-import javafx.geometry.Point2D;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.transform.Affine;
-import javafx.scene.transform.NonInvertibleTransformException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.awt.geom.Point2D;
 
 public class MouseEventOverlayComponent extends BorderPane {
-    private static final Logger logger = LogManager.getLogger();
-    private final Affine affine;
+    private final LayerManager layerManager;
     private double mouseX, mouseY;
     private final Label mouseCoordinatesLabel = new Label();
 
-    public MouseEventOverlayComponent(Affine _affine) {
+    public MouseEventOverlayComponent(LayerManager layerManager) {
         super();
-        this.affine = _affine;
+        this.layerManager = layerManager;
+
+        // Set event handlers
         setOnMousePressed(event -> {
             mouseX = event.getX();
             mouseY = event.getY();
         });
         setOnMouseDragged(event -> {
             double dx = event.getX() - mouseX, dy = event.getY() - mouseY;
-            affine.prependTranslation(dx, dy);
+            this.layerManager.updateOldAffine();
+            this.layerManager.superAffine
+                    .prependTranslation(dx, dy);
             mouseX = event.getX();
             mouseY = event.getY();
         });
         setOnScroll(event -> {
-            double zoom = event.getDeltaY() > 0 ? 1.1 : 1/1.1;
-            affine.prependTranslation(-event.getX(), -event.getY());
-            affine.prependScale(zoom, zoom);
-            affine.prependTranslation(event.getX(), event.getY());
+            double zoom = event.getDeltaY() > 0 ? 1.05 : 1/1.05;
+            this.layerManager.updateOldAffine();
+            this.layerManager.superAffine
+                    .prependTranslation(-event.getX(), -event.getY())
+                    .prependScale(zoom, zoom)
+                    .prependTranslation(event.getX(), event.getY());
         });
         setOnMouseMoved(event -> {
-            Point2D mousePoint = new Point2D(mouseX, mouseY);
-            try {
-                mousePoint = affine.inverseTransform(event.getX(), event.getY());
-            } catch (NonInvertibleTransformException ex) {
-                logger.fatal(ex);
-            }
-
+            Point2D mousePoint = this.layerManager.superAffine.inverseTransform(event.getX(), event.getY());
             String formattedString = "Y:" + String.format("%.4f", -mousePoint.getY()) + " X:" + String.format("%.4f", mousePoint.getX()/0.56);
             mouseCoordinatesLabel.setText(formattedString);
         });
+
+        // Add Visuals
         BorderPane bp = new BorderPane();
         bp.setRight(mouseCoordinatesLabel);
         bp.setPadding(new Insets(12));

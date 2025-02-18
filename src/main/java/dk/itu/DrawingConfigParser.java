@@ -10,10 +10,10 @@ import java.io.InputStream;
 public class DrawingConfigParser {
     private static final ObjectMapper yamlMapper = new YAMLMapper();
     public static DrawingConfig parse() {
-        try (InputStream is = JavaFxApp.class.getClassLoader().getResourceAsStream("drawingConfig.yaml")) {
+        try (InputStream is = FxglApp.class.getClassLoader().getResourceAsStream("drawingConfig.yaml")) {
             return yamlMapper.readValue(is, DrawingConfig.class);
         } catch (IOException e) {
-            throw new UnsupportedOperationException("Failed to parse yaml config file");
+            throw new UnsupportedOperationException("Failed to parse yaml config file", e);
         }
     }
 }

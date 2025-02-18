@@ -6,43 +6,39 @@ import jakarta.persistence.*;
 import java.awt.*;
 import java.awt.geom.Area;
 import java.awt.geom.Path2D;
-import java.awt.geom.Point2D;
 import java.util.List;
 
 @Entity
 @Table(name = "ways")
 public class OsmWay extends OsmElement {
-    private Path2D.Double path;
-    @Transient
-    private int color;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
     @Transient
     private double minLon, minLat, maxLon, maxLat;
     @Transient
     private Shape shape;
     @Transient
+    private Color colorObj;
+    @Transient
+    private Integer stroke;
+    @Transient
     private OsmNode[] osmNodes = new OsmNode[0];
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
 
     @Column(name = "Nodes", columnDefinition = "jsonb")
     @Convert(converter = JsonConverter.class)
     private List<Long> nodeIds;
 
-    public List<Long> getNodeIds(){
-        return nodeIds;
-    }
-
-    public void setNodes(List<OsmNode> nodes){
-        osmNodes = nodes.toArray(new OsmNode[nodes.size()]);
-    }
-
-    public OsmWay(long _id, List<OsmNode> _osmNodes, int _color, Boolean shouldFill) {
+    // For deserialization
+    public OsmWay(){}
+    public OsmWay(long _id, List<OsmNode> _osmNodes, DrawingConfig.Style _style, Boolean shouldFill) {
         id = _id;
 
-        osmNodes = _osmNodes.toArray(new OsmNode[0]);
-        color = _color;
+        setNodes(_osmNodes);
+        colorObj = new Color(_style.rgba(), true);
+        stroke = _style.stroke();
+
+        // TODO: Check if bounds are necessary
 
         minLon = Double.MAX_VALUE;
         minLat = Double.MAX_VALUE;
@@ -62,26 +58,7 @@ public class OsmWay extends OsmElement {
             }
         }
 
-        path = new Path2D.Double();
-
-        path.moveTo(0.56* osmNodes[0].getMinLon(), -osmNodes[0].getMinLat());
-        for (int i = 1; i < osmNodes.length; i+=1) {
-            path.lineTo(0.56* osmNodes[i].getMinLon(), -osmNodes[i].getMinLat());
-        }
-
-        if(shouldFill == null) shape = osmNodes[0].equals(osmNodes[osmNodes.length - 1]) ? new Area(path) : path;
-        else shape = shouldFill ? new Area(path) : path;
-    }
-
-    // For deserialization
-    public OsmWay(){}
-
-    public void GeneratePath(){
-
-    }
-
-    public OsmNode[] getOsmNodes() {
-        return osmNodes;
+        generatePath(shouldFill);
     }
 
     @Override
@@ -104,11 +81,45 @@ public class OsmWay extends OsmElement {
     public double getMaxLat() {
         return maxLat;
     }
+    @Override
+    public double getArea() {
+        if (this.shape instanceof Area area) {
+            // NOTE: If some elements aren't shown, consider calculating absolute area rather than bounding box
+            var bounds = area.getBounds2D();
+            return bounds.getWidth()*bounds.getHeight();
+        }
+        return 0;
+    }
     public Shape getShape() {
         return shape;
     }
+    public Color getColorObj() {
+        return colorObj;
+    }
+    public BasicStroke getStrokeWidth(float basicStrokeSize) {
+        // TODO: Cache BasicStroke on MapModel
+        return new BasicStroke(basicStrokeSize * (stroke == null ? 1 : stroke));
+    }
+    public List<Long> getNodeIds(){
+        return nodeIds;
+    }
+    public OsmWay setNodes(List<OsmNode> nodes){
+        osmNodes = nodes.toArray(new OsmNode[nodes.size()]);
+        return this;
+    }
+    public void generatePath(Boolean shouldFill){
+        Path2D path = new Path2D.Double();
 
-    public int getColor() {
-        return color;
+        path.moveTo(0.56* osmNodes[0].getMinLon(), -osmNodes[0].getMinLat());
+        for (int i = 1; i < osmNodes.length; i++) {
+            path.lineTo(0.56* osmNodes[i].getMinLon(), -osmNodes[i].getMinLat());
+        }
+
+        boolean isArea = (shouldFill != null) || osmNodes[0].equals(osmNodes[osmNodes.length - 1]);
+
+        shape = isArea ? new Area(path) : path;
+    }
+    public OsmNode[] getOsmNodes() {
+        return osmNodes;
     }
 }

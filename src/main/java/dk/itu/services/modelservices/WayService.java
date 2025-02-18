@@ -31,8 +31,7 @@ public class WayService {
 
                 // Ensure way "close" if needed
                 if (Objects.equals(nodeIds.getFirst(), nodeIds.getLast())) nodes.add(nodes.getFirst());
-                way.setNodes(nodes);
-                way.GeneratePath();
+                way.setNodes(nodes).generatePath(true); // TODO: Check if shouldFill should be true or false
             }
           
             return ways;

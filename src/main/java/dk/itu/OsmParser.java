@@ -6,8 +6,10 @@ import dk.itu.models.DrawingConfig;
 import dk.itu.models.OsmElement;
 import dk.itu.models.OsmNode;
 import dk.itu.models.OsmWay;
-import dk.itu.services.modelservices.WayService;
 import dk.itu.utils.Search;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
@@ -21,17 +23,25 @@ import java.util.List;
 import java.util.Map;
 
 public class OsmParser {
+    private static final Logger logger = LogManager.getLogger();
     public static MapModel parse(String fileSource, DrawingConfig drawingConfig) {
-        try (InputStream is = JavaFxApp.class.getClassLoader().getResourceAsStream(fileSource)) {
+        // Logger Details
+        logger.info("Parsing file: {}", fileSource);
+        long start = System.nanoTime();
+        // Parsing start
+        try (InputStream is = FxglApp.class.getClassLoader().getResourceAsStream(fileSource)) {
+            // Reading utils
             XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
             XMLStreamReader reader = xmlInputFactory.createXMLStreamReader(is);
 
-            double minY = -181, maxY = 181, minX = -181;
+            // Final result
+            double minY = -181, maxY = 181, minX = -181, maxX = 181;
             List<OsmNode> allNodes = new ArrayList<>();
             List<OsmWay> allWays = new ArrayList<>();
             List<OsmElement> allAreaElements = new ArrayList<>();
             List<OsmElement> allPathElements = new ArrayList<>();
 
+            // Temporary values
             long currentId = -1L;
             double currentX = 0f, currentY = 0f;
             boolean invalidWay = false;
@@ -50,6 +60,7 @@ public class OsmParser {
                             minY = Double.parseDouble(reader.getAttributeValue(null, "minlat"));
                             maxY = Double.parseDouble(reader.getAttributeValue(null, "maxlat"));
                             minX = Double.parseDouble(reader.getAttributeValue(null, "minlon"));
+                            maxX = Double.parseDouble(reader.getAttributeValue(null, "maxlon"));
                             continue;
                         }
                         case "node" -> {
@@ -92,9 +103,9 @@ public class OsmParser {
                                 continue;
                             }
 
-                            var pair = drawingConfig.getColor(currentTags);
-                            if (pair != null) {
-                                OsmWay way = new OsmWay(currentId, currentNodesList, pair.component1(), null);
+                            var color = drawingConfig.getStyle(currentTags);
+                            if (color != null) {
+                                OsmWay way = new OsmWay(currentId, currentNodesList, color, null);
                                 switch (way.getShape()) {
                                     case Area _:
                                         allAreaElements.add(way);
@@ -116,9 +127,12 @@ public class OsmParser {
             }
             reader.close();
 
-            return new MapModelOsmFile(minX, minY, maxY, allWays, allAreaElements, allPathElements);
+            logger.info("Parsed {} nodes and {} ways in {}ms", allNodes.size(), allWays.size(), String.format("%.3f", (System.nanoTime() - start) / 1000000f));
+
+            return new MapModelOsmFile(minX, minY, maxY, maxX, allAreaElements, allPathElements);
         } catch (IOException | XMLStreamException e) {
-            throw new UnsupportedOperationException("Failed to parse custom file");
+            logger.error("Failed to parse file", e);
+            throw new UnsupportedOperationException("Failed to parse file");
         }
     }
 }

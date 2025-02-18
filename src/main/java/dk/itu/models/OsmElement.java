@@ -11,4 +11,5 @@ public abstract class OsmElement implements Serializable {
     public boolean equals(OsmElement obj) {
         return this.getId() == obj.getId();
     }
+    public abstract double getArea();
 }
