@@ -29,12 +29,18 @@ public class OsmWay extends OsmElement {
     @Convert(converter = JsonConverter.class)
     private List<Long> nodeIds;
 
+    public OsmWay(long currentId, List<OsmNode> currentNodesList, Integer integer) {
+        super();
+    }
+
     public List<Long> getNodeIds(){
         return nodeIds;
     }
 
-    public void setNodes(List<OsmNode> nodes){
-        osmNodes = nodes.toArray(new OsmNode[nodes.size()]);
+    public void setNodes(List<OsmNode> nodes) {
+        osmNodes = nodes.toArray(new OsmNode[0]);
+        // Initialize shape with default behavior (null shouldFill)
+        initializeShape(null);
     }
 
     public OsmWay(long _id, List<OsmNode> _osmNodes, int _color, Boolean shouldFill) {
@@ -74,6 +80,45 @@ public class OsmWay extends OsmElement {
 
     // For deserialization
     public OsmWay(){}
+
+    public void initializeShape(Boolean shouldFill) {
+        if (osmNodes.length == 0) {
+            return;
+        }
+
+        minLon = Double.MAX_VALUE;
+        minLat = Double.MAX_VALUE;
+        maxLon = Double.MIN_VALUE;
+        maxLat = Double.MIN_VALUE;
+
+        // Calculate bounds
+        for (OsmElement osmNode : osmNodes) {
+            if (osmNode.getMinLon() < minLon) {
+                minLon = osmNode.getMinLon();
+            } else if (osmNode.getMaxLon() > maxLon) {
+                maxLon = osmNode.getMaxLon();
+            }
+            if (osmNode.getMinLat() < minLat) {
+                minLat = osmNode.getMinLat();
+            } else if (osmNode.getMaxLat() > maxLat) {
+                maxLat = osmNode.getMaxLat();
+            }
+        }
+
+        // Create path
+        path = new Path2D.Double();
+        path.moveTo(0.56 * osmNodes[0].getMinLon(), -osmNodes[0].getMinLat());
+        for (int i = 1; i < osmNodes.length; i++) {
+            path.lineTo(0.56 * osmNodes[i].getMinLon(), -osmNodes[i].getMinLat());
+        }
+
+        // Set shape based on whether it's a closed path or should be filled
+        if (shouldFill == null) {
+            shape = osmNodes[0].equals(osmNodes[osmNodes.length - 1]) ? new Area(path) : path;
+        } else {
+            shape = shouldFill ? new Area(path) : path;
+        }
+    }
 
     public void GeneratePath(){
 

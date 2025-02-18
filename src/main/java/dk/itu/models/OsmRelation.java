@@ -6,7 +6,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "relations")
-public class OsmRelation extends OsmElement {
+public abstract class OsmRelation extends OsmElement {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;

@@ -26,14 +26,14 @@ public class OsmParser {
             XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
             XMLStreamReader reader = xmlInputFactory.createXMLStreamReader(is);
 
-            double minY = -181, maxY = 181, minX = -181;
+            float minY = -181, maxY = 181, minX = -181;
             List<OsmNode> allNodes = new ArrayList<>();
             List<OsmWay> allWays = new ArrayList<>();
             List<OsmElement> allAreaElements = new ArrayList<>();
             List<OsmElement> allPathElements = new ArrayList<>();
 
             long currentId = -1L;
-            double currentX = 0f, currentY = 0f;
+            float currentX = 0f, currentY = 0f;
             boolean invalidWay = false;
             Map<String, String> currentTags = new HashMap<>();
             List<OsmNode> currentNodesList = new ArrayList<>();
@@ -47,15 +47,15 @@ public class OsmParser {
                 if (reader.isStartElement()) {
                     switch (reader.getLocalName()) {
                         case "bounds" -> {
-                            minY = Double.parseDouble(reader.getAttributeValue(null, "minlat"));
-                            maxY = Double.parseDouble(reader.getAttributeValue(null, "maxlat"));
-                            minX = Double.parseDouble(reader.getAttributeValue(null, "minlon"));
+                            minY = Float.parseFloat(reader.getAttributeValue(null, "minlat"));
+                            maxY = Float.parseFloat(reader.getAttributeValue(null, "maxlat"));
+                            minX = Float.parseFloat(reader.getAttributeValue(null, "minlon"));
                             continue;
                         }
                         case "node" -> {
                             currentId = Long.parseUnsignedLong(reader.getAttributeValue(null, "id"));
-                            currentX = Double.parseDouble(reader.getAttributeValue(null, "lon"));
-                            currentY = Double.parseDouble(reader.getAttributeValue(null, "lat"));
+                            currentX = Float.parseFloat(reader.getAttributeValue(null, "lon"));
+                            currentY = Float.parseFloat(reader.getAttributeValue(null, "lat"));
                             continue;
                         }
                         case "way", "relation" -> {
@@ -94,7 +94,7 @@ public class OsmParser {
 
                             var pair = drawingConfig.getColor(currentTags);
                             if (pair != null) {
-                                OsmWay way = new OsmWay(currentId, currentNodesList, pair.component1(), null);
+                                OsmWay way = new OsmWay(currentId, currentNodesList, pair.component1());
                                 switch (way.getShape()) {
                                     case Area _:
                                         allAreaElements.add(way);
