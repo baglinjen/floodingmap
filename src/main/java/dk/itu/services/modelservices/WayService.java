@@ -6,6 +6,7 @@ import dk.itu.utils.HibernateUtil;
 import org.hibernate.Session;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class WayService {
@@ -16,6 +17,7 @@ public class WayService {
             session.beginTransaction();
             List<OsmWay> ways = session.createQuery("FROM OsmWay", OsmWay.class).getResultList();
 
+            // Load and set nodes for each way
             for (OsmWay way : ways) {
                 List<Long> nodeIds = way.getNodeIds();
                 List<OsmNode> nodes = session.createNativeQuery(
@@ -24,6 +26,7 @@ public class WayService {
                         .setParameter("ids", nodeIds.toArray(new Long[0]))
                         .getResultList();
 
+                if (Objects.equals(nodeIds.getFirst(), nodeIds.getLast())) nodes.add(nodes.getFirst());
                 way.setNodes(nodes);
             }
 
