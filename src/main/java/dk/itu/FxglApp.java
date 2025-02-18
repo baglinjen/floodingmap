@@ -83,9 +83,9 @@ public class FxglApp extends GameApplication {
         // Load Models
         // Models
         DbService dbService = new DbService();
-        MapModel mapModel = dbService.GenerateMapModel();
+        //MapModel mapModel = dbService.generateMapModel();
+        MapModel mapModel = OsmParser.parse("osm/tuna.osm", DrawingConfigParser.parse());
         mapModel.addLayer(LineService.LoadLinesFromDb(0));
-//        MapModel mapModel = OsmParser.parse("osm/bornholm.osm", DrawingConfigParser.parse());
         // Create Layer Manager
         layerManager = new LayerManager(mapModel);
         // Create Components

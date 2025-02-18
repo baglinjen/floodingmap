@@ -32,6 +32,7 @@ public class WayService {
                 // TODO: Maybe this computation could be done in the db tool?
                 if (Objects.equals(nodeIds.getFirst(), nodeIds.getLast())) nodes.add(nodes.getFirst());
                 way.setNodes(nodes);
+                way.generateShape(null);
             }
 
             session.close();

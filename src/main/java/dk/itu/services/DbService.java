@@ -35,7 +35,7 @@ public class DbService {
         return session.get(object, id);
     }
 
-    public MapModel GenerateMapModel()
+    public MapModel generateMapModel()
     {
         try
         {
@@ -66,7 +66,7 @@ public class DbService {
 
             return new MapModelDb(minLon, minLat, maxLat, maxLon, allAreaElements, allPathElements);
         } catch (Exception e) {
-            System.out.println(e);
+            System.out.println(e.getMessage());
         }
         return null;
     }

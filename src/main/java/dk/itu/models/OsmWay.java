@@ -75,6 +75,7 @@ public class OsmWay extends OsmElement {
         return 0;
     }
     public Shape getShape() {
+        if(shape == null) generateShape(null);
         return shape;
     }
     public Color getColorObj() {
