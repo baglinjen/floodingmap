@@ -18,7 +18,7 @@ public class FxglApp extends GameApplication {
     Logger logger = LogManager.getLogger();
     // Constants
     public static final int W = 1920, H = 1080;
-    private static final boolean SHOULD_LAZY_REDRAW = true;
+    private static final boolean SHOULD_LAZY_REDRAW = false;
     // Managers
     private LayerManager layerManager;
     // State
