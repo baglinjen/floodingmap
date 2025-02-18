@@ -5,6 +5,8 @@ import com.almasb.fxgl.app.GameSettings;
 import dk.itu.drawing.LayerManager;
 import dk.itu.drawing.components.MouseEventOverlayComponent;
 import dk.itu.drawing.models.MapModel;
+import dk.itu.services.DbService;
+import dk.itu.services.modelservices.LineService;
 import javafx.scene.Cursor;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
@@ -80,7 +82,10 @@ public class FxglApp extends GameApplication {
         getGameScene().setCursor(Cursor.DEFAULT);
         // Load Models
         // Models
-        MapModel mapModel = OsmParser.parse("osm/bornholm.osm", DrawingConfigParser.parse());
+        DbService dbService = new DbService();
+        MapModel mapModel = dbService.GenerateMapModel();
+        mapModel.addLayer(LineService.LoadLinesFromDb(0));
+//        MapModel mapModel = OsmParser.parse("osm/bornholm.osm", DrawingConfigParser.parse());
         // Create Layer Manager
         layerManager = new LayerManager(mapModel);
         // Create Components

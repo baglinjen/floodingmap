@@ -4,6 +4,7 @@ import dk.itu.FxglApp;
 import dk.itu.drawing.SuperAffine;
 import dk.itu.models.OsmElement;
 import dk.itu.models.OsmWay;
+import dk.itu.utils.TimeUtils;
 import kotlin.Pair;
 
 import java.awt.*;
@@ -12,8 +13,11 @@ import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import static dk.itu.drawing.SuperAffine.combineWithInverse;
+import static dk.itu.utils.GeneralUtils.splitList;
 
 public abstract class MapModel {
     protected static final int AREA_LAYERS = 8;
@@ -41,6 +45,20 @@ public abstract class MapModel {
     public void addLayer(List<OsmElement> layer)
     {
         layers.add(layer);
+    }
+
+    public void sortAndSplitLayers(List<OsmElement> areaElements, List<OsmElement> pathElements) {
+        AtomicReference<List<OsmElement>> atomicSortedAreaElements = new AtomicReference<>(new ArrayList<>());
+
+        TimeUtils.timeFunction("Splitting layers", () -> {
+            atomicSortedAreaElements.updateAndGet(list -> {
+                list = areaElements.stream().parallel().sorted(Comparator.comparing(OsmElement::getArea).reversed()).collect(Collectors.toList());
+                list.addAll(pathElements);
+                return list;
+            });
+        });
+
+        this.layers = splitList(atomicSortedAreaElements.get(), AREA_LAYERS);
     }
 
     public BufferedImage prepareLayer(int layerIndex, SuperAffine transform) {

@@ -31,34 +31,18 @@ public class OsmWay extends OsmElement {
 
     // For deserialization
     public OsmWay(){}
+    public OsmWay(long _id, List<OsmNode> _osmNodes, DrawingConfig.Style _style) {
+        this(_id, _osmNodes, _style, null);
+    }
     public OsmWay(long _id, List<OsmNode> _osmNodes, DrawingConfig.Style _style, Boolean shouldFill) {
         id = _id;
 
-        setNodes(_osmNodes);
         colorObj = new Color(_style.rgba(), true);
         stroke = _style.stroke();
 
-        // TODO: Check if bounds are necessary
+        setNodes(_osmNodes).generateShape(shouldFill);
 
-        minLon = Double.MAX_VALUE;
-        minLat = Double.MAX_VALUE;
-        maxLon = Double.MIN_VALUE;
-        maxLat = Double.MIN_VALUE;
-
-        for (OsmElement osmNode : _osmNodes) {
-            if (osmNode.getMinLon() < minLon) {
-                minLon = osmNode.getMinLon();
-            } else if (osmNode.getMaxLon() > maxLon) {
-                maxLon = osmNode.getMaxLon();
-            }
-            if (osmNode.getMinLat() < minLat) {
-                minLat = osmNode.getMinLat();
-            } else if (osmNode.getMaxLat() > maxLat) {
-                maxLat = osmNode.getMaxLat();
-            }
-        }
-
-        generatePath(shouldFill);
+        calculateBounds();
     }
 
     @Override
@@ -107,7 +91,7 @@ public class OsmWay extends OsmElement {
         osmNodes = nodes.toArray(new OsmNode[nodes.size()]);
         return this;
     }
-    public void generatePath(Boolean shouldFill){
+    public void generateShape(Boolean shouldFill){
         Path2D path = new Path2D.Double();
 
         path.moveTo(0.56* osmNodes[0].getMinLon(), -osmNodes[0].getMinLat());
@@ -119,7 +103,24 @@ public class OsmWay extends OsmElement {
 
         shape = isArea ? new Area(path) : path;
     }
-    public OsmNode[] getOsmNodes() {
-        return osmNodes;
+    public void calculateBounds() {
+        // TODO: Check if bounds are necessary
+        minLon = Double.MAX_VALUE;
+        minLat = Double.MAX_VALUE;
+        maxLon = Double.MIN_VALUE;
+        maxLat = Double.MIN_VALUE;
+
+        for (OsmElement osmNode : this.osmNodes) {
+            if (osmNode.getMinLon() < minLon) {
+                minLon = osmNode.getMinLon();
+            } else if (osmNode.getMaxLon() > maxLon) {
+                maxLon = osmNode.getMaxLon();
+            }
+            if (osmNode.getMinLat() < minLat) {
+                minLat = osmNode.getMinLat();
+            } else if (osmNode.getMaxLat() > maxLat) {
+                maxLat = osmNode.getMaxLat();
+            }
+        }
     }
 }
