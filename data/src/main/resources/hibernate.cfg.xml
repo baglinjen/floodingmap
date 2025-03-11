@@ -7,11 +7,10 @@
     <session-factory>
         <!-- Database connection settings -->
         <property name="hibernate.connection.driver_class">org.postgresql.Driver</property>
-        <!--
-        <property name="hibernate.connection.url"></property>
-        <property name="hibernate.connection.username"></property>
-        <property name="hibernate.connection.password"></property>
-        -->
+
+        <property name="hibernate.connection.url">jdbc:postgresql://localhost:5432/postgres</property>
+        <property name="hibernate.connection.username">postgres</property>
+        <property name="hibernate.connection.password">1015</property>
 
         <!-- Dialect for PostgreSQL -->
         <property name="hibernate.dialect">org.hibernate.dialect.PostgreSQLDialect</property>
@@ -26,12 +25,12 @@
         <property name="hibernate.hbm2ddl.auto">update</property>
 
         <!-- Entity Classes -->
-        <mapping class="dk.itu.models.OsmWay" />
-        <mapping class="dk.itu.models.dk.itu.data.dbmodels.OsmNode" />
-        <mapping class="dk.itu.models.OsmElement" />
-        <mapping class="dk.itu.models.dbmodels.DbMetadata" />
-        <mapping class="dk.itu.models.dbmodels.DbLine" />
-        <mapping class="dk.itu.models.dbmodels.DbRouting"/>
-        <mapping class="dk.itu.models.OsmRelation" />
+<!--        <mapping class="dk.itu.models.OsmWay" />-->
+<!--        <mapping class="dk.itu.models.dk.itu.data.dbmodels.OsmNode" />-->
+<!--        <mapping class="dk.itu.models.OsmElement" />-->
+<!--        <mapping class="dk.itu.models.dbmodels.DbMetadata" />-->
+<!--        <mapping class="dk.itu.models.dbmodels.DbLine" />-->
+<!--        <mapping class="dk.itu.models.dbmodels.DbRouting"/>-->
+<!--        <mapping class="dk.itu.models.OsmRelation" />-->
     </session-factory>
 </hibernate-configuration>
