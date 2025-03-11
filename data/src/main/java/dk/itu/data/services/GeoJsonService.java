@@ -3,6 +3,7 @@ package dk.itu.data.services;
 import dk.itu.common.models.geojson.GeoJsonElement;
 import dk.itu.data.dto.GeoJsonParserResult;
 
+import java.awt.geom.Path2D;
 import java.util.List;
 
 public class GeoJsonService {
@@ -10,6 +11,9 @@ public class GeoJsonService {
 
     // Fallback in-memory storage
     private List<GeoJsonElement> geoJsonElementsToBeDrawn = null;
+
+    // General in-memory info
+    private Float maxWaterLevel;
 
     public static GeoJsonService getInstance() {
         if (instance == null) {
@@ -22,6 +26,13 @@ public class GeoJsonService {
 
     private GeoJsonService() {
         geoJsonDatabaseService = GeoJsonDatabaseService.getInstance();
+    }
+
+    public float getMaxWaterLevel() {
+        if (maxWaterLevel == null) {
+            maxWaterLevel = getGeoJsonElementsToBeDrawn().stream().max((e1,e2) -> (int) ((e1.getHeight()-e2.getHeight())*1000)).orElse(new GeoJsonElement(0, new Path2D.Double())).getHeight();
+        }
+        return maxWaterLevel;
     }
 
     public List<GeoJsonElement> getGeoJsonElementsToBeDrawn() {

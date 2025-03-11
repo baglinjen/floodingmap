@@ -15,11 +15,13 @@ import static com.almasb.fxgl.dsl.FXGLForKtKt.*;
 import static dk.itu.util.DrawingUtils.bufferedImageToWritableImage;
 
 public class RunningApplication extends GameApplication {
-    private static final int WIDTH = 1920, HEIGHT = 920, OSM_LIMIT = 2000;
+    private static final int WIDTH = 1920, HEIGHT = 920;
     private final Logger logger = LoggerFactory.getLogger();
     private Services services;
 
-    private final SuperAffine superAffine = new SuperAffine();
+    private State state;
+
+    // Drawing related
     private BufferedImage image;
     private final ImageView view = new ImageView();
 
@@ -27,12 +29,10 @@ public class RunningApplication extends GameApplication {
         while (true) {
             long start = System.nanoTime();
 
-
-            var osmElements = services.osmService.getOsmElementsToBeDrawn(OSM_LIMIT);
+            var osmElements = services.osmService.getOsmElementsToBeDrawn(state.getOsmLimit());
             var heightCurves = services.geoJsonService.getGeoJsonElementsToBeDrawn();
 
-
-            float strokeBaseWidth = (float) (1/Math.sqrt(superAffine.getDeterminant()));
+            float strokeBaseWidth = state.getStrokeBaseWidth();
 
             image.flush();
 
@@ -44,14 +44,16 @@ public class RunningApplication extends GameApplication {
 
             g2d.setBackground(Color.decode("#a9d3de"));
             g2d.clearRect(0, 0, WIDTH, HEIGHT);
-            g2d.setTransform(superAffine);
+            g2d.setTransform(state.getSuperAffine());
 
             osmElements.forEach(element -> element.draw(g2d, strokeBaseWidth));
-            heightCurves.forEach(heightCurve -> heightCurve.draw(g2d, strokeBaseWidth));
+            heightCurves.forEach(heightCurve -> heightCurve.updateStyle(state.getWaterLevel()).draw(g2d, strokeBaseWidth));
 
             g2d.dispose();
 
             view.setImage(bufferedImageToWritableImage(image));
+
+//            state.adjustOsmLimit(System.nanoTime() - start);
 
             logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
         }
@@ -64,12 +66,14 @@ public class RunningApplication extends GameApplication {
                 .getDefaultScreenDevice()
                 .getDefaultConfiguration()
                 .createCompatibleImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB_PRE);
-        this.superAffine
+        this.state = new State(services.geoJsonService.getMaxWaterLevel());
+        this.state
+                .getSuperAffine()
                 .prependTranslation(-0.56 * services.osmService.getMinLon(), services.osmService.getMaxLat())
                 .prependScale(HEIGHT / (services.osmService.getMaxLat() - services.osmService.getMinLat()), HEIGHT / (services.osmService.getMaxLat() - services.osmService.getMinLat()));
         StackPane root = new StackPane(
                 view,
-                new MouseEventOverlayComponent(this.superAffine)
+                new MouseEventOverlayComponent(state)
         );
         addUINode(root);
         getExecutor().startAsync(() -> {
@@ -88,10 +92,6 @@ public class RunningApplication extends GameApplication {
         settings.setIntroEnabled(false);
         settings.setMainMenuEnabled(false);
         settings.setGameMenuEnabled(false);
-    }
-
-    @Override
-    protected void onUpdate(double tpf) {
     }
 
     public static void main(String[] args) {

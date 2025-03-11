@@ -9,7 +9,8 @@ import java.awt.geom.Path2D;
 import static dk.itu.util.DrawingUtils.toARGB;
 
 public class GeoJsonElement extends Drawable {
-    private static final DrawingConfiguration.Style style = new DrawingConfiguration.Style(new Color(toARGB(javafx.scene.paint.Color.web("#40739e20")), true), 1);
+    private static final DrawingConfiguration.Style styleAboveWater = new DrawingConfiguration.Style(new Color(toARGB(javafx.scene.paint.Color.web("#ff450020")), true), 1);
+    private static final DrawingConfiguration.Style styleBelowWater = new DrawingConfiguration.Style(new Color(toARGB(javafx.scene.paint.Color.web("#40739e20")), true), 1);
     private final float height;
     private final Shape shape;
 
@@ -17,11 +18,15 @@ public class GeoJsonElement extends Drawable {
         this.height = height;
         this.shape = path;
         setShouldBeDrawn(true);
-        setStyle(style);
     }
 
     public float getHeight() {
         return height;
+    }
+
+    public GeoJsonElement updateStyle(float waterLevel) {
+        setStyle(waterLevel >= height ? styleBelowWater : styleAboveWater);
+        return this;
     }
 
     @Override
