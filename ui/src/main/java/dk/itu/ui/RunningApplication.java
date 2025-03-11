@@ -25,12 +25,12 @@ public class RunningApplication extends GameApplication {
     private BufferedImage image;
     private final ImageView view = new ImageView();
 
-    private void renderLoop() {
+    private void renderLoop() throws InterruptedException {
         while (true) {
             long start = System.nanoTime();
 
             var osmElements = services.osmService.getOsmElementsToBeDrawn(state.getOsmLimit());
-            var heightCurves = services.geoJsonService.getGeoJsonElementsToBeDrawn();
+            var heightCurves = services.geoJsonService.getGeoJsonElementsToBeDrawn(state.getWaterLevel());
 
             float strokeBaseWidth = state.getStrokeBaseWidth();
 
@@ -47,7 +47,7 @@ public class RunningApplication extends GameApplication {
             g2d.setTransform(state.getSuperAffine());
 
             osmElements.forEach(element -> element.draw(g2d, strokeBaseWidth));
-            heightCurves.forEach(heightCurve -> heightCurve.updateStyle(state.getWaterLevel()).draw(g2d, strokeBaseWidth));
+            heightCurves.forEach(heightCurve -> heightCurve.draw(g2d, strokeBaseWidth));
 
             g2d.dispose();
 
@@ -77,7 +77,9 @@ public class RunningApplication extends GameApplication {
         );
         addUINode(root);
         getExecutor().startAsync(() -> {
-            renderLoop();
+            try {
+                renderLoop();
+            } catch (InterruptedException _) {}
             getExecutor().startAsyncFX(() -> getGameController().exit());
         });
     }

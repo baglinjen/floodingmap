@@ -5,14 +5,71 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import dk.itu.common.models.geojson.GeoJsonElement;
 
+import java.awt.geom.Area;
 import java.awt.geom.Path2D;
 import java.util.*;
+import java.util.List;
 
 public class GeoJsonParserResult {
     private List<GeoJsonElement> geoJsonElements = new ArrayList<>();
+    private final GeoJsonElement root = new GeoJsonElement(0, new Path2D.Double());
+    private final Map<GeoJsonElement, List<GeoJsonElement>> connections = new HashMap<>();
 
     public void sanitize() {
         geoJsonElements = geoJsonElements.parallelStream().sorted(Comparator.comparing(GeoJsonElement::getHeight)).toList();
+
+        var elementsByArea = geoJsonElements.parallelStream().sorted(Comparator.comparing(GeoJsonElement::getAbsoluteArea).reversed()).toList();
+
+        connections.put(root, new ArrayList<>());
+        for (int i = 0; i < elementsByArea.size(); i++) {
+            GeoJsonElement element = elementsByArea.get(i);
+            var pathElement = (Path2D.Double) element.getShape();
+            insertsNthElement(elementsByArea, element, pathElement, i);
+        }
+        System.out.println();
+    }
+
+    public GeoJsonElement getRoot() {
+        return root;
+    }
+
+    public Map<GeoJsonElement, List<GeoJsonElement>> getConnections() {
+        return connections;
+    }
+
+    private void insertsNthElement(List<GeoJsonElement> elementsByArea, GeoJsonElement element, Path2D.Double pathElement, int i) {
+        if (i == 0) {
+            connections.get(root).add(element);
+            connections.putIfAbsent(element, new ArrayList<>());
+            return;
+        }
+
+        // Nth element
+        GeoJsonElement elementBefore = elementsByArea.get(i - 1);
+        var pathBefore = (Path2D.Double) elementBefore.getShape();
+
+        if (fullyContains(pathBefore, pathElement)) {
+            // Path before contains element i
+            connections.get(elementBefore).add(element);
+            connections.putIfAbsent(element, new ArrayList<>());
+        } else {
+            // Path doesn't contain
+            insertsNthElement(elementsByArea, element, pathElement, i - 1);
+        }
+    }
+
+    public boolean fullyContains(Path2D container, Path2D contained) {
+        // Create Area objects from the paths
+        Area containerArea = new Area(container);
+
+        // Create a copy of the contained area
+        Area copyContainedArea = new Area(contained);
+
+        // Subtract the container from the contained copy
+        copyContainedArea.subtract(containerArea);
+
+        // If the result is empty, the contained path is fully within the container
+        return copyContainedArea.isEmpty();
     }
 
     public List<GeoJsonElement> getGeoJsonElements() {
