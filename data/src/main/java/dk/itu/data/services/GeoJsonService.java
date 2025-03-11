@@ -13,7 +13,7 @@ public class GeoJsonService {
     private List<GeoJsonElement> geoJsonElementsToBeDrawn = null;
 
     // General in-memory info
-    private Float maxWaterLevel;
+    private Float maxWaterLevel, minWaterLevel;
 
     public static GeoJsonService getInstance() {
         if (instance == null) {
@@ -26,6 +26,13 @@ public class GeoJsonService {
 
     private GeoJsonService() {
         geoJsonDatabaseService = GeoJsonDatabaseService.getInstance();
+    }
+
+    public float getMinWaterLevel() {
+        if (minWaterLevel == null) {
+            minWaterLevel = getGeoJsonElementsToBeDrawn().stream().min((e1,e2) -> (int) ((e1.getHeight()-e2.getHeight())*1000)).orElse(new GeoJsonElement(0, new Path2D.Double())).getHeight();
+        }
+        return minWaterLevel;
     }
 
     public float getMaxWaterLevel() {

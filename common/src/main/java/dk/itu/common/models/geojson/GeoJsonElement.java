@@ -25,7 +25,7 @@ public class GeoJsonElement extends Drawable {
     }
 
     public GeoJsonElement updateStyle(float waterLevel) {
-        setStyle(waterLevel >= height ? styleBelowWater : styleAboveWater);
+        setStyle(waterLevel > height ? styleBelowWater : styleAboveWater);
         return this;
     }
 

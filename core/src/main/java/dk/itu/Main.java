@@ -31,7 +31,7 @@ public class Main {
         OsmParserResult osmParserResult = new OsmParserResult();
 
         // Get data from OSM file
-        OsmParser.parse("tuna.osm", osmParserResult);
+        OsmParser.parse("modified-tuna.osm", osmParserResult);
 
         // Filter and sort data
         osmParserResult.sanitize();
@@ -49,7 +49,7 @@ public class Main {
         GeoJsonParserResult geoJsonParserResult = new GeoJsonParserResult();
 
         // Get data from GeoJson file
-        GeoJsonParser.parse("tuna.geojson", geoJsonParserResult);
+        GeoJsonParser.parse("modified-tuna.geojson", geoJsonParserResult);
 
         // Filter and sort data
         geoJsonParserResult.sanitize();

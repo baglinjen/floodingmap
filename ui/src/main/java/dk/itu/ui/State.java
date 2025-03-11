@@ -5,13 +5,17 @@ import java.util.function.Consumer;
 public class State {
     private int osmLimit = 2000;
     private float waterLevel = 0f;
-    private final float maxWaterLevel;
+    private final float minWaterLevel, maxWaterLevel;
     private final SuperAffine superAffine = new SuperAffine();
 
-    public State(float maxWaterLevel) {
+    public State(float minWaterLevel, float maxWaterLevel) {
+        this.minWaterLevel = minWaterLevel;
         this.maxWaterLevel = maxWaterLevel;
     }
 
+    public float getMinWaterLevel() {
+        return minWaterLevel;
+    }
     public float getMaxWaterLevel() {
         return maxWaterLevel;
     }

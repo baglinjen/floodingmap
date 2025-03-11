@@ -6,13 +6,13 @@ import javafx.scene.layout.VBox;
 
 public class WaterScalerComponent extends VBox {
     public WaterScalerComponent(State state) {
-        Slider slider = new Slider(0, state.getMaxWaterLevel(), state.getWaterLevel()); // Min, Max, Initial
+        Slider slider = new Slider(state.getMinWaterLevel(), state.getMaxWaterLevel(), state.getWaterLevel()); // Min, Max, Initial
         slider.setPrefWidth(350);
         slider.setShowTickMarks(true);
         slider.setShowTickLabels(true);
         slider.setSnapToTicks(true);
-        slider.setMajorTickUnit(2.5);
-        slider.setBlockIncrement(2.5);
+        slider.setMajorTickUnit(0.5);
+        slider.setBlockIncrement(0.5);
 
         slider.valueProperty().addListener((_, oldValue, newValue) -> {
             if (oldValue.floatValue() != newValue.floatValue()) {

@@ -66,7 +66,7 @@ public class RunningApplication extends GameApplication {
                 .getDefaultScreenDevice()
                 .getDefaultConfiguration()
                 .createCompatibleImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB_PRE);
-        this.state = new State(services.geoJsonService.getMaxWaterLevel());
+        this.state = new State(services.geoJsonService.getMinWaterLevel(), services.geoJsonService.getMaxWaterLevel());
         this.state
                 .getSuperAffine()
                 .prependTranslation(-0.56 * services.osmService.getMinLon(), services.osmService.getMaxLat())
