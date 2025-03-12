@@ -27,6 +27,8 @@ public abstract class Drawable {
             if (stroke != null) {
                 this.stroke = stroke;
             }
+        } else {
+            this.rgbaColor = null;
         }
     }
 

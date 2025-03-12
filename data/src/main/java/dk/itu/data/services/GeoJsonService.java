@@ -1,15 +1,28 @@
 package dk.itu.data.services;
 
+import dk.itu.common.configurations.DrawingConfiguration;
 import dk.itu.common.models.geojson.GeoJsonElement;
 import dk.itu.data.dto.GeoJsonParserResult;
 
+import java.awt.geom.Path2D;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import static dk.itu.common.models.geojson.GeoJsonElement.styleAboveWater;
+import static dk.itu.common.models.geojson.GeoJsonElement.styleBelowWater;
 
 public class GeoJsonService {
     private static GeoJsonService instance;
 
     // Fallback in-memory storage
     private List<GeoJsonElement> geoJsonElementsToBeDrawn = null;
+
+    // General in-memory info
+    private GeoJsonElement root;
+    private Map<GeoJsonElement, List<GeoJsonElement>> connections;
+    private Float maxWaterLevel, minWaterLevel;
 
     public static GeoJsonService getInstance() {
         if (instance == null) {
@@ -24,7 +37,21 @@ public class GeoJsonService {
         geoJsonDatabaseService = GeoJsonDatabaseService.getInstance();
     }
 
-    public List<GeoJsonElement> getGeoJsonElementsToBeDrawn() {
+    public float getMinWaterLevel() {
+        if (minWaterLevel == null) {
+            minWaterLevel = getGeoJsonElements().stream().min((e1,e2) -> (int) ((e1.getHeight()-e2.getHeight())*1000)).orElse(new GeoJsonElement(0, new Path2D.Double())).getHeight();
+        }
+        return minWaterLevel;
+    }
+
+    public float getMaxWaterLevel() {
+        if (maxWaterLevel == null) {
+            maxWaterLevel = getGeoJsonElements().stream().max((e1,e2) -> (int) ((e1.getHeight()-e2.getHeight())*1000)).orElse(new GeoJsonElement(0, new Path2D.Double())).getHeight();
+        }
+        return maxWaterLevel;
+    }
+
+    public List<GeoJsonElement> getGeoJsonElements() {
         if (geoJsonElementsToBeDrawn == null) {
             // Use DB
             return geoJsonDatabaseService.getGeoJsonElements();
@@ -34,12 +61,43 @@ public class GeoJsonService {
         }
     }
 
+    private int level = 0;
+
+    public List<GeoJsonElement> getGeoJsonElementsToBeDrawn(float waterLevel) throws InterruptedException {
+        if (geoJsonElementsToBeDrawn == null) {
+            // Use DB
+            return geoJsonDatabaseService.getGeoJsonElements();
+        } else {
+            // Use in-memory
+//            return geoJsonElementsToBeDrawn;
+
+            // Reset styles
+            geoJsonElementsToBeDrawn.parallelStream().forEach(e -> e.setStyle(null));
+
+            checkWaterLevelForElements(root, waterLevel);
+
+            return geoJsonElementsToBeDrawn;
+        }
+    }
+
+    public void checkWaterLevelForElements(GeoJsonElement parentElement, float waterLevel) {
+        for (GeoJsonElement e : connections.get(parentElement)) {
+            if (e.getHeight() <= waterLevel) {
+                e.setStyle(styleBelowWater);
+                checkWaterLevelForElements(e, waterLevel);
+            }
+
+        }
+    }
+
     public void addGeoJsonParserResultInDatabase(GeoJsonParserResult geoJsonParserResult) {
         if (geoJsonDatabaseService.connectionEstablished()) {
             // Add elements to DB
             geoJsonDatabaseService.insertGeoJsonElementsInDb(geoJsonParserResult.getGeoJsonElements());
         } else {
             // Can't add to DB => use memory
+            root = geoJsonParserResult.getRoot();
+            connections = geoJsonParserResult.getConnections();
             geoJsonElementsToBeDrawn = geoJsonParserResult.getGeoJsonElements();
         }
     }
