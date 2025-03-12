@@ -6,10 +6,30 @@ import dk.itu.data.parsers.GeoJsonParser;
 import dk.itu.data.parsers.OsmParser;
 import dk.itu.data.dto.OsmParserResult;
 import dk.itu.ui.RunningApplication;
+import org.jooq.DSLContext;
+import org.jooq.SQLDialect;
+import org.jooq.impl.DSL;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
 
 public class Main {
     private static Services services;
     public static void main(String[] args) {
+        String url = "jdbc:postgresql://localhost:5432/postgres";
+        String user = "postgres";
+        String password = "1015";
+
+        try (Connection connection = DriverManager.getConnection(url, user, password)) {
+            DSLContext context = DSL.using(connection, SQLDialect.POSTGRES);
+
+            // Print test to confirm db connection
+            var result = context.selectFrom("nodes").fetch();
+            System.out.println(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         init();
         RunningApplication.main(args);
     }
