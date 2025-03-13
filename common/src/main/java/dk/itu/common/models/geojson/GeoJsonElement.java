@@ -4,33 +4,27 @@ import dk.itu.common.configurations.DrawingConfiguration;
 import dk.itu.common.models.Drawable;
 
 import java.awt.*;
+import java.awt.geom.Area;
 import java.awt.geom.Path2D;
 import java.awt.geom.PathIterator;
-import java.util.List;
 
 import static dk.itu.util.DrawingUtils.toARGB;
 
 public class GeoJsonElement extends Drawable {
-    public static final DrawingConfiguration.Style styleAboveWater = new DrawingConfiguration.Style(new Color(toARGB(javafx.scene.paint.Color.web("#ff450020")), true), 1);
-    public static final DrawingConfiguration.Style styleBelowWater = new DrawingConfiguration.Style(new Color(toARGB(javafx.scene.paint.Color.web("#40739e50")), true), 1);
+    public static final DrawingConfiguration.Style styleBelowWater = new DrawingConfiguration.Style(new Color(toARGB(javafx.scene.paint.Color.web("#40739e80")), true), 1);
     private final float height;
     private final Shape shape;
     private double absoluteArea;
 
     public GeoJsonElement(float height, Path2D path) {
         this.height = height;
-        this.shape = path;
+        this.shape = new Area(path);
         setShouldBeDrawn(true);
         calculateAbsoluteArea();
     }
 
     public float getHeight() {
         return height;
-    }
-
-    public GeoJsonElement updateStyle(float waterLevel) {
-        setStyle(waterLevel > height ? styleBelowWater : styleAboveWater);
-        return this;
     }
 
     public Shape getShape() {
@@ -43,7 +37,6 @@ public class GeoJsonElement extends Drawable {
         double[] coords = new double[6];
         double startX = 0, startY = 0;
         double prevX = 0, prevY = 0;
-//        boolean first = true;
 
         while (!iterator.isDone()) {
             int type = iterator.currentSegment(coords);

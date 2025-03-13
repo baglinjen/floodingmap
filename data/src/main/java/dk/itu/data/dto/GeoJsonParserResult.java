@@ -18,12 +18,23 @@ public class GeoJsonParserResult {
     public void sanitize() {
         geoJsonElements = geoJsonElements.parallelStream().sorted(Comparator.comparing(GeoJsonElement::getHeight)).toList();
 
+        for (int i = 0; i < geoJsonElements.size(); i++) {
+            GeoJsonElement e1 = geoJsonElements.get(i);
+            Area e1p = (Area) e1.getShape();
+
+            for (int j = i+1; j < geoJsonElements.size(); j++) {
+                GeoJsonElement e2 = geoJsonElements.get(j);
+                Area e2p = (Area) e2.getShape();
+                e1p.subtract(e2p);
+            }
+        }
+
         var elementsByArea = geoJsonElements.parallelStream().sorted(Comparator.comparing(GeoJsonElement::getAbsoluteArea).reversed()).toList();
 
         connections.put(root, new ArrayList<>());
         for (int i = 0; i < elementsByArea.size(); i++) {
             GeoJsonElement element = elementsByArea.get(i);
-            var pathElement = (Path2D.Double) element.getShape();
+            var pathElement = (Area) element.getShape();
             insertsNthElement(elementsByArea, element, pathElement, i);
         }
         System.out.println();
@@ -37,7 +48,7 @@ public class GeoJsonParserResult {
         return connections;
     }
 
-    private void insertsNthElement(List<GeoJsonElement> elementsByArea, GeoJsonElement element, Path2D.Double pathElement, int i) {
+    private void insertsNthElement(List<GeoJsonElement> elementsByArea, GeoJsonElement element, Area areaElement, int i) {
         if (i == 0) {
             connections.get(root).add(element);
             connections.putIfAbsent(element, new ArrayList<>());
@@ -46,19 +57,19 @@ public class GeoJsonParserResult {
 
         // Nth element
         GeoJsonElement elementBefore = elementsByArea.get(i - 1);
-        var pathBefore = (Path2D.Double) elementBefore.getShape();
+        var areaBefore = (Area) elementBefore.getShape();
 
-        if (fullyContains(pathBefore, pathElement)) {
+        if (fullyContains(areaBefore, areaElement)) {
             // Path before contains element i
             connections.get(elementBefore).add(element);
             connections.putIfAbsent(element, new ArrayList<>());
         } else {
             // Path doesn't contain
-            insertsNthElement(elementsByArea, element, pathElement, i - 1);
+            insertsNthElement(elementsByArea, element, areaElement, i - 1);
         }
     }
 
-    public boolean fullyContains(Path2D container, Path2D contained) {
+    public boolean fullyContains(Area container, Area contained) {
         // Create Area objects from the paths
         Area containerArea = new Area(container);
 

@@ -1,16 +1,12 @@
 package dk.itu.data.services;
 
-import dk.itu.common.configurations.DrawingConfiguration;
 import dk.itu.common.models.geojson.GeoJsonElement;
 import dk.itu.data.dto.GeoJsonParserResult;
 
 import java.awt.geom.Path2D;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static dk.itu.common.models.geojson.GeoJsonElement.styleAboveWater;
 import static dk.itu.common.models.geojson.GeoJsonElement.styleBelowWater;
 
 public class GeoJsonService {
