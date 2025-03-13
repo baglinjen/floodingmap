@@ -16,9 +16,9 @@ import java.sql.DriverManager;
 public class Main {
     private static Services services;
     public static void main(String[] args) {
-        String url = "jdbc:postgresql://localhost:5432/postgres";
+        String url = "jdbc:postgresql://localhost:5433/postgres";
         String user = "postgres";
-        String password = "1015";
+        String password = "password";
 
         try (Connection connection = DriverManager.getConnection(url, user, password)) {
             DSLContext context = DSL.using(connection, SQLDialect.POSTGRES);
