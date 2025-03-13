@@ -8,6 +8,7 @@ public class PhNode<T> {
     // Bit  6   => Negative/Positive
     // Bit  7   => IsEmpty
     private byte info = 0;
+    private int prefixLength = 0;
     // Prefixes double as long min/maxLon AND min/maxLat
     private final long[] prefixes = new long[2];
     /*
@@ -21,7 +22,7 @@ public class PhNode<T> {
      |         |         |
      0 - - - - 1 - - - - +
      */
-    private final PhNode[] children = new PhNode[4];
+    private final PhNode<T>[] children = new PhNode[4];
     private List<T> elements;
 
     public void addElement(T element) {
@@ -31,6 +32,14 @@ public class PhNode<T> {
         elements.add(element);
     }
 
+    public void clearElements() {
+        elements = null;
+    }
+
+    public void setChild(PhNode<T> child, int index) {
+        children[index] = child;
+    }
+
     public void transferElements(PhNode<T> node) {
         if (elements == null) {
             elements = new ArrayList<>();
@@ -38,14 +47,19 @@ public class PhNode<T> {
         elements.addAll(node.elements);
     }
 
+    public PhNode<T> getChild(int index) {
+        return children[index];
+    }
+
     public int getPrefixLength() {
-        return (info & 0b11111100) >> 2;
+        return (info & 0b11111100) >>> 2;
     }
     public void setPrefixLength(int n) {
         info = (byte) ((n << 2) | (info & 0b00000011));
+        prefixLength = n;
     }
     public boolean getIsPrefixPositive() {
-        return ((info & 0b0000010) >> 1) == 0;
+        return ((info & 0b0000010) >>> 1) == 0;
     }
     public boolean getIsPrefixEmpty() {
         return (info & 0b0000001) == 0;
@@ -68,9 +82,13 @@ public class PhNode<T> {
         setIsPrefixEmpty(false);
     }
 
-    public void setPrefix(long lon, long lat, int nBits) {
-        prefixes[0] = getFirstNBitsFromLong(lon, nBits);
-        prefixes[1] = getFirstNBitsFromLong(lat, nBits);
+    public List<T> getElements() {
+        return elements;
+    }
+
+    public void setPrefix(long lon, long lat, int nBits, int offset) {
+        prefixes[0] = getFirstNBitsFromLong(lon, nBits, offset);
+        prefixes[1] = getFirstNBitsFromLong(lat, nBits, offset);
         setPrefixLength(nBits);
         setIsPrefixEmpty(false);
     }
@@ -84,6 +102,10 @@ public class PhNode<T> {
     // 10101111 and 4 => 10100000
     public static long getFirstNBitsFromLong(long l, int n) {
         return l & (0xFFFFFFFFFFFFFFFFL << (64-n));
+    }
+    public static int getNumberAtIndex(long lon, long lat, int index) {
+        long maskAtIndex = 0x8000000000000000L >>> index;
+        return (int) (((lon & maskAtIndex) >>> (64-(index+2))) + ((lat & maskAtIndex) >>> (64-(index+1))));
     }
 
     public static void printLong(long l) {
