@@ -4,7 +4,9 @@ import dk.itu.common.models.osm.OsmElement;
 import dk.itu.data.repositories.OsmElementRepository;
 import dk.itu.util.LoggerFactory;
 import org.apache.logging.log4j.Logger;
+import org.locationtech.jts.io.ParseException;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class OsmDatabaseService {
@@ -40,8 +42,13 @@ public class OsmDatabaseService {
         }
     }
 
-    public List<OsmElement> getOsmElements() {
-        throw new UnsupportedOperationException("Not implemented yet");
+    public List<OsmElement> fetchAllOsmElements() throws ParseException {
+        List<OsmElement> elements = new ArrayList<>();
+        if (osmElementRepository.connectionEstablished()) {
+
+            elements = osmElementRepository.getOsmElements();
+        }
+        return elements;
     }
 
     public double getMinLat() {
