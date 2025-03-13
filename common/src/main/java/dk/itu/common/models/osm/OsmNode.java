@@ -1,7 +1,6 @@
 package dk.itu.common.models.osm;
 
 import java.awt.*;
-import java.awt.geom.Point2D;
 
 public class OsmNode extends OsmElement {
     private final double lat, lon;
