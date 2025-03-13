@@ -6,10 +6,6 @@ import dk.itu.common.models.Geographical2D;
 import java.awt.*;
 
 import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.LineString;
-import org.locationtech.jts.geom.Polygon;
-import org.locationtech.jts.geom.MultiPolygon;
 
 public abstract class OsmElement extends Drawable implements Geographical2D {
     public long id;

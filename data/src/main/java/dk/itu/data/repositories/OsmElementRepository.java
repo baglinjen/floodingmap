@@ -4,16 +4,12 @@ import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.common.models.osm.OsmElement;
 import dk.itu.common.models.osm.OsmNode;
 import org.jooq.DSLContext;
-import org.jooq.Geometry;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 import dk.itu.data.dbmodels.DbNode;
 import dk.itu.data.dbmodels.DbRelation;
 import dk.itu.data.dbmodels.DbWay;
 import dk.itu.data.dbmodels.DbGeoJson;
-import org.jooq.DSLContext;
-import org.jooq.SQLDialect;
-import org.jooq.impl.DSL;
 import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.io.ParseException;
@@ -61,7 +57,7 @@ public class OsmElementRepository implements AutoCloseable {
         List<OsmElement> elements = new ArrayList<>();
 
         // NODES
-        var nodes = context.select(DSL.field("id"), DSL.field("ST_AsText(coordinate)"))
+        var nodes = ctx.select(DSL.field("id"), DSL.field("ST_AsText(coordinate)"))
                 .from("nodes")
                 .fetch();
 
@@ -72,7 +68,7 @@ public class OsmElementRepository implements AutoCloseable {
         }
 
         // WAYS
-        var ways = context.select(DSL.field("id"),
+        var ways = ctx.select(DSL.field("id"),
                         DSL.field("ST_AsText(line)"),
                         DSL.field("ST_AsText(polygon)"))
                 .from("ways")
@@ -86,7 +82,7 @@ public class OsmElementRepository implements AutoCloseable {
         }
 
         // RELATIONS
-        var relations = context.select(DSL.field("id"), DSL.field("ST_AsText(shape)"))
+        var relations = ctx.select(DSL.field("id"), DSL.field("ST_AsText(shape)"))
                 .from("relations")
                 .fetch();
 
@@ -97,7 +93,7 @@ public class OsmElementRepository implements AutoCloseable {
         }
 
         // GEO JSON
-        var geoJsons = context.select(DSL.field("id"),
+        var geoJsons = ctx.select(DSL.field("id"),
                         DSL.field("height"),
                         DSL.field("ST_AsText(shape)"))
                 .from("geoJson")
@@ -115,5 +111,10 @@ public class OsmElementRepository implements AutoCloseable {
 
     public boolean areElementsInDatabase() {
         return ctx.fetchCount(DSL.table("nodes")) > 0;
+    }
+
+    @Override
+    public void close() throws Exception {
+        connection.close();
     }
 }

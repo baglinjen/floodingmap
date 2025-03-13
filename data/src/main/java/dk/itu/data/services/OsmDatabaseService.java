@@ -42,20 +42,11 @@ public class OsmDatabaseService {
     }
 
     public List<OsmElement> fetchAllOsmElements() throws ParseException {
-
-//        try (OsmElementRepository repository = new OsmElementRepository()) {
-//            repository.getOsmElements();
-//            return new ArrayList<>();
-//        } catch (Exception e) {
-//            logger.warn("Couldn't connect to the database:\n{}", e.getMessage());
-//            return new ArrayList<>();
-//        }
-
-        List<OsmElement> elements = new ArrayList<>();
-        if (osmElementRepository.connectionEstablished()) {
-
-            elements = osmElementRepository.getOsmElements();
+        try (OsmElementRepository repository = new OsmElementRepository()) {
+            return repository.getOsmElements();
+        } catch (Exception e) {
+            logger.warn("Couldn't connect to the database:\n{}", e.getMessage());
+            return new ArrayList<>();
         }
-        return elements;
     }
 }
