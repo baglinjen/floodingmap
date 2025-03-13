@@ -13,12 +13,12 @@ public class DbNode extends OsmElement {
 
     @Override
     public double getArea() {
-        return 0; // A point has no area.
+        return 0;
     }
 
     @Override
     public boolean shouldBeDrawn() {
-        return true; // Or apply your specific condition.
+        return true; 
     }
 
     @Override
