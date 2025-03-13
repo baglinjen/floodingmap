@@ -26,4 +26,10 @@ public class CommonConfiguration {
     public boolean shouldForceParseGeoJson() {
         return this.forceParseGeoJson;
     }
+
+    public SqlCredentials getSqlCredentials() {
+        return new SqlCredentials("jdbc:postgresql://localhost:5433/postgres", "postgres", "password");
+    }
+
+    public record SqlCredentials(String url, String username, String password) {}
 }

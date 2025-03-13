@@ -18,20 +18,20 @@ import java.util.List;
 
 public class Main {
     private static Services services;
-    public static void main(String[] args) throws ParseException {
-        String url = "jdbc:postgresql://localhost:5433/postgres";
-        String user = "postgres";
-        String password = "password";
-
-        try (Connection connection = DriverManager.getConnection(url, user, password)) {
-            DSLContext context = DSL.using(connection, SQLDialect.POSTGRES);
-
-            // Print test to confirm db connection
-            var result = context.selectFrom("nodes").fetch();
-            System.out.println(result);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public static void main(String[] args) {
+//        String url = "jdbc:postgresql://localhost:5433/postgres";
+//        String user = "postgres";
+//        String password = "password";
+//
+//        try (Connection connection = DriverManager.getConnection(url, user, password)) {
+//            DSLContext context = DSL.using(connection, SQLDialect.POSTGRES);
+//
+//            // Print test to confirm db connection
+//            var result = context.selectFrom("nodes").fetch();
+//            System.out.println(result);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
 
         init();
         RunningApplication.main(args);

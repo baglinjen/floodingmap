@@ -3,6 +3,7 @@ package dk.itu.data.services;
 import dk.itu.common.models.osm.OsmElement;
 import dk.itu.data.dto.OsmParserResult;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,42 +39,30 @@ public class OsmService {
     }
 
     public void addOsmParserResultInDatabase(OsmParserResult osmParserResult) {
-        if (osmDatabaseService.connectionEstablished()) {
-            // Add elements to DB
-            osmDatabaseService.insertOsmElementsInDb(osmParserResult.getElementsToBeDrawn());
+        if (osmDatabaseService.insertOsmElementsInDb(osmParserResult.getElementsToBeDrawn())) {
+            // Elements added to DB
+            osmElementsToBeDrawn = new ArrayList<>();
         } else {
             // Can't add to DB => use memory
             osmElementsToBeDrawn = osmParserResult.getElementsToBeDrawn();
-            bounds = osmParserResult.getBounds();
         }
+        bounds = osmParserResult.getBounds();
     }
 
     public double getMinLat() {
-        if (osmDatabaseService.connectionEstablished()) {
-            return osmDatabaseService.getMinLat();
-        } else {
-            return bounds[0];
-        }
+        // TODO: Add bounds in DB
+        return bounds[0];
     }
     public double getMinLon(){
-        if (osmDatabaseService.connectionEstablished()) {
-            return osmDatabaseService.getMinLon();
-        } else {
-            return bounds[1];
-        }
+        // TODO: Add bounds in DB
+        return bounds[1];
     }
     public double getMaxLat() {
-        if (osmDatabaseService.connectionEstablished()) {
-            return osmDatabaseService.getMaxLat();
-        } else {
-            return bounds[2];
-        }
+        // TODO: Add bounds in DB
+        return bounds[2];
     }
     public double getMaxLon() {
-        if (osmDatabaseService.connectionEstablished()) {
-            return osmDatabaseService.getMaxLon();
-        } else {
-            return bounds[3];
-        }
+        // TODO: Add bounds in DB
+        return bounds[3];
     }
 }

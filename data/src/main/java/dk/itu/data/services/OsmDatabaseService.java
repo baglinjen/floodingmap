@@ -20,47 +20,42 @@ public class OsmDatabaseService {
         return instance;
     }
 
-    private final OsmElementRepository osmElementRepository;
-
     private OsmDatabaseService() {
-        this.osmElementRepository = new OsmElementRepository();
-    }
-
-    public boolean connectionEstablished() {
-        return osmElementRepository.connectionEstablished();
     }
 
     public boolean areElementsInDatabase() {
-        return osmElementRepository.areElementsInDatabase();
+        try (OsmElementRepository repository = new OsmElementRepository()) {
+            return repository.areElementsInDatabase();
+        } catch (Exception e) {
+            return false;
+        }
     }
 
-    public void insertOsmElementsInDb(List<OsmElement> osmElement) {
-        if (osmElementRepository.connectionEstablished()) {
-            osmElementRepository.add(osmElement);
-        } else {
-            logger.warn("Couldn't connect to the database, using in-memory solution");
+    public boolean insertOsmElementsInDb(List<OsmElement> osmElement) {
+        try (OsmElementRepository repository = new OsmElementRepository()) {
+            repository.add(osmElement);
+            return true;
+        } catch (Exception e) {
+            logger.warn("Couldn't connect to the database, using in-memory solution:\n{}", e.getMessage());
+            return false;
         }
     }
 
     public List<OsmElement> fetchAllOsmElements() throws ParseException {
+
+//        try (OsmElementRepository repository = new OsmElementRepository()) {
+//            repository.getOsmElements();
+//            return new ArrayList<>();
+//        } catch (Exception e) {
+//            logger.warn("Couldn't connect to the database:\n{}", e.getMessage());
+//            return new ArrayList<>();
+//        }
+
         List<OsmElement> elements = new ArrayList<>();
         if (osmElementRepository.connectionEstablished()) {
 
             elements = osmElementRepository.getOsmElements();
         }
         return elements;
-    }
-
-    public double getMinLat() {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-    public double getMinLon() {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-    public double getMaxLat() {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-    public double getMaxLon() {
-        throw new UnsupportedOperationException("Not implemented yet");
     }
 }

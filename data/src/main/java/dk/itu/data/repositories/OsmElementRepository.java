@@ -1,6 +1,12 @@
 package dk.itu.data.repositories;
 
+import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.common.models.osm.OsmElement;
+import dk.itu.common.models.osm.OsmNode;
+import org.jooq.DSLContext;
+import org.jooq.Geometry;
+import org.jooq.SQLDialect;
+import org.jooq.impl.DSL;
 import dk.itu.data.dbmodels.DbNode;
 import dk.itu.data.dbmodels.DbRelation;
 import dk.itu.data.dbmodels.DbWay;
@@ -16,41 +22,39 @@ import org.locationtech.jts.geom.Geometry;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class OsmElementRepository {
-    private static final String URL = "jdbc:postgresql://localhost:5433/postgres";
-    private static final String USER = "postgres";
-    private static final String PASSWORD = "password";
+public class OsmElementRepository implements AutoCloseable {
+    private final Connection connection;
+    private final DSLContext ctx;
     private static final WKTReader wktReader = new WKTReader();
 
-    private DSLContext context;
-
-    public OsmElementRepository() {
-        try {
-            Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
-            this.context = DSL.using(connection, SQLDialect.POSTGRES);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-    @SafeVarargs
-    public final void add(List<OsmElement>... osmElements) {
-        Arrays.stream(osmElements).parallel().forEach(this::add);
-    }
-    public void add(List<OsmElement> osmElements) {
-        // TODO: Add OSM Elements
-        throw new UnsupportedOperationException();
+    public OsmElementRepository() throws SQLException {
+        var credentials = CommonConfiguration.getInstance().getSqlCredentials();
+        connection = DriverManager.getConnection(credentials.url(), credentials.username(), credentials.password());
+        ctx = DSL.using(connection, SQLDialect.POSTGRES);
     }
 
-    public boolean connectionEstablished() {
-        return this.context != null;
+    public final void add(List<OsmElement> osmElements) {
+        add((OsmNode) osmElements.parallelStream().filter(osmElement -> osmElement instanceof OsmNode).toList().getFirst());
     }
 
-    public boolean areElementsInDatabase() {
-        return context.fetchCount(DSL.table("nodes")) > 0;
+    private void add(OsmNode osmNode) {
+        ctx.insertInto(DSL.table("nodes"), DSL.field("id"), DSL.field("coordinate"))
+                .values(
+                        osmNode.id,
+                        DSL.field("ST_GeomFromText({0}, {1})",
+                                Geometry.class,
+                                DSL.val(String.format("POINT(%s %s)", osmNode.getLon(), osmNode.getLat())),
+                                DSL.val(4326)
+                        )
+                )
+                .execute();
     }
 
     public List<OsmElement> getOsmElements() throws ParseException {
@@ -69,8 +73,8 @@ public class OsmElementRepository {
 
         // WAYS
         var ways = context.select(DSL.field("id"),
-                    DSL.field("ST_AsText(line)"),
-                    DSL.field("ST_AsText(polygon)"))
+                        DSL.field("ST_AsText(line)"),
+                        DSL.field("ST_AsText(polygon)"))
                 .from("ways")
                 .fetch();
 
@@ -94,8 +98,8 @@ public class OsmElementRepository {
 
         // GEO JSON
         var geoJsons = context.select(DSL.field("id"),
-                    DSL.field("height"),
-                    DSL.field("ST_AsText(shape)"))
+                        DSL.field("height"),
+                        DSL.field("ST_AsText(shape)"))
                 .from("geoJson")
                 .fetch();
 
@@ -107,5 +111,9 @@ public class OsmElementRepository {
         }
 
         return elements;
+    }
+
+    public boolean areElementsInDatabase() {
+        return ctx.fetchCount(DSL.table("nodes")) > 0;
     }
 }
