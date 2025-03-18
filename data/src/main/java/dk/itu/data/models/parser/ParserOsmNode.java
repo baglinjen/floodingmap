@@ -1,10 +1,10 @@
-package dk.itu.common.models.osm;
+package dk.itu.data.models.parser;
 
 import java.awt.*;
 
-public class OsmNode extends OsmElement {
+public class ParserOsmNode extends ParserOsmElement {
     private final double lat, lon;
-    public OsmNode(long id, double lat, double lon) {
+    public ParserOsmNode(long id, double lat, double lon) {
         super(id);
         this.lat = lat;
         this.lon = lon;
@@ -30,7 +30,7 @@ public class OsmNode extends OsmElement {
 
     @Override
     public double[] getBounds() {
-        return new double[]{lat, lon, lat, lon};
+        return new double[]{lon, lat, lon, lat};
     }
 
     @Override

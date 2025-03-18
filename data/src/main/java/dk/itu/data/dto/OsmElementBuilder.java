@@ -1,10 +1,10 @@
 package dk.itu.data.dto;
 
 import dk.itu.common.configurations.DrawingConfiguration;
-import dk.itu.common.models.osm.OsmElement;
-import dk.itu.common.models.osm.OsmNode;
-import dk.itu.common.models.osm.OsmRelation;
-import dk.itu.common.models.osm.OsmWay;
+import dk.itu.data.models.parser.ParserOsmElement;
+import dk.itu.data.models.parser.ParserOsmNode;
+import dk.itu.data.models.parser.ParserOsmRelation;
+import dk.itu.data.models.parser.ParserOsmWay;
 import dk.itu.util.LoggerFactory;
 import kotlin.Pair;
 import org.apache.logging.log4j.Logger;
@@ -25,9 +25,9 @@ public class OsmElementBuilder {
     private OsmElementType type = null;
     private final Map<String, String> tags = new HashMap<>();
     // Ways
-    private final List<OsmNode> wayNodes = new ArrayList<>();
+    private final List<ParserOsmNode> wayNodes = new ArrayList<>();
     // Relations
-    private final List<Pair<OsmElement, OsmRelation.OsmRelationMemberType>> members = new ArrayList<>();
+    private final List<Pair<ParserOsmElement, ParserOsmRelation.OsmRelationMemberType>> members = new ArrayList<>();
     // Validity
     private boolean invalidElement = false;
 
@@ -46,8 +46,8 @@ public class OsmElementBuilder {
                         lon != null &&
                         !invalidElement
                 ) {
-                    var newNode = new OsmNode(currentId, lat, lon);
-                    newNode.setShouldBeDrawn(style != null);
+                    var newNode = new ParserOsmNode(currentId, lat, lon);
+                    newNode.setShouldBeDrawn(newNode.shouldBeDrawn() && style != null);
                     newNode.setStyle(style);
                     osmParserResult.addNode(newNode);
                 } else {
@@ -60,8 +60,8 @@ public class OsmElementBuilder {
                         !wayNodes.isEmpty() &&
                         !invalidElement
                 ) {
-                    var newWay = new OsmWay(currentId, wayNodes);
-                    newWay.setShouldBeDrawn(style != null);
+                    var newWay = new ParserOsmWay(currentId, wayNodes);
+                    newWay.setShouldBeDrawn(newWay.shouldBeDrawn() && style != null);
                     newWay.setStyle(style);
                     osmParserResult.addWay(newWay);
                 } else {
@@ -74,8 +74,8 @@ public class OsmElementBuilder {
                         !members.isEmpty() &&
                         !invalidElement
                 ) {
-                    var newRelation = new OsmRelation(currentId, members, OsmRelation.OsmRelationType.fromTags(tags));
-                    newRelation.setShouldBeDrawn(style != null);
+                    var newRelation = new ParserOsmRelation(currentId, members, ParserOsmRelation.OsmRelationType.fromTags(tags));
+                    newRelation.setShouldBeDrawn(newRelation.shouldBeDrawn() && style != null);
                     newRelation.setStyle(style);
                     osmParserResult.addRelation(newRelation);
                 } else {
@@ -120,9 +120,9 @@ public class OsmElementBuilder {
     public void withNodeReference(long referencedNodeId) {
         if (invalidElement) return;
 
-        OsmElement node = osmParserResult.findNode(referencedNodeId);
-        if (node instanceof OsmNode) {
-            wayNodes.add((OsmNode) node);
+        ParserOsmElement node = osmParserResult.findNode(referencedNodeId);
+        if (node instanceof ParserOsmNode) {
+            wayNodes.add((ParserOsmNode) node);
             node.setShouldBeDrawn(false);
         } else {
             invalidElement = true;
@@ -130,12 +130,12 @@ public class OsmElementBuilder {
     }
 
     // RELATIONS
-    public void withMemberReference(long referencedMemberId, OsmElementType type, OsmRelation.OsmRelationMemberType memberType) {
+    public void withMemberReference(long referencedMemberId, OsmElementType type, ParserOsmRelation.OsmRelationMemberType memberType) {
         if (invalidElement) return;
 
         switch (type) {
             case NODE:
-                OsmElement node = osmParserResult.findNode(referencedMemberId);
+                ParserOsmElement node = osmParserResult.findNode(referencedMemberId);
                 if (node != null) {
                     members.add(new Pair<>(node, memberType));
                 } else {
@@ -143,7 +143,7 @@ public class OsmElementBuilder {
                 }
                 break;
             case WAY:
-                OsmElement way = osmParserResult.findWay(referencedMemberId);
+                ParserOsmElement way = osmParserResult.findWay(referencedMemberId);
                 if (way != null) {
                     members.add(new Pair<>(way, memberType));
                 } else {
@@ -151,7 +151,7 @@ public class OsmElementBuilder {
                 }
                 break;
             case RELATION:
-                OsmElement relation = osmParserResult.findRelation(referencedMemberId);
+                ParserOsmElement relation = osmParserResult.findRelation(referencedMemberId);
                 if (relation != null) {
                     members.add(new Pair<>(relation, memberType));
                 } else {

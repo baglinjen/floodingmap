@@ -1,22 +1,18 @@
-package dk.itu.common.models.geojson;
+package dk.itu.data.models.parser;
 
-import dk.itu.common.configurations.DrawingConfiguration;
-import dk.itu.common.models.Drawable;
+import dk.itu.common.models.GeoJsonElement;
 
 import java.awt.*;
 import java.awt.geom.Area;
 import java.awt.geom.Path2D;
 import java.awt.geom.PathIterator;
 
-import static dk.itu.util.DrawingUtils.toARGB;
-
-public class GeoJsonElement extends Drawable {
-    public static final DrawingConfiguration.Style styleBelowWater = new DrawingConfiguration.Style(new Color(toARGB(javafx.scene.paint.Color.web("#40739e80")), true), 1);
+public class ParserGeoJsonElement extends ParserDrawable implements GeoJsonElement {
     private final float height;
     private final Shape shape;
     private double absoluteArea;
 
-    public GeoJsonElement(float height, Path2D path) {
+    public ParserGeoJsonElement(float height, Path2D path) {
         this.height = height;
         this.shape = new Area(path);
         setShouldBeDrawn(true);

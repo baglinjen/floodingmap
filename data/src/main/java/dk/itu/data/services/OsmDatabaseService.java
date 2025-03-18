@@ -1,52 +1,58 @@
 package dk.itu.data.services;
 
-import dk.itu.common.models.osm.OsmElement;
+import dk.itu.common.models.OsmElement;
+import dk.itu.data.models.parser.ParserOsmElement;
 import dk.itu.data.repositories.OsmElementRepository;
 import dk.itu.util.LoggerFactory;
 import org.apache.logging.log4j.Logger;
-import org.locationtech.jts.io.ParseException;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class OsmDatabaseService {
+public class OsmDatabaseService implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger();
-    private static OsmDatabaseService instance;
 
-    public static OsmDatabaseService getInstance() {
-        if (instance == null) {
-            instance = new OsmDatabaseService();
+    private OsmElementRepository repository;
+
+    public OsmDatabaseService() {
+        try {
+            this.repository = new OsmElementRepository();
+        } catch (Exception e) {
+            logger.warn("Couldn't connect to the database.\n{}", e.getMessage());
+            this.repository = null;
         }
-        return instance;
-    }
-
-    private OsmDatabaseService() {
     }
 
     public boolean areElementsInDatabase() {
-        try (OsmElementRepository repository = new OsmElementRepository()) {
+        if (repository == null) {
+            return false;
+        } else {
             return repository.areElementsInDatabase();
-        } catch (Exception e) {
-            return false;
         }
     }
 
-    public boolean insertOsmElementsInDb(List<OsmElement> osmElement) {
-        try (OsmElementRepository repository = new OsmElementRepository()) {
-            repository.add(osmElement);
+    public boolean insertOsmElementsInDb(List<ParserOsmElement> osmElements) {
+        if (repository == null) {
+            return false;
+        } else {
+            repository.add(osmElements);
             return true;
-        } catch (Exception e) {
-            logger.warn("Couldn't connect to the database, using in-memory solution:\n{}", e.getMessage());
-            return false;
         }
     }
 
-    public List<OsmElement> fetchAllOsmElements() throws ParseException {
-        try (OsmElementRepository repository = new OsmElementRepository()) {
-            return repository.getOsmElements();
-        } catch (Exception e) {
-            logger.warn("Couldn't connect to the database:\n{}", e.getMessage());
+    public List<OsmElement> fetchAllOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
+        if (repository == null) {
             return new ArrayList<>();
+        } else {
+            return repository.getOsmElements(limit, minLon, minLat, maxLon, maxLat);
+        }
+    }
+
+    @Override
+    public void close() throws SQLException {
+        if (this.repository != null) {
+            this.repository.close();
         }
     }
 }

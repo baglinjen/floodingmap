@@ -1,9 +1,8 @@
 package dk.itu.data.services;
 
-import dk.itu.common.models.geojson.GeoJsonElement;
-import dk.itu.common.models.osm.OsmElement;
+import dk.itu.common.models.GeoJsonElement;
+import dk.itu.data.models.parser.ParserGeoJsonElement;
 import dk.itu.data.repositories.GeoJsonElementRepository;
-import dk.itu.data.repositories.OsmElementRepository;
 import dk.itu.util.LoggerFactory;
 import org.apache.logging.log4j.Logger;
 
@@ -38,7 +37,7 @@ public class GeoJsonDatabaseService {
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
-    public void insertGeoJsonElementsInDb(List<GeoJsonElement> geoJsonElements) {
+    public void insertGeoJsonElementsInDb(List<ParserGeoJsonElement> geoJsonElements) {
         if (geoJsonElementRepository.connectionEstablished()) {
             geoJsonElementRepository.add(geoJsonElements);
         } else {

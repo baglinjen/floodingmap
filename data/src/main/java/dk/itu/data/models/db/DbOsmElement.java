@@ -1,0 +1,17 @@
+package dk.itu.data.models.db;
+
+import dk.itu.common.models.Colored;
+import dk.itu.common.models.OsmElement;
+
+public abstract class DbOsmElement extends Colored implements OsmElement {
+    private final long id;
+
+    public DbOsmElement(long id) {
+        this.id = id;
+    }
+
+    @Override
+    public long getId() {
+        return id;
+    }
+}

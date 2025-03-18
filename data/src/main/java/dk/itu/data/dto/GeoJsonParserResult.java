@@ -3,7 +3,8 @@ package dk.itu.data.dto;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import dk.itu.common.models.geojson.GeoJsonElement;
+import dk.itu.common.models.GeoJsonElement;
+import dk.itu.data.models.parser.ParserGeoJsonElement;
 
 import java.awt.geom.Area;
 import java.awt.geom.Path2D;
@@ -11,44 +12,43 @@ import java.util.*;
 import java.util.List;
 
 public class GeoJsonParserResult {
-    private List<GeoJsonElement> geoJsonElements = new ArrayList<>();
-    private final GeoJsonElement root = new GeoJsonElement(0, new Path2D.Double());
-    private final Map<GeoJsonElement, List<GeoJsonElement>> connections = new HashMap<>();
+    private List<ParserGeoJsonElement> geoJsonElements = new ArrayList<>();
+    private final ParserGeoJsonElement root = new ParserGeoJsonElement(0, new Path2D.Double());
+    private final Map<ParserGeoJsonElement, List<ParserGeoJsonElement>> connections = new HashMap<>();
 
     public void sanitize() {
-        geoJsonElements = geoJsonElements.parallelStream().sorted(Comparator.comparing(GeoJsonElement::getHeight)).toList();
+        geoJsonElements = geoJsonElements.parallelStream().sorted(Comparator.comparing(ParserGeoJsonElement::getHeight)).toList();
 
         for (int i = 0; i < geoJsonElements.size(); i++) {
-            GeoJsonElement e1 = geoJsonElements.get(i);
+            ParserGeoJsonElement e1 = geoJsonElements.get(i);
             Area e1p = (Area) e1.getShape();
 
             for (int j = i+1; j < geoJsonElements.size(); j++) {
-                GeoJsonElement e2 = geoJsonElements.get(j);
+                ParserGeoJsonElement e2 = geoJsonElements.get(j);
                 Area e2p = (Area) e2.getShape();
                 e1p.subtract(e2p);
             }
         }
 
-        var elementsByArea = geoJsonElements.parallelStream().sorted(Comparator.comparing(GeoJsonElement::getAbsoluteArea).reversed()).toList();
+        var elementsByArea = geoJsonElements.parallelStream().sorted(Comparator.comparing(ParserGeoJsonElement::getAbsoluteArea).reversed()).toList();
 
         connections.put(root, new ArrayList<>());
         for (int i = 0; i < elementsByArea.size(); i++) {
-            GeoJsonElement element = elementsByArea.get(i);
+            ParserGeoJsonElement element = elementsByArea.get(i);
             var pathElement = (Area) element.getShape();
             insertsNthElement(elementsByArea, element, pathElement, i);
         }
-        System.out.println();
     }
 
-    public GeoJsonElement getRoot() {
+    public ParserGeoJsonElement getRoot() {
         return root;
     }
 
-    public Map<GeoJsonElement, List<GeoJsonElement>> getConnections() {
+    public Map<ParserGeoJsonElement, List<ParserGeoJsonElement>> getConnections() {
         return connections;
     }
 
-    private void insertsNthElement(List<GeoJsonElement> elementsByArea, GeoJsonElement element, Area areaElement, int i) {
+    private void insertsNthElement(List<ParserGeoJsonElement> elementsByArea, ParserGeoJsonElement element, Area areaElement, int i) {
         if (i == 0) {
             connections.get(root).add(element);
             connections.putIfAbsent(element, new ArrayList<>());
@@ -56,7 +56,7 @@ public class GeoJsonParserResult {
         }
 
         // Nth element
-        GeoJsonElement elementBefore = elementsByArea.get(i - 1);
+        ParserGeoJsonElement elementBefore = elementsByArea.get(i - 1);
         var areaBefore = (Area) elementBefore.getShape();
 
         if (fullyContains(areaBefore, areaElement)) {
@@ -83,7 +83,7 @@ public class GeoJsonParserResult {
         return copyContainedArea.isEmpty();
     }
 
-    public List<GeoJsonElement> getGeoJsonElements() {
+    public List<ParserGeoJsonElement> getGeoJsonElements() {
         return geoJsonElements;
     }
 
@@ -177,7 +177,7 @@ public class GeoJsonParserResult {
             }
 
             for (Path2D closedPath : closedPaths) {
-                geoJsonElements.add(new GeoJsonElement(height, closedPath));
+                geoJsonElements.add(new ParserGeoJsonElement(height, closedPath));
             }
         }
     }

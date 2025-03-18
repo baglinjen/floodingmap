@@ -16,20 +16,25 @@ DROP TABLE IF EXISTS geoJson;
 
 CREATE TABLE nodes (
     id bigint primary key,
-    coordinate geometry(Point) not null
+    coordinate geometry(Point) not null,
+    drawingOrder int not null
 );
 
 CREATE TABLE ways (
     id bigint primary key,
     line geometry(LineString),
     polygon geometry(Polygon),
-    color int not null
+    shapeSerialized bytea not null,
+    color int not null,
+    drawingOrder int not null
 );
 
 CREATE TABLE relations (
     id bigint primary key,
     shape geometry(MultiPolygon) not null,
-    color int not null
+    shapeSerialized bytea not null,
+    color int not null,
+    drawingOrder int not null
 );
 
 CREATE TABLE geoJson (
@@ -37,3 +42,11 @@ CREATE TABLE geoJson (
     height float not null,
     shape geometry(MultiPolygon) not null
 );
+
+CREATE INDEX idx_nodes_shape ON nodes USING GIST(coordinate);
+CREATE INDEX idx_nodes_drawing_order ON nodes(drawingOrder);
+CREATE INDEX idx_ways_line_shape ON ways USING GIST(line);
+CREATE INDEX idx_ways_polygons_shape ON ways USING GIST(polygon);
+CREATE INDEX idx_ways_drawing_order ON ways(drawingOrder);
+CREATE INDEX idx_relations_shape ON relations USING GIST(shape);
+CREATE INDEX idx_relations_drawing_order ON relations(drawingOrder);

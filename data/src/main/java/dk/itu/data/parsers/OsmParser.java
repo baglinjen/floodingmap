@@ -1,6 +1,6 @@
 package dk.itu.data.parsers;
 
-import dk.itu.common.models.osm.OsmRelation;
+import dk.itu.data.models.parser.ParserOsmRelation;
 import dk.itu.data.dto.OsmElementBuilder;
 import dk.itu.data.dto.OsmParserResult;
 import dk.itu.util.LoggerFactory;
@@ -54,7 +54,7 @@ public class OsmParser {
                         case "member" -> elementBuilder.withMemberReference(
                                 Long.parseLong(reader.getAttributeValue(null, "ref")),
                                 OsmElementBuilder.OsmElementType.fromString(reader.getAttributeValue(null, "type")),
-                                OsmRelation.OsmRelationMemberType.fromString(reader.getAttributeValue(null, "role").intern())
+                                ParserOsmRelation.OsmRelationMemberType.fromString(reader.getAttributeValue(null, "role").intern())
                         );
                         case "bounds" -> osmParserResult.setBounds(
                                 Double.parseDouble(reader.getAttributeValue(null, "minlon")),

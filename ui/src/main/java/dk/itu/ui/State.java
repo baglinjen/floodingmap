@@ -1,9 +1,7 @@
 package dk.itu.ui;
 
-import java.util.function.Consumer;
-
 public class State {
-    private int osmLimit = 2000;
+    private int osmLimit = 1000;
     private float waterLevel = 0f;
     private final float minWaterLevel, maxWaterLevel;
     private final SuperAffine superAffine = new SuperAffine();
@@ -31,6 +29,11 @@ public class State {
     }
     public SuperAffine getSuperAffine() {
         return superAffine;
+    }
+    public double[] getWindow() {
+        var min = this.superAffine.inverseTransform(0, 0);
+        var max = this.superAffine.inverseTransform(RunningApplication.WIDTH, RunningApplication.HEIGHT);
+        return new double[] {min.getX()/0.56, -max.getY(), max.getX()/0.56, -min.getY()};
     }
     public float getStrokeBaseWidth() {
         return (float) (1/Math.sqrt(superAffine.getDeterminant()));
