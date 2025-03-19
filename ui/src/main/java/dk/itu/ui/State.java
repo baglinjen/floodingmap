@@ -1,7 +1,7 @@
 package dk.itu.ui;
 
 public class State {
-    private int osmLimit = 1000;
+    private int osmLimit = 2000;
     private float waterLevel = 0f;
     private final float minWaterLevel, maxWaterLevel;
     private final SuperAffine superAffine = new SuperAffine();
