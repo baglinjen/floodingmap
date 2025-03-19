@@ -1,6 +1,8 @@
 package dk.itu.data.models.parser;
 
+import dk.itu.util.LoggerFactory;
 import kotlin.Pair;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
@@ -13,6 +15,7 @@ import java.util.stream.Collectors;
 import static dk.itu.util.shape.PolygonUtils.isPolygonContained;
 
 public class ParserOsmRelation extends ParserOsmElement {
+    private static final Logger logger = LoggerFactory.getLogger();
     private final double[] bounds = new double[4];
     private Path2D.Double shape = null;
     private final List<double[]> innerPolygons = new ArrayList<>();
@@ -38,6 +41,7 @@ public class ParserOsmRelation extends ParserOsmElement {
             element.setShouldBeDrawn(false);
 
             switch (memberType) {
+                case null -> logger.warn("Relation with id {} has invalid member", id);
                 case INNER -> {
                     switch (element) {
                         case ParserOsmWay osmWay -> {
@@ -130,6 +134,7 @@ public class ParserOsmRelation extends ParserOsmElement {
                         default -> {}
                     }
                 }
+                default -> logger.warn("Relation with id {} has invalid member", id);
             }
 
             double[] elementBounds = element.getBounds();
