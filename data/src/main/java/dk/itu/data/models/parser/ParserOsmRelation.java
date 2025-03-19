@@ -4,18 +4,20 @@ import kotlin.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
+import java.awt.geom.Area;
 import java.awt.geom.Path2D;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
+
+import static dk.itu.util.shape.PolygonUtils.isPolygonContained;
 
 public class ParserOsmRelation extends ParserOsmElement {
     private final double[] bounds = new double[4];
     private Path2D.Double shape = null;
     private final List<double[]> innerPolygons = new ArrayList<>();
     private final List<double[]> outerPolygons = new ArrayList<>();
+    private final List<List<List<double[]>>> polygons = new ArrayList<>();
 
     public ParserOsmRelation(long id, List<Pair<ParserOsmElement, OsmRelationMemberType>> elements, OsmRelationType type) {
         super(id);
@@ -249,6 +251,10 @@ public class ParserOsmRelation extends ParserOsmElement {
     }
     public List<double[]> getInnerPolygons() {
         return innerPolygons;
+    }
+
+    public List<List<List<double[]>>> getPolygons() {
+        return polygons;
     }
 
     @Override

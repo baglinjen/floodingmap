@@ -1,7 +1,5 @@
 package dk.itu.data.repositories;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.common.models.OsmElement;
 import dk.itu.data.models.db.DbNode;
@@ -20,9 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import org.jooq.*;
 import org.jooq.impl.DSL;
 
-import java.awt.*;
 import java.awt.geom.Path2D;
-import java.awt.geom.PathIterator;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -30,6 +26,8 @@ import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import static dk.itu.util.shape.PolygonUtils.isPolygonContained;
 
 public class OsmElementRepository implements AutoCloseable {
     private static final ThreadSafeFury fury = new ThreadLocalFury(classLoader -> {
@@ -80,7 +78,7 @@ public class OsmElementRepository implements AutoCloseable {
                         DSL.val(4326)
                 ),
                 DSL.val(index)
-        );
+        ).onConflict(DSL.field("id")).doNothing();
     }
 
     private Query addWayQuery(ParserOsmWay osmWay, int index) {
@@ -93,12 +91,12 @@ public class OsmElementRepository implements AutoCloseable {
                 DSL.field("drawingOrder")
         ).values(
                 osmWay.getId(),
-                osmWay.isLine() ? getGeometryFieldFromShape("line", osmWay.getShape()) : null,
-                osmWay.isLine() ? null : getGeometryFieldFromShape("polygon", osmWay.getShape()),
+                osmWay.isLine() ? getGeometryFieldFromShape("line", osmWay.getCoordinates()) : null,
+                osmWay.isLine() ? null : getGeometryFieldFromShape("polygon", osmWay.getCoordinates()),
                 fury.serializeJavaObject(osmWay.getShape()),
                 DSL.val(osmWay.getRgbaColor().hashCode()),
                 DSL.val(index)
-        );
+        ).onConflict(DSL.field("id")).doNothing();
     }
 
     private Query addRelationQuery(ParserOsmRelation osmRelation, int index) {
@@ -114,44 +112,56 @@ public class OsmElementRepository implements AutoCloseable {
                 fury.serializeJavaObject(osmRelation.getShape()),
                 DSL.val(osmRelation.getRgbaColor().hashCode()),
                 DSL.val(index)
-        );
+        ).onConflict(DSL.field("id")).doNothing();
     }
 
     private Field<Geometry> getMultipolygonGeometry(ParserOsmRelation osmRelation) {
-        var outer = osmRelation.getOuterPolygons().stream().map(coordinates -> {
-            List<String> coordinatePairs = new ArrayList<>();
-            for (int i = 0; i < coordinates.length; i+=2) {
-                coordinatePairs.add(coordinates[i] + " " + coordinates[i+1]);
-            }
-            return String.format("(%s)", String.join(", ", coordinatePairs));
-        }).toList();
-        var inner = osmRelation.getInnerPolygons().stream().map(coordinates -> {
-            List<String> coordinatePairs = new ArrayList<>();
-            for (int i = 0; i < coordinates.length; i+=2) {
-                coordinatePairs.add(coordinates[i] + " " + coordinates[i+1]);
-            }
-            return String.format("(%s)", String.join(", ", coordinatePairs));
-        }).toList();
+        var outerPolygons = osmRelation.getOuterPolygons();
+        var innerPolygons = osmRelation.getInnerPolygons();
 
-        var outerString = String.format("(%s)", String.join(", ", outer));
-        var innerString = String.format("(%s)", String.join(", ", inner));
+        // Multipolygon start
+        StringBuilder sb = new StringBuilder("MULTIPOLYGON(");
+        for (int i = 0; i < outerPolygons.size(); i++) {
+            if (i == 0) {
+                sb.append("("); // First polygon start
+            } else {
+                sb.append(", ("); // Nth polygon start
+            }
+            sb.append("("); // Polygon outer start
+            List<String> coordinatePairsOuter = new ArrayList<>();
+            for (int l = 0; l < outerPolygons.get(i).length; l+=2) {
+                coordinatePairsOuter.add(outerPolygons.get(i)[l] + " " + outerPolygons.get(i)[l+1]);
+            }
+            sb.append(String.join(", ", coordinatePairsOuter));
+            sb.append(")"); // Polygon outer end
 
-        var finalString = !osmRelation.getInnerPolygons().isEmpty() ? String.join(", ", List.of(outerString, innerString)) : outerString;
+            // Check if there are any inner polygons
+            for (double[] innerPolygon : innerPolygons) {
+                if (isPolygonContained(outerPolygons.get(i), innerPolygon)) {
+                    sb.append(", ("); // Inner hole start
+                    List<String> coordinatePairsInner = new ArrayList<>();
+                    for (int k = 0; k < innerPolygon.length; k+=2) {
+                        coordinatePairsInner.add(innerPolygon[k] + " " + innerPolygon[k+1]);
+                    }
+                    sb.append(String.join(", ", coordinatePairsInner));
+                    sb.append(")");
+                }
+            }
+            sb.append(")"); // Polygon end
+        }
+        sb.append(")"); // Multipolygon end
 
         return DSL.field("ST_GeomFromText({0}, {1})",
                 Geometry.class,
-                DSL.val(String.format("MULTIPOLYGON(%s)", finalString)),
+                DSL.val(sb.toString()),
                 DSL.val(4326)
         );
     }
 
-    private Field<Geometry> getGeometryFieldFromShape(String expected, Shape shape) {
+    private Field<Geometry> getGeometryFieldFromShape(String expected, double[] coordinates) {
         List<String> coordinatePairs = new ArrayList<>();
-        double[] coords = new double[2];
-        for(PathIterator pi = shape.getPathIterator(null); !pi.isDone(); pi.next())
-        {
-            pi.currentSegment(coords);
-            coordinatePairs.add(coords[0] + " " + coords[1]);
+        for (int i = 0; i < coordinates.length; i+=2) {
+            coordinatePairs.add(coordinates[i] + " " + coordinates[i+1]);
         }
         return switch (expected) {
             case "polygon" -> DSL.field("ST_GeomFromText({0}, {1})",
@@ -169,9 +179,9 @@ public class OsmElementRepository implements AutoCloseable {
     }
 
     public List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
-        String condWaysLine = String.format("line && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
-        String condWaysPoly = String.format("polygon && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
-        String condRelations = String.format("shape && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
+        String condWaysLine = String.format("w.line && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
+        String condWaysPoly = String.format("w.polygon && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
+        String condRelations = String.format("r.shape && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
         return ctx.select(
                 DSL.field("n.id", Long.class),
                 DSL.field("'point' as shapeType", String.class),
@@ -191,7 +201,7 @@ public class OsmElementRepository implements AutoCloseable {
                     DSL.field("'w' as type", String.class)
                 )
                 .from(DSL.table("ways").as("w"))
-//                .where(DSL.condition(condWaysLine).or(condWaysPoly))
+                .where(DSL.condition(condWaysLine).or(condWaysPoly))
                 .unionAll(
                     ctx.select(
                         DSL.field("r.id", Long.class),
@@ -202,11 +212,11 @@ public class OsmElementRepository implements AutoCloseable {
                         DSL.field("'r' as type", String.class)
                     )
                     .from(DSL.table("relations").as("r"))
-//                    .where(condRelations)
+                    .where(condRelations)
                 )
             )
             .orderBy(DSL.field("drawingOrder").asc())
-//            .limit(limit)
+            .limit(limit)
             .fetch(new RecordMapper<>() {
                 @Nullable
                 @Override

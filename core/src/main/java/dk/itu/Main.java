@@ -23,7 +23,7 @@ public class Main {
 
     private static void loadOsmDataInDb() {
         // If already in DB and !CommonConfiguration.getInstance().shouldForceParseOsm() => Jump over
-        if (!CommonConfiguration.getInstance().shouldForceParseOsm() && services.osmService.areElementsInDatabase()) {
+        if (!CommonConfiguration.getInstance().shouldForceParseOsm()) {
             return;
         }
 
@@ -31,7 +31,7 @@ public class Main {
         OsmParserResult osmParserResult = new OsmParserResult();
 
         // Get data from OSM file
-        OsmParser.parse("modified-tuna.osm", osmParserResult);
+        OsmParser.parse("tuna.osm", osmParserResult);
 
         // Filter and sort data
         osmParserResult.sanitize();
