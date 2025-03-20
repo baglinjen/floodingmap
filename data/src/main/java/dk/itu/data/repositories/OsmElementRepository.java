@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import org.jooq.*;
 import org.jooq.impl.DSL;
 
+import java.awt.*;
 import java.awt.geom.Path2D;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -25,7 +26,6 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static dk.itu.util.shape.PolygonUtils.isPolygonContained;
 
@@ -39,6 +39,10 @@ public class OsmElementRepository implements AutoCloseable {
                 .withAsyncCompilation(true)
                 .build();
         f.register(Path2D.Double.class);
+        f.register(DbNode.class);
+        f.register(DbWay.class);
+        f.register(DbRelation.class);
+        f.register(Color.class);
         return f;
     });
     private final Connection connection;
@@ -52,12 +56,12 @@ public class OsmElementRepository implements AutoCloseable {
 
     public final void add(List<ParserOsmElement> osmElements) {
         ctx.batch(
-                IntStream.range(0, osmElements.size())
-                        .parallel()
-                        .mapToObj(i -> switch (osmElements.get(i)) {
-                            case ParserOsmNode osmNode -> addNodeQuery(osmNode, i);
-                            case ParserOsmWay osmWay -> addWayQuery(osmWay, i);
-                            case ParserOsmRelation osmRelation -> addRelationQuery(osmRelation, i);
+                osmElements
+                        .parallelStream()
+                        .map(e -> switch (e) {
+                            case ParserOsmNode osmNode -> addNodeQuery(osmNode);
+                            case ParserOsmWay osmWay -> addWayQuery(osmWay);
+                            case ParserOsmRelation osmRelation -> addRelationQuery(osmRelation);
                             default -> null;
                         })
                         .filter(Objects::nonNull)
@@ -65,53 +69,50 @@ public class OsmElementRepository implements AutoCloseable {
         ).execute();
     }
 
-    private Query addNodeQuery(ParserOsmNode osmNode, int index) {
+    private Query addNodeQuery(ParserOsmNode osmNode) {
+        var geoField = DSL.field("ST_GeomFromText({0}, {1})", DSL.val(String.format("POINT(%s %s)", osmNode.getLon(), osmNode.getLat())), DSL.val(4326), Geometry.class);
         return ctx.insertInto(DSL.table("nodes"),
                 DSL.field("id"),
                 DSL.field("coordinate"),
-                DSL.field("drawingOrder")
+                DSL.field("dbObj"),
+                DSL.field("area")
         ).values(
                 osmNode.getId(),
-                DSL.field("ST_GeomFromText({0}, {1})",
-                        Geometry.class,
-                        DSL.val(String.format("POINT(%s %s)", osmNode.getLon(), osmNode.getLat())),
-                        DSL.val(4326)
-                ),
-                DSL.val(index)
+                geoField,
+                DSL.val(fury.serializeJavaObject(new DbNode(osmNode.getId()))),
+                DSL.field("ST_Area(ST_Envelope({0}::geometry), false)", geoField)
         ).onConflict(DSL.field("id")).doNothing();
     }
 
-    private Query addWayQuery(ParserOsmWay osmWay, int index) {
+    private Query addWayQuery(ParserOsmWay osmWay) {
+        var geoField = osmWay.isLine() ? getGeometryFieldFromShape("line", osmWay.getCoordinates()) : getGeometryFieldFromShape("polygon", osmWay.getCoordinates());
         return ctx.insertInto(DSL.table("ways"),
                 DSL.field("id"),
                 DSL.field("line"),
                 DSL.field("polygon"),
-                DSL.field("shapeSerialized"),
-                DSL.field("color"),
-                DSL.field("drawingOrder")
+                DSL.field("dbObj"),
+                DSL.field("area")
         ).values(
                 osmWay.getId(),
-                osmWay.isLine() ? getGeometryFieldFromShape("line", osmWay.getCoordinates()) : null,
-                osmWay.isLine() ? null : getGeometryFieldFromShape("polygon", osmWay.getCoordinates()),
-                fury.serializeJavaObject(osmWay.getShape()),
-                DSL.val(osmWay.getRgbaColor().hashCode()),
-                DSL.val(index)
+                osmWay.isLine() ? geoField : null,
+                osmWay.isLine() ? null : geoField,
+                fury.serializeJavaObject(new DbWay(osmWay.getId(), osmWay.getShape(), osmWay.isLine() ? "line" : "polygon", osmWay.getRgbaColor().hashCode())),
+                DSL.field("ST_Area(ST_Envelope({0}::geometry), false)", geoField)
         ).onConflict(DSL.field("id")).doNothing();
     }
 
-    private Query addRelationQuery(ParserOsmRelation osmRelation, int index) {
+    private Query addRelationQuery(ParserOsmRelation osmRelation) {
+        var geoField = getMultipolygonGeometry(osmRelation);
         return ctx.insertInto(DSL.table("relations"),
                 DSL.field("id"),
                 DSL.field("shape"),
-                DSL.field("shapeSerialized"),
-                DSL.field("color"),
-                DSL.field("drawingOrder")
+                DSL.field("dbObj"),
+                DSL.field("area")
         ).values(
                 osmRelation.getId(),
-                getMultipolygonGeometry(osmRelation),
-                fury.serializeJavaObject(osmRelation.getShape()),
-                DSL.val(osmRelation.getRgbaColor().hashCode()),
-                DSL.val(index)
+                geoField,
+                fury.serializeJavaObject(new DbRelation(osmRelation.getId(), osmRelation.getShape(), osmRelation.getRgbaColor().hashCode())),
+                DSL.field("ST_Area(ST_Envelope({0}::geometry), false)", geoField)
         ).onConflict(DSL.field("id")).doNothing();
     }
 
@@ -183,52 +184,43 @@ public class OsmElementRepository implements AutoCloseable {
         String condWaysPoly = String.format("w.polygon && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
         String condRelations = String.format("r.shape && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
         return ctx.select(
-                DSL.field("n.id", Long.class),
-                DSL.field("'point' as shapeType", String.class),
-                DSL.field("NULL as shapeSerialized", byte[].class),
-                DSL.field("NULL as color", Integer.class),
-                DSL.field("n.drawingOrder", Integer.class),
-                DSL.field("'n' as type", String.class)
-            )
-            .from(DSL.table("nodes").as("n"))
-            .unionAll(
-                ctx.select(
-                    DSL.field("w.id", Long.class),
-                    DSL.when(DSL.condition("w.line").isNotNull(), "line").otherwise("polygon").as("shapeType"),
-                    DSL.field("w.shapeSerialized", byte[].class),
-                    DSL.field("w.color", Integer.class),
-                    DSL.field("w.drawingOrder", Integer.class),
-                    DSL.field("'w' as type", String.class)
+                        DSL.field("n.dbObj", byte[].class),
+                        DSL.field("'n' as type", String.class),
+                        DSL.field("n.area", Float.class)
                 )
-                .from(DSL.table("ways").as("w"))
-                .where(DSL.condition(condWaysLine).or(condWaysPoly))
+                .from(DSL.table("nodes").as("n"))
                 .unionAll(
-                    ctx.select(
-                        DSL.field("r.id", Long.class),
-                        DSL.field("'multipolygon' as shapeType", String.class),
-                        DSL.field("r.shapeSerialized", byte[].class),
-                        DSL.field("r.color", Integer.class),
-                        DSL.field("r.drawingOrder", Integer.class),
-                        DSL.field("'r' as type", String.class)
-                    )
-                    .from(DSL.table("relations").as("r"))
-                    .where(condRelations)
+                        ctx.select(
+                                        DSL.field("w.dbObj", byte[].class),
+                                        DSL.field("'w' as type", String.class),
+                                        DSL.field("w.area", Float.class)
+                                )
+                                .from(DSL.table("ways").as("w"))
+                                .where(DSL.condition(condWaysLine).or(condWaysPoly))
+                                .unionAll(
+                                        ctx.select(
+                                                        DSL.field("r.dbObj", byte[].class),
+                                                        DSL.field("'r' as type", String.class),
+                                                        DSL.field("r.area", Float.class)
+                                                )
+                                                .from(DSL.table("relations").as("r"))
+                                                .where(condRelations)
+                                )
                 )
-            )
-            .orderBy(DSL.field("drawingOrder").asc())
-            .limit(limit)
-            .fetch(new RecordMapper<>() {
-                @Nullable
-                @Override
-                public OsmElement map(Record6<Long, String, byte[], Integer, Integer, String> r) {
-                    return switch (r.component6()) {
-                        case "n" -> new DbNode(r.component1());
-                        case "w" -> new DbWay(r.component1(), fury.deserializeJavaObject(r.component3(), Path2D.Double.class), r.component2(), r.component4());
-                        case "r" -> new DbRelation(r.component1(), fury.deserializeJavaObject(r.component3(),Path2D.Double.class), r.component4());
-                        default -> null;
-                    };
-                }
-            });
+                .orderBy(DSL.field("area").desc())
+                .limit(limit)
+                .fetch(new RecordMapper<>() {
+                    @Nullable
+                    @Override
+                    public OsmElement map(Record3<byte[], String, Float> r) {
+                        return switch (r.component2()) {
+                            case "n" -> fury.deserializeJavaObject(r.component1(), DbNode.class);
+                            case "w" -> fury.deserializeJavaObject(r.component1(), DbWay.class);
+                            case "r" -> fury.deserializeJavaObject(r.component1(), DbRelation.class);
+                            default -> null;
+                        };
+                    }
+                });
     }
 
 //    public List<OsmElement> getOsmElements() {

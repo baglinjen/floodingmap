@@ -247,7 +247,7 @@ public class ParserOsmRelation extends ParserOsmElement {
     }
 
     @Override
-    public Shape getShape() {
+    public Path2D.Double getShape() {
         return shape;
     }
 

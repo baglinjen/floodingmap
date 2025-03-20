@@ -1,6 +1,7 @@
 package dk.itu.data.models.parser;
 
 import java.awt.*;
+import java.awt.geom.Path2D;
 
 public class ParserOsmNode extends ParserOsmElement {
     private final double lat, lon;
@@ -24,7 +25,7 @@ public class ParserOsmNode extends ParserOsmElement {
     }
 
     @Override
-    public Shape getShape() {
+    public Path2D.Double getShape() {
         return null;
     }
 

@@ -4,6 +4,7 @@ import dk.itu.common.models.Geographical2D;
 import dk.itu.common.models.OsmElement;
 
 import java.awt.*;
+import java.awt.geom.Path2D;
 
 public abstract class ParserOsmElement extends ParserDrawable implements OsmElement, Geographical2D {
     private final long id;
@@ -18,7 +19,7 @@ public abstract class ParserOsmElement extends ParserDrawable implements OsmElem
     }
 
     public abstract double getArea();
-    public abstract Shape getShape();
+    public abstract Path2D.Double getShape();
 
     protected static boolean isClockwise(double[] coordinates) {
         // Ensure we have at least a triangle (6 values: 3 points with x,y each)

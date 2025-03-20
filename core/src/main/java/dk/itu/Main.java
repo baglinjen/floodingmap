@@ -31,7 +31,7 @@ public class Main {
         OsmParserResult osmParserResult = new OsmParserResult();
 
         // Get data from OSM file
-        OsmParser.parse("fyn.osm", osmParserResult);
+        OsmParser.parse("bornholm.osm", osmParserResult);
 
         // Filter and sort data
         osmParserResult.sanitize();
