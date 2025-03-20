@@ -1,6 +1,5 @@
 package dk.itu.data.repositories;
 
-import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.common.models.OsmElement;
 import dk.itu.data.models.db.DbNode;
 import dk.itu.data.models.db.DbRelation;
@@ -21,13 +20,11 @@ import org.jooq.impl.DSL;
 import java.awt.*;
 import java.awt.geom.Path2D;
 import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static dk.itu.util.shape.PolygonUtils.isPolygonContained;
+import static dk.itu.util.PolygonUtils.isPolygonContained;
 
 public class OsmElementRepository {
     private static final ThreadSafeFury fury = new ThreadLocalFury(classLoader -> {

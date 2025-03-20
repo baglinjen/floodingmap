@@ -2,6 +2,7 @@ package dk.itu.ui;
 
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
+import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.data.services.Services;
 import dk.itu.ui.components.MouseEventOverlayComponent;
 import dk.itu.util.LoggerFactory;
@@ -15,7 +16,7 @@ import java.awt.image.BufferedImage;
 import static com.almasb.fxgl.dsl.FXGLForKtKt.*;
 import static dk.itu.util.DrawingUtils.bufferedImageToWritableImage;
 
-public class RunningApplication extends GameApplication {
+public class FloodingApp extends GameApplication {
     public static final int WIDTH = 1920, HEIGHT = 920;
     private final Logger logger = LoggerFactory.getLogger();
 
@@ -27,11 +28,16 @@ public class RunningApplication extends GameApplication {
 
     private void renderLoop() throws InterruptedException {
         Services.withServices(services -> {
+
+            // Temporary whilst using in-memory
+            services.getGeoJsonService().loadGeoJsonData("modified-tuna.geojson");
+
             while (true) {
                 long start = System.nanoTime();
 
                 var window = state.getWindow();
-                var osmElements = services.getOsmService()
+                var osmElements = services
+                        .getOsmService()
                         .getOsmElementsToBeDrawn(
                                 state.getOsmLimit(),
                                 window[0],
@@ -39,8 +45,7 @@ public class RunningApplication extends GameApplication {
                                 window[2],
                                 window[3]
                         );
-
-                // var heightCurves = services.geoJsonService.getGeoJsonElementsToBeDrawn(state.getWaterLevel());
+                 var heightCurves = services.getGeoJsonService().getGeoJsonElements();
 
                 float strokeBaseWidth = state.getStrokeBaseWidth();
 
@@ -57,13 +62,11 @@ public class RunningApplication extends GameApplication {
                 g2d.setTransform(state.getSuperAffine());
 
                 osmElements.forEach(element -> element.draw(g2d, strokeBaseWidth));
-                // heightCurves.forEach(heightCurve -> heightCurve.draw(g2d, strokeBaseWidth));
+                heightCurves.forEach(heightCurve -> heightCurve.draw(g2d, strokeBaseWidth));
 
                 g2d.dispose();
 
                 view.setImage(bufferedImageToWritableImage(image));
-
-//              state.adjustOsmLimit(System.nanoTime() - start);
 
                 logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
             }
@@ -78,7 +81,14 @@ public class RunningApplication extends GameApplication {
                 .getDefaultConfiguration()
                 .createCompatibleImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB_PRE);
         Services.withServices(services -> {
-            // TODO: Use GeoJson service
+            if (CommonConfiguration.getInstance().shouldForceParseOsm()) {
+                services.getOsmService().loadOsmDataInDb("modified-tuna.osm");
+            }
+            // TODO: Load in DB using GeoJson service
+            // if (CommonConfiguration.getInstance().shouldForceParseGeoJson()) {
+            //     services.getGeoJsonService().loadGeoJsonData("modified-tuna.geojson");
+            // }
+
             this.state = new State(0, 10);
             this.state
                     .getSuperAffine()
@@ -93,7 +103,7 @@ public class RunningApplication extends GameApplication {
 
         StackPane root = new StackPane(
                 view,
-                new MouseEventOverlayComponent(state) // 997121, 14.9890798 54.9996782, 14.989
+                new MouseEventOverlayComponent(state)
         );
         addUINode(root);
         getExecutor().startAsync(() -> {

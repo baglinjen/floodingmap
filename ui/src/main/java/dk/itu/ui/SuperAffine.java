@@ -14,10 +14,6 @@ public class SuperAffine extends AffineTransform {
         super();
     }
 
-    public SuperAffine(SuperAffine affine) {
-        super(affine);
-    }
-
     /**
      * Prepends a translation transformation to this transform.
      * @param x The x translation
@@ -75,32 +71,6 @@ public class SuperAffine extends AffineTransform {
         } catch (NoninvertibleTransformException e) {
             logger.error("Could not inverse transform point: {}", e.getMessage());
             return new Point2D.Double(0, 0);
-        }
-    }
-
-    /**
-     * Combines two SuperAffine transforms by first applying the inverse of the first transform,
-     * then applying the second transform.
-     *
-     * @param first The first SuperAffine transform to be inverted
-     * @param second The second SuperAffine transform to be applied after the inverse
-     * @return A new SuperAffine containing the combined transformation
-     */
-    public static SuperAffine combineWithInverse(SuperAffine first, SuperAffine second) {
-        SuperAffine result = new SuperAffine();
-
-        try {
-            // Create the inverse of the first transform
-            AffineTransform inverse = first.createInverse();
-
-            // Create a new transform that first applies the inverse, then the second transform
-            result.setTransform(second);
-            result.concatenate(inverse);
-
-            return result;
-        } catch (NoninvertibleTransformException e) {
-            // If the transform can't be inverted, return an identity transform
-            return new SuperAffine();
         }
     }
 }

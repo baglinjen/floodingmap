@@ -13,6 +13,7 @@ import java.util.function.Consumer;
 
 public interface Services {
     OsmService getOsmService();
+    GeoJsonService getGeoJsonService();
 
     Logger logger = LoggerFactory.getLogger();
     private static Connection getConnection() {
@@ -29,6 +30,7 @@ public interface Services {
         consumer.accept(new Services() {
 
             private OsmService osmService = null;
+            private GeoJsonService geoJsonService = null;
 
             @Override
             public OsmService getOsmService() {
@@ -39,7 +41,18 @@ public interface Services {
                 }
                 return osmService;
             }
+
+            @Override
+            public GeoJsonService getGeoJsonService() {
+                if (geoJsonService == null) {
+//                    var connection = getConnection();
+                    geoJsonService = new GeoJsonService();
+//                    connections.add(connection);
+                }
+                return geoJsonService;
+            }
         });
+
         try {
             for (Connection connection : connections) {
                 connection.close();

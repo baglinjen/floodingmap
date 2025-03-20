@@ -16,6 +16,7 @@
     <option name="ignoredFiles">
       <set>
         <option value="$PROJECT_DIR$/bopib/pom.xml" />
+        <option value="$PROJECT_DIR$/core/pom.xml" />
         <option value="$PROJECT_DIR$/main/pom.xml" />
       </set>
     </option>

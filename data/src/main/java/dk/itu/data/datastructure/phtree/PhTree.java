@@ -1,8 +1,8 @@
-package dk.itu.data.datastructure;
+package dk.itu.data.datastructure.phtree;
 
 import dk.itu.common.models.Geographical2D;
 
-import static dk.itu.data.datastructure.PhNode.*;
+import static dk.itu.data.datastructure.phtree.PhNode.*;
 
 public class PhTree<T extends Geographical2D> {
     private PhNode<T> root;

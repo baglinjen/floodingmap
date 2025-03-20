@@ -1,13 +1,12 @@
 import dk.itu.data.models.parser.ParserOsmElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.models.parser.ParserOsmWay;
-import dk.itu.data.datastructure.PhTree;
+import dk.itu.data.datastructure.phtree.PhTree;
 import org.junit.jupiter.api.Test;
 
-import java.awt.*;
 import java.util.List;
 
-import static dk.itu.data.datastructure.PhNode.printLong;
+import static dk.itu.data.datastructure.phtree.PhNode.printLong;
 
 public class PhTreeTest {
 

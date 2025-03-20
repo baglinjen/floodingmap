@@ -1,4 +1,4 @@
-package dk.itu.data.datastructure;
+package dk.itu.data.datastructure.phtree;
 
 import java.util.ArrayList;
 import java.util.List;

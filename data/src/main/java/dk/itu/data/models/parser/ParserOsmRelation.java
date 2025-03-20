@@ -6,13 +6,10 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
-import java.awt.geom.Area;
 import java.awt.geom.Path2D;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static dk.itu.util.shape.PolygonUtils.isPolygonContained;
 
 public class ParserOsmRelation extends ParserOsmElement {
     private static final Logger logger = LoggerFactory.getLogger();

@@ -1,107 +1,59 @@
 package dk.itu.data.services;
 
 import dk.itu.common.models.GeoJsonElement;
-import dk.itu.data.models.parser.ParserGeoJsonElement;
+import dk.itu.data.datastructure.curvetree.CurveTree;
 import dk.itu.data.dto.GeoJsonParserResult;
+import dk.itu.data.models.parser.ParserGeoJsonElement;
+import dk.itu.data.parsers.GeoJsonParser;
+import dk.itu.data.repositories.GeoJsonElementRepository;
+import dk.itu.data.repositories.GeoJsonElementRepositoryDb;
+import dk.itu.data.repositories.GeoJsonElementRepositoryMemory;
 
-import java.awt.geom.Path2D;
-import java.util.ArrayList;
+import java.sql.Connection;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static dk.itu.data.models.parser.ParserGeoJsonElement.styleBelowWater;
 
 public class GeoJsonService {
-    private static GeoJsonService instance;
+    private final GeoJsonElementRepository geoJsonElementRepository;
 
-    // Fallback in-memory storage
-    private List<GeoJsonElement> geoJsonElementsToBeDrawn = null;
-
-    // General in-memory info
-    private GeoJsonElement root;
-    private Map<GeoJsonElement, List<GeoJsonElement>> connections;
-    private Float maxWaterLevel, minWaterLevel;
-
-    public static GeoJsonService getInstance() {
-        if (instance == null) {
-            instance = new GeoJsonService();
-        }
-        return instance;
+    public GeoJsonService() {
+        geoJsonElementRepository = new GeoJsonElementRepositoryMemory();
     }
 
-    public final GeoJsonDatabaseService geoJsonDatabaseService;
-
-    private GeoJsonService() {
-        geoJsonDatabaseService = GeoJsonDatabaseService.getInstance();
-    }
-
-    public float getMinWaterLevel() {
-        if (minWaterLevel == null) {
-            minWaterLevel = getGeoJsonElements().stream().min((e1,e2) -> (int) ((e1.getHeight()-e2.getHeight())*1000)).orElse(new ParserGeoJsonElement(0, new Path2D.Double())).getHeight();
-        }
-        return minWaterLevel;
-    }
-
-    public float getMaxWaterLevel() {
-        if (maxWaterLevel == null) {
-            maxWaterLevel = getGeoJsonElements().stream().max((e1,e2) -> (int) ((e1.getHeight()-e2.getHeight())*1000)).orElse(new ParserGeoJsonElement(0, new Path2D.Double())).getHeight();
-        }
-        return maxWaterLevel;
+    public GeoJsonService(Connection connection) {
+        geoJsonElementRepository = new GeoJsonElementRepositoryDb(connection);
     }
 
     public List<GeoJsonElement> getGeoJsonElements() {
-        if (geoJsonElementsToBeDrawn == null) {
-            // Use DB
-            return geoJsonDatabaseService.getGeoJsonElements();
-        } else {
-            // Use in-memory
-            return geoJsonElementsToBeDrawn;
+        return geoJsonElementRepository.getGeoJsonElements();
+    }
+
+    public void loadGeoJsonData(String geoJsonFileName) {
+        GeoJsonParserResult geoJsonParserResult = new GeoJsonParserResult();
+
+        // Get data from GeoJson file
+        GeoJsonParser.parse(geoJsonFileName, geoJsonParserResult);
+
+        // Filter and sort data
+        geoJsonParserResult.sanitize();
+
+        // Create data structure
+        createDataStructure(geoJsonParserResult.getGeoJsonElements());
+
+        geoJsonElementRepository.add(geoJsonParserResult.getGeoJsonElements());
+    }
+
+    private void createDataStructure(List<ParserGeoJsonElement> geoJsonElements) {
+        var curveTree = new CurveTree();
+        for (ParserGeoJsonElement geoJsonElement : geoJsonElements) {
+            curveTree.put(geoJsonElement);
         }
     }
 
-    public List<GeoJsonElement> getGeoJsonElementsToBeDrawn(float waterLevel) {
-        if (geoJsonElementsToBeDrawn == null) {
-            // Use DB
-            return geoJsonDatabaseService.getGeoJsonElements();
-        } else {
-            // Use in-memory
-
-            // Reset styles
-            geoJsonElementsToBeDrawn.parallelStream().forEach(e -> e.setStyle(null));
-
-            checkWaterLevelForElements(root, waterLevel);
-
-            return geoJsonElementsToBeDrawn;
-        }
+    public float getMinWaterLevel() {
+        return geoJsonElementRepository.getMinWaterLevel();
     }
 
-    public void checkWaterLevelForElements(GeoJsonElement parentElement, float waterLevel) {
-        for (GeoJsonElement e : connections.get(parentElement)) {
-            if (e.getHeight() <= waterLevel) {
-                e.setStyle(styleBelowWater);
-                checkWaterLevelForElements(e, waterLevel);
-            }
-
-        }
-    }
-
-    public void addGeoJsonParserResultInDatabase(GeoJsonParserResult geoJsonParserResult) {
-        if (geoJsonDatabaseService.connectionEstablished()) {
-            // Add elements to DB
-            geoJsonDatabaseService.insertGeoJsonElementsInDb(geoJsonParserResult.getGeoJsonElements());
-        } else {
-            // Can't add to DB => use memory
-            root = geoJsonParserResult.getRoot();
-
-            connections = geoJsonParserResult.getConnections().entrySet().stream()
-                    .collect(Collectors.toMap(
-                            entry -> (GeoJsonElement) entry.getKey(),                  // Cast key to superclass
-                            entry -> entry.getValue().stream()
-                                    .map(item -> (GeoJsonElement) item)          // Cast each list item to superclass
-                                    .collect(Collectors.toList())    // Collect to new list
-                    ));
-            geoJsonElementsToBeDrawn = new ArrayList<>(geoJsonParserResult.getGeoJsonElements());
-        }
+    public float getMaxWaterLevel() {
+        return geoJsonElementRepository.getMaxWaterLevel();
     }
 }

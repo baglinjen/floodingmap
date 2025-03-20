@@ -3,84 +3,17 @@ package dk.itu.data.dto;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import dk.itu.common.models.GeoJsonElement;
 import dk.itu.data.models.parser.ParserGeoJsonElement;
 
-import java.awt.geom.Area;
 import java.awt.geom.Path2D;
 import java.util.*;
 import java.util.List;
 
 public class GeoJsonParserResult {
     private List<ParserGeoJsonElement> geoJsonElements = new ArrayList<>();
-    private final ParserGeoJsonElement root = new ParserGeoJsonElement(0, new Path2D.Double());
-    private final Map<ParserGeoJsonElement, List<ParserGeoJsonElement>> connections = new HashMap<>();
 
     public void sanitize() {
-        geoJsonElements = geoJsonElements.parallelStream().sorted(Comparator.comparing(ParserGeoJsonElement::getHeight)).toList();
-
-        for (int i = 0; i < geoJsonElements.size(); i++) {
-            ParserGeoJsonElement e1 = geoJsonElements.get(i);
-            Area e1p = (Area) e1.getShape();
-
-            for (int j = i+1; j < geoJsonElements.size(); j++) {
-                ParserGeoJsonElement e2 = geoJsonElements.get(j);
-                Area e2p = (Area) e2.getShape();
-                e1p.subtract(e2p);
-            }
-        }
-
-        var elementsByArea = geoJsonElements.parallelStream().sorted(Comparator.comparing(ParserGeoJsonElement::getAbsoluteArea).reversed()).toList();
-
-        connections.put(root, new ArrayList<>());
-        for (int i = 0; i < elementsByArea.size(); i++) {
-            ParserGeoJsonElement element = elementsByArea.get(i);
-            var pathElement = (Area) element.getShape();
-            insertsNthElement(elementsByArea, element, pathElement, i);
-        }
-    }
-
-    public ParserGeoJsonElement getRoot() {
-        return root;
-    }
-
-    public Map<ParserGeoJsonElement, List<ParserGeoJsonElement>> getConnections() {
-        return connections;
-    }
-
-    private void insertsNthElement(List<ParserGeoJsonElement> elementsByArea, ParserGeoJsonElement element, Area areaElement, int i) {
-        if (i == 0) {
-            connections.get(root).add(element);
-            connections.putIfAbsent(element, new ArrayList<>());
-            return;
-        }
-
-        // Nth element
-        ParserGeoJsonElement elementBefore = elementsByArea.get(i - 1);
-        var areaBefore = (Area) elementBefore.getShape();
-
-        if (fullyContains(areaBefore, areaElement)) {
-            // Path before contains element i
-            connections.get(elementBefore).add(element);
-            connections.putIfAbsent(element, new ArrayList<>());
-        } else {
-            // Path doesn't contain
-            insertsNthElement(elementsByArea, element, areaElement, i - 1);
-        }
-    }
-
-    public boolean fullyContains(Area container, Area contained) {
-        // Create Area objects from the paths
-        Area containerArea = new Area(container);
-
-        // Create a copy of the contained area
-        Area copyContainedArea = new Area(contained);
-
-        // Subtract the container from the contained copy
-        copyContainedArea.subtract(containerArea);
-
-        // If the result is empty, the contained path is fully within the container
-        return copyContainedArea.isEmpty();
+        geoJsonElements = geoJsonElements.parallelStream().sorted(Comparator.comparing(ParserGeoJsonElement::getAbsoluteArea).reversed()).toList();
     }
 
     public List<ParserGeoJsonElement> getGeoJsonElements() {
@@ -95,6 +28,7 @@ public class GeoJsonParserResult {
         }
 
         for (Float height : heightToCoordinates.keySet()) {
+            List<List<Double>> closePathCoordinates = new ArrayList<>();
             List<Path2D> closedPaths = new ArrayList<>();
             List<GeoJsonFile.Feature.Geometry> openGeometries = new ArrayList<>();
             var geometries = heightToCoordinates.get(height);
@@ -107,6 +41,19 @@ public class GeoJsonParserResult {
                         path.lineTo(0.56*geometry.coordinates.get(i).longitude, -geometry.coordinates.get(i).latitude);
                     }
                     path.closePath();
+
+                    List<Double> coordinates = new ArrayList<>();
+                    for (int i = 0; i < geometry.coordinates.size(); i+=2) {
+                        coordinates.add(geometry.coordinates.get(i).longitude);
+                        coordinates.add(geometry.coordinates.get(i).latitude);
+                    }
+                    if (!coordinates.getFirst().equals(coordinates.get(coordinates.size()-2))) {
+                        // Close polygon
+                        coordinates.add(coordinates.getFirst());
+                        coordinates.add(coordinates.get(1));
+                    }
+                    closePathCoordinates.add(coordinates);
+
                     closedPaths.add(path);
                 } else {
                     openGeometries.add(geometry);
@@ -174,10 +121,23 @@ public class GeoJsonParserResult {
                 }
                 path.closePath();
                 closedPaths.add(path);
+
+
+                List<Double> coordinates = new ArrayList<>();
+                for (int i = 0; i < openGeometry.coordinates.size(); i+=2) {
+                    coordinates.add(openGeometry.coordinates.get(i).longitude);
+                    coordinates.add(openGeometry.coordinates.get(i).latitude);
+                }
+                if (!coordinates.getFirst().equals(coordinates.get(coordinates.size()-2))) {
+                    // Close polygon
+                    coordinates.add(coordinates.getFirst());
+                    coordinates.add(coordinates.get(1));
+                }
+                closePathCoordinates.add(coordinates);
             }
 
-            for (Path2D closedPath : closedPaths) {
-                geoJsonElements.add(new ParserGeoJsonElement(height, closedPath));
+            for (int i = 0; i < closedPaths.size(); i++) {
+                geoJsonElements.add(new ParserGeoJsonElement(height, closePathCoordinates.get(i).parallelStream().mapToDouble(Double::doubleValue).toArray(), closedPaths.get(i)));
             }
         }
     }

@@ -1,6 +1,5 @@
 package dk.itu.data.dto;
 
-import dk.itu.common.models.OsmElement;
 import dk.itu.data.models.parser.ParserOsmElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.models.parser.ParserOsmRelation;
@@ -9,7 +8,6 @@ import dk.itu.data.models.parser.ParserOsmWay;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class OsmParserResult {
     private double minLon, minLat, maxLon, maxLat;

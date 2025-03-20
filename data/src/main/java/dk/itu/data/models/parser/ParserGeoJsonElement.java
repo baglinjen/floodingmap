@@ -9,13 +9,16 @@ import java.awt.geom.PathIterator;
 
 public class ParserGeoJsonElement extends ParserDrawable implements GeoJsonElement {
     private final float height;
+    private final double[] coordinates;
     private final Shape shape;
     private double absoluteArea;
 
-    public ParserGeoJsonElement(float height, Path2D path) {
+    public ParserGeoJsonElement(float height, double[] coordinates, Path2D path) {
         this.height = height;
         this.shape = new Area(path);
+        this.coordinates = coordinates;
         setShouldBeDrawn(true);
+        setStyle(styleBelowWater);
         calculateAbsoluteArea();
     }
 
@@ -25,6 +28,10 @@ public class ParserGeoJsonElement extends ParserDrawable implements GeoJsonEleme
 
     public Shape getShape() {
         return shape;
+    }
+
+    public double[] getCoordinates() {
+        return coordinates;
     }
 
     private void calculateAbsoluteArea() {

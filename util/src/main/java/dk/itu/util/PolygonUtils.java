@@ -1,4 +1,6 @@
-package dk.itu.util.shape;
+package dk.itu.util;
+
+import java.awt.geom.Area;
 
 public class PolygonUtils {
     /**
@@ -128,5 +130,19 @@ public class PolygonUtils {
     private static boolean isPointEqual(double x1, double y1, double x2, double y2) {
         double epsilon = 1e-10; // Small tolerance for floating-point comparison
         return Math.abs(x1 - x2) < epsilon && Math.abs(y1 - y2) < epsilon;
+    }
+
+    public static boolean fullyContains(Area container, Area contained) {
+        // Create Area objects from the paths
+        Area containerArea = new Area(container);
+
+        // Create a copy of the contained area
+        Area copyContainedArea = new Area(contained);
+
+        // Subtract the container from the contained copy
+        copyContainedArea.subtract(containerArea);
+
+        // If the result is empty, the contained path is fully within the container
+        return copyContainedArea.isEmpty();
     }
 }

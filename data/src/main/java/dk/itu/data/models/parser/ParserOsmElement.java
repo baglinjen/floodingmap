@@ -3,7 +3,6 @@ package dk.itu.data.models.parser;
 import dk.itu.common.models.Geographical2D;
 import dk.itu.common.models.OsmElement;
 
-import java.awt.*;
 import java.awt.geom.Path2D;
 
 public abstract class ParserOsmElement extends ParserDrawable implements OsmElement, Geographical2D {

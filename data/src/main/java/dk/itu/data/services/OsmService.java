@@ -6,11 +6,7 @@ import dk.itu.data.parsers.OsmParser;
 import dk.itu.data.repositories.OsmElementRepository;
 
 import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class OsmService {
 
@@ -24,10 +20,6 @@ public class OsmService {
         return osmElementRepository.getOsmElements(limit, minLon, minLat, maxLon, maxLat);
     }
 
-    public void addOsmParserResultInDatabase(OsmParserResult osmParserResult) {
-        osmElementRepository.add(osmParserResult.getElementsToBeDrawn());
-    }
-
     public void loadOsmDataInDb(String osmFileName) {
         OsmParserResult osmParserResult = new OsmParserResult();
 
@@ -38,7 +30,7 @@ public class OsmService {
         osmParserResult.sanitize();
 
         // Add to Database
-        addOsmParserResultInDatabase(osmParserResult);
+        osmElementRepository.add(osmParserResult.getElementsToBeDrawn());
     }
 
     public double getMinLat() {
