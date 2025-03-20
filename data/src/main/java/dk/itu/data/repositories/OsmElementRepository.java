@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 
 import static dk.itu.util.shape.PolygonUtils.isPolygonContained;
 
-public class OsmElementRepository implements AutoCloseable {
+public class OsmElementRepository {
     private static final ThreadSafeFury fury = new ThreadLocalFury(classLoader -> {
         Fury f = Fury.builder()
                 .withLanguage(Language.JAVA)
@@ -45,12 +45,10 @@ public class OsmElementRepository implements AutoCloseable {
         f.register(Color.class);
         return f;
     });
-    private final Connection connection;
+
     private final DSLContext ctx;
 
-    public OsmElementRepository() throws SQLException {
-        var credentials = CommonConfiguration.getInstance().getSqlCredentials();
-        connection = DriverManager.getConnection(credentials.url(), credentials.username(), credentials.password());
+    public OsmElementRepository(Connection connection) {
         ctx = DSL.using(connection, SQLDialect.POSTGRES);
     }
 
@@ -223,45 +221,6 @@ public class OsmElementRepository implements AutoCloseable {
                 });
     }
 
-//    public List<OsmElement> getOsmElements() {
-//        List<ParserOsmElement> elements = new ArrayList<>();
-//
-//        // NODES
-//        var nodes = ctx.select(DSL.field("id"), DSL.field("ST_AsText(coordinate)"))
-//                .from("nodes")
-//                .fetch();
-//
-//        for (var record : nodes) {
-//            long id = record.get("id", long.class);
-//            Geometry geometry = wktReader.read(record.get("st_astext", String.class));
-//            elements.add(new DbNode(id, (Point) geometry));
-//        }
-//
-//        // WAYS
-//        var ways = ctx.select(DSL.field("id"),
-//                        DSL.field("ST_AsText(line)"),
-//                        DSL.field("ST_AsText(polygon)"))
-//                .from("ways")
-//                .fetch();
-//
-//        for (var record : ways) {
-//            long id = record.get("id", long.class);
-//            String lineStringText = record.get("st_astext", String.class);
-//            Geometry geometry = (lineStringText != null) ? wktReader.read(lineStringText) : null;
-//            elements.add(new DbWay(id, geometry));
-//        }
-//
-//        // RELATIONS
-//        var relations = ctx.select(DSL.field("id"), DSL.field("ST_AsText(shape)"))
-//                .from("relations")
-//                .fetch();
-//
-//        for (var record : ways) {
-//            long id = record.get("id", long.class);
-//            Geometry geometry = wktReader.read(record.get("st_astext", String.class));
-//            elements.add(new DbRelation(id, (MultiPolygon) geometry));
-//        }
-//
 //        // GEO JSON
 //        var geoJsons = ctx.select(DSL.field("id"),
 //                        DSL.field("height"),
@@ -283,10 +242,5 @@ public class OsmElementRepository implements AutoCloseable {
         if (ctx.fetchCount(DSL.table("nodes")) > 0) return true;
         if (ctx.fetchCount(DSL.table("ways")) > 0) return true;
         return ctx.fetchCount(DSL.table("relations")) > 0;
-    }
-
-    @Override
-    public void close() throws SQLException {
-        connection.close();
     }
 }

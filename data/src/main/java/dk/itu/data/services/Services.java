@@ -7,11 +7,12 @@ import org.apache.logging.log4j.Logger;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 public interface Services {
     OsmService getOsmService();
-    OsmService getTempOsmService();
 
     Logger logger = LoggerFactory.getLogger();
     private static Connection getConnection() {
@@ -20,23 +21,32 @@ public interface Services {
             return DriverManager.getConnection(credentials.url(), credentials.username(), credentials.password());
         } catch (SQLException e) {
             logger.error("Failed to create connection:\n{}", e.getMessage());
-            return null;
+            throw new RuntimeException(e);
         }
     }
-    static Services withServices(Consumer<Services> consumer) {
+    static void withServices(Consumer<Services> consumer) {
+        List<Connection> connections = new ArrayList<>();
         consumer.accept(new Services() {
 
-            private final OsmService osmService = new OsmService(Services.getConnection());
+            private OsmService osmService = null;
 
             @Override
             public OsmService getOsmService() {
+                if (osmService == null) {
+                    var connection = getConnection();
+                    osmService = new OsmService(connection);
+                    connections.add(connection);
+                }
                 return osmService;
             }
-
-            @Override
-            public OsmService getTempOsmService() {
-                return new OsmService(Services.getConnection());
-            }
         });
+        try {
+            for (Connection connection : connections) {
+                connection.close();
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to close connection:\n{}", e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 }

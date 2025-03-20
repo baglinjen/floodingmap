@@ -2,7 +2,10 @@ package dk.itu.data.services;
 
 import dk.itu.common.models.OsmElement;
 import dk.itu.data.dto.OsmParserResult;
+import dk.itu.data.parsers.OsmParser;
+import dk.itu.data.repositories.OsmElementRepository;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,71 +13,32 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class OsmService {
-    private static OsmService instance;
 
-    // Fallback in-memory storage
-    private List<OsmElement> osmElementsToBeDrawn = null;
+    private final OsmElementRepository osmElementRepository;
 
-    public static OsmService getInstance() {
-        if (instance == null) {
-            instance = new OsmService();
-        }
-        return instance;
-    }
-
-
-    private double[] bounds;
-
-    private OsmService() {}
-
-    public void withOsmServiceConsumer(Consumer<OsmServiceOperations> osmServiceOperationsConsumer) {
-        try (OsmDatabaseService osmDatabaseService = new OsmDatabaseService()) {
-            osmServiceOperationsConsumer.accept(osmDatabaseService::fetchAllOsmElements);
-        } catch (Exception e) {
-            osmServiceOperationsConsumer.accept(this::getOsmElementsToBeDrawn);
-        }
-    }
-
-    public boolean areElementsInDatabase() {
-        try (OsmDatabaseService osmDatabaseService = new OsmDatabaseService()) {
-            return osmDatabaseService.areElementsInDatabase();
-        } catch (SQLException e) {
-            return false;
-        }
+    public OsmService(Connection connection) {
+        osmElementRepository = new OsmElementRepository(connection);
     }
 
     public List<OsmElement> getOsmElementsToBeDrawn(int limit, double minLon, double minLat, double maxLon, double maxLat) {
-        if (osmElementsToBeDrawn == null) {
-            // Use DB
-            try (OsmDatabaseService osmDatabaseService = new OsmDatabaseService()) {
-                return osmDatabaseService.fetchAllOsmElements(limit, minLon, minLat, maxLon, maxLat);
-            } catch (SQLException e) {
-                // Use in-memory
-                return osmElementsToBeDrawn.stream().limit(limit).collect(Collectors.toList());
-            }
-        } else {
-            // Use in-memory
-            return osmElementsToBeDrawn.stream().limit(limit).collect(Collectors.toList());
-        }
+        return osmElementRepository.getOsmElements(limit, minLon, minLat, maxLon, maxLat);
     }
 
     public void addOsmParserResultInDatabase(OsmParserResult osmParserResult) {
-        if (osmElementsToBeDrawn == null) {
-            try (OsmDatabaseService osmDatabaseService = new OsmDatabaseService()) {
-                if (osmDatabaseService.insertOsmElementsInDb(osmParserResult.getElementsToBeDrawn())) {
-                    // Elements added to DB
-                    osmElementsToBeDrawn = null;
-                } else {
-                    // Can't add to DB => use memory
-                    osmElementsToBeDrawn = new ArrayList<>(osmParserResult.getElementsToBeDrawn());
-                }
-            } catch (SQLException e) {
-                osmElementsToBeDrawn = new ArrayList<>(osmParserResult.getElementsToBeDrawn());
-            }
-        } else {
-            osmElementsToBeDrawn = new ArrayList<>(osmParserResult.getElementsToBeDrawn());
-        }
-        bounds = osmParserResult.getBounds();
+        osmElementRepository.add(osmParserResult.getElementsToBeDrawn());
+    }
+
+    public void loadOsmDataInDb(String osmFileName) {
+        OsmParserResult osmParserResult = new OsmParserResult();
+
+        // Get data from OSM file
+        OsmParser.parse(osmFileName, osmParserResult);
+
+        // Filter and sort data
+        osmParserResult.sanitize();
+
+        // Add to Database
+        addOsmParserResultInDatabase(osmParserResult);
     }
 
     public double getMinLat() {
@@ -96,9 +60,5 @@ public class OsmService {
         // TODO: Add bounds in DB
 //        return bounds[3];
         return 15.2;
-    }
-
-    public interface OsmServiceOperations {
-        List<OsmElement> getOsmElementsToBeDrawn(int limit, double minLon, double minLat, double maxLon, double maxLat);
     }
 }
