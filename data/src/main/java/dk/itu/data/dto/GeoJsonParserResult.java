@@ -1,0 +1,181 @@
+package dk.itu.data.dto;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import dk.itu.data.models.parser.ParserGeoJsonElement;
+
+import java.awt.geom.Path2D;
+import java.util.*;
+import java.util.List;
+
+public class GeoJsonParserResult {
+    private List<ParserGeoJsonElement> geoJsonElements = new ArrayList<>();
+
+    public void sanitize() {
+        geoJsonElements = geoJsonElements.parallelStream().sorted(Comparator.comparing(ParserGeoJsonElement::getAbsoluteArea).reversed()).toList();
+    }
+
+    public List<ParserGeoJsonElement> getGeoJsonElements() {
+        return geoJsonElements;
+    }
+
+    public void addGeoJsonFile(GeoJsonFile geoJsonFile) {
+        Map<Float, List<GeoJsonFile.Feature.Geometry>> heightToCoordinates = new HashMap<>();
+        for (GeoJsonFile.Feature feature : geoJsonFile.features) {
+            heightToCoordinates.putIfAbsent(feature.properties.height, new ArrayList<>());
+            heightToCoordinates.get(feature.properties.height).add(feature.geometry);
+        }
+
+        for (Float height : heightToCoordinates.keySet()) {
+            List<List<Double>> closePathCoordinates = new ArrayList<>();
+            List<Path2D> closedPaths = new ArrayList<>();
+            List<GeoJsonFile.Feature.Geometry> openGeometries = new ArrayList<>();
+            var geometries = heightToCoordinates.get(height);
+
+            for (GeoJsonFile.Feature.Geometry geometry : geometries) {
+                if (geometryClosesItself(geometry)) {
+                    Path2D path = new Path2D.Double();
+                    path.moveTo(0.56*geometry.coordinates.getFirst().longitude, -geometry.coordinates.getFirst().latitude);
+                    for (int i = 1; i < geometry.coordinates.size() - 1; i++) {
+                        path.lineTo(0.56*geometry.coordinates.get(i).longitude, -geometry.coordinates.get(i).latitude);
+                    }
+                    path.closePath();
+
+                    List<Double> coordinates = new ArrayList<>();
+                    for (int i = 0; i < geometry.coordinates.size(); i+=2) {
+                        coordinates.add(geometry.coordinates.get(i).longitude);
+                        coordinates.add(geometry.coordinates.get(i).latitude);
+                    }
+                    if (!coordinates.getFirst().equals(coordinates.get(coordinates.size()-2))) {
+                        // Close polygon
+                        coordinates.add(coordinates.getFirst());
+                        coordinates.add(coordinates.get(1));
+                    }
+                    closePathCoordinates.add(coordinates);
+
+                    closedPaths.add(path);
+                } else {
+                    openGeometries.add(geometry);
+                }
+            }
+
+            for (int i = 0; i < openGeometries.size(); i++) {
+                var currentGeometry = openGeometries.get(i);
+                var currentGeometryFirst = currentGeometry.coordinates.getFirst();
+                var currentGeometryLast = currentGeometry.coordinates.getLast();
+
+                for (int j = i + 1; j < openGeometries.size(); j++) {
+                    var geometryJ = openGeometries.get(j);
+                    var geometryJFirst = geometryJ.coordinates.getFirst();
+                    var geometryJLast = geometryJ.coordinates.getLast();
+
+                    if (currentGeometryFirst.latitude == geometryJFirst.latitude && currentGeometryFirst.longitude == geometryJFirst.longitude) {
+                        // Same first
+
+                        var newList = new ArrayList<>(geometryJ.coordinates.reversed().stream().toList().subList(0, geometryJ.coordinates.size() - 1));
+                        newList.addAll(currentGeometry.coordinates);
+                        currentGeometry.replaceCoordinates(newList);
+
+                        openGeometries.remove(j);
+                        i = -1;
+                        break;
+                    } else if (currentGeometryLast.latitude == geometryJLast.latitude && currentGeometryLast.longitude == geometryJLast.longitude) {
+                        // Same last
+
+                        var newList = new ArrayList<>(geometryJ.coordinates.reversed().stream().toList().subList(1, geometryJ.coordinates.size()));
+                        newList.addAll(currentGeometry.coordinates);
+                        currentGeometry.replaceCoordinates(newList);
+
+                        openGeometries.remove(j);
+                        i = -1;
+                        break;
+                    } else if (currentGeometryFirst.latitude == geometryJLast.latitude && currentGeometryFirst.longitude == geometryJLast.longitude) {
+                        // Same i first as j last
+                        var newList = new ArrayList<>(geometryJ.coordinates.subList(0, geometryJ.coordinates.size() - 1));
+                        newList.addAll(currentGeometry.coordinates);
+                        geometryJ.replaceCoordinates(newList);
+
+                        openGeometries.remove(i);
+                        i = -1;
+                        break;
+                    } else if (currentGeometryLast.latitude == geometryJFirst.latitude && currentGeometryLast.longitude == geometryJFirst.longitude) {
+                        // Same i last as j first
+                        var newList = new ArrayList<>(currentGeometry.coordinates.subList(0, currentGeometry.coordinates.size() - 1));
+                        newList.addAll(geometryJ.coordinates);
+                        currentGeometry.replaceCoordinates(newList);
+
+                        openGeometries.remove(j);
+                        i = -1;
+                        break;
+                    }
+                }
+            }
+
+            // Geometries should now be closing themselves
+            for (GeoJsonFile.Feature.Geometry openGeometry : openGeometries) {
+                Path2D path = new Path2D.Double();
+                path.moveTo(0.56*openGeometry.coordinates.getFirst().longitude, -openGeometry.coordinates.getFirst().latitude);
+                for (int i = 1; i < openGeometry.coordinates.size() - 1; i++) {
+                    path.lineTo(0.56*openGeometry.coordinates.get(i).longitude, -openGeometry.coordinates.get(i).latitude);
+                }
+                path.closePath();
+                closedPaths.add(path);
+
+
+                List<Double> coordinates = new ArrayList<>();
+                for (int i = 0; i < openGeometry.coordinates.size(); i+=2) {
+                    coordinates.add(openGeometry.coordinates.get(i).longitude);
+                    coordinates.add(openGeometry.coordinates.get(i).latitude);
+                }
+                if (!coordinates.getFirst().equals(coordinates.get(coordinates.size()-2))) {
+                    // Close polygon
+                    coordinates.add(coordinates.getFirst());
+                    coordinates.add(coordinates.get(1));
+                }
+                closePathCoordinates.add(coordinates);
+            }
+
+            for (int i = 0; i < closedPaths.size(); i++) {
+                geoJsonElements.add(new ParserGeoJsonElement(height, closePathCoordinates.get(i).parallelStream().mapToDouble(Double::doubleValue).toArray(), closedPaths.get(i)));
+            }
+        }
+    }
+
+    private boolean geometryClosesItself(GeoJsonFile.Feature.Geometry geometry) {
+        var coordFirst = geometry.coordinates.getFirst();
+        var coordLast = geometry.coordinates.getLast();
+
+        return coordFirst.latitude == coordLast.latitude && coordFirst.longitude == coordLast.longitude;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record GeoJsonFile(@JsonProperty List<GeoJsonFile.Feature> features) {
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public record Feature(@JsonProperty GeoJsonFile.Feature.Property properties, @JsonProperty GeoJsonFile.Feature.Geometry geometry) {
+            @JsonIgnoreProperties(ignoreUnknown = true)
+            public record Property(@JsonProperty("hoejde") Float height) {}
+            @JsonIgnoreProperties(ignoreUnknown = true)
+            public static class Geometry {
+                public List<GeoJsonFile.Feature.Geometry.Coordinate> coordinates = new ArrayList<>();
+
+                @JsonCreator
+                public Geometry(@JsonProperty("coordinates") List<Double[]> rawCoordinates) {
+                    for (Double[] coordinate : rawCoordinates) {
+                        coordinates.add(new GeoJsonFile.Feature.Geometry.Coordinate(coordinate[0], coordinate[1]));
+                    }
+                }
+
+                public void replaceCoordinates(List<GeoJsonFile.Feature.Geometry.Coordinate> coordinates) {
+                    this.coordinates = coordinates;
+                }
+
+                public List<GeoJsonFile.Feature.Geometry.Coordinate> getCoordinates() {
+                    return coordinates;
+                }
+
+                public record Coordinate(double longitude, double latitude) {}
+            }
+        }
+    }
+}
