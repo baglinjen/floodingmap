@@ -5,16 +5,15 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.SplitMenuButton;
 
 public class DataResetComponent extends SplitMenuButton {
-    private ResetOption option = null;
+    private ResetOption option = ResetOption.OSM;
     public DataResetComponent() {
         super();
-        setText("Select option to reset");
+        setText("Reset OSM");
         getItems().addAll(
                 createMenuItem("OSM", ResetOption.OSM)
 //                createMenuItem("GEOJSON", ResetOption.GEOJSON)
         );
         setOnAction(_ -> {
-            if (option == null) return;
             Services.withServices(services -> {
                 if (option == ResetOption.OSM) {
                     services.getOsmService().clearAll();

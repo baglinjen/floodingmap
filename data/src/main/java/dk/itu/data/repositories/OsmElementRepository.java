@@ -176,8 +176,7 @@ public class OsmElementRepository {
     }
 
     public List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
-        String condWaysLine = String.format("w.line && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
-        String condWaysPoly = String.format("w.polygon && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
+        String condWays = String.format("COALESCE(w.line, w.polygon) && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
         String condRelations = String.format("r.shape && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
         return ctx.select(
                         DSL.field("n.dbObj", byte[].class),
@@ -192,7 +191,7 @@ public class OsmElementRepository {
                                         DSL.field("w.area", Float.class)
                                 )
                                 .from(DSL.table("ways").as("w"))
-                                .where(DSL.condition(condWaysLine).or(condWaysPoly))
+                                .where(DSL.condition(condWays))
                                 .unionAll(
                                         ctx.select(
                                                         DSL.field("r.dbObj", byte[].class),
@@ -283,10 +282,4 @@ public class OsmElementRepository {
 //
 //        return elements;
 //    }
-
-    public boolean areElementsInDatabase() {
-        if (ctx.fetchCount(DSL.table("nodes")) > 0) return true;
-        if (ctx.fetchCount(DSL.table("ways")) > 0) return true;
-        return ctx.fetchCount(DSL.table("relations")) > 0;
-    }
 }
