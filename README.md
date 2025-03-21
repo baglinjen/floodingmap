@@ -1,4 +1,4 @@
-# floodingmap
+cd docu# floodingmap
 
 ### Set up environment variables
 To run the project correctly you must set three environment variables:

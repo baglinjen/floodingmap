@@ -25,6 +25,6 @@ public class GeoJsonElementRepositoryMemory implements GeoJsonElementRepository 
 
     @Override
     public float getMaxWaterLevel() {
-        return 10;
+        return 15;
     }
 }

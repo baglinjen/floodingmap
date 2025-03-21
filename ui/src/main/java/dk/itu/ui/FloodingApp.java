@@ -4,6 +4,7 @@ import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
 import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.common.models.GeoJsonElement;
+import dk.itu.data.models.parser.ParserGeoJsonElement;
 import dk.itu.data.services.Services;
 import dk.itu.ui.components.MouseEventOverlayComponent;
 import dk.itu.util.LoggerFactory;
@@ -23,7 +24,7 @@ public class FloodingApp extends GameApplication {
     public static final int WIDTH = 1920, HEIGHT = 920;
     private final Logger logger = LoggerFactory.getLogger();
 
-    private State state;
+    private volatile State state;
 
     // Drawing related
     private BufferedImage image;
@@ -33,7 +34,9 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-            services.getGeoJsonService().loadGeoJsonData("modified-tuna.geojson");
+            services.getGeoJsonService().loadGeoJsonData("tuna.geojson");
+
+            float registeredWaterLevel = 0;
 
             while (true) {
                 long start = System.nanoTime();
@@ -68,6 +71,17 @@ public class FloodingApp extends GameApplication {
                 g2d.setTransform(state.getSuperAffine());
 
                 osmElements.forEach(element -> element.draw(g2d, strokeBaseWidth));
+
+                //Detect if a change in water level has been registered
+                if(registeredWaterLevel != state.getWaterLevel()){
+                    //Water level has been changed
+                    registeredWaterLevel = state.getWaterLevel();
+                    List<List<ParserGeoJsonElement>> floodedElements = services.getGeoJsonService().getCurveTree().TraverseFromRoot(registeredWaterLevel);
+
+                    
+                }
+
+                //heightCurves.forEach(heightCurve -> heightCurve.setBelowWater(state.getWaterLevel() >= heightCurve.getHeight()));
                 heightCurves.forEach(heightCurve -> heightCurve.draw(g2d, strokeBaseWidth));
 
                 g2d.dispose();

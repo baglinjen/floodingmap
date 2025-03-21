@@ -12,11 +12,13 @@ public class ParserGeoJsonElement extends ParserDrawable implements GeoJsonEleme
     private final double[] coordinates;
     private final Shape shape;
     private double absoluteArea;
+    private boolean belowWater;
 
     public ParserGeoJsonElement(float height, double[] coordinates, Path2D path) {
         this.height = height;
         this.shape = new Area(path);
         this.coordinates = coordinates;
+        this.belowWater = false;
         setShouldBeDrawn(true);
         setStyle(styleBelowWater);
         calculateAbsoluteArea();
@@ -68,10 +70,17 @@ public class ParserGeoJsonElement extends ParserDrawable implements GeoJsonEleme
 
     @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
-        var rgba = getRgbaColor();
-        if (rgba != null) {
-            g2d.setColor(getRgbaColor());
-            g2d.fill(shape);
+        var rgba = belowWater ? getRgbaColor() : Color.BLACK;
+
+        if(rgba != null){
+            g2d.setColor(rgba);
+            if(belowWater) g2d.fill(shape);
+            else g2d.draw(shape);
         }
+    }
+
+    @Override
+    public void setBelowWater(boolean belowWater){
+        this.belowWater = belowWater;
     }
 }

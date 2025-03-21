@@ -14,6 +14,7 @@ import java.util.List;
 
 public class GeoJsonService {
     private final GeoJsonElementRepository geoJsonElementRepository;
+    private CurveTree curveTree;
 
     public GeoJsonService() {
         geoJsonElementRepository = new GeoJsonElementRepositoryMemory();
@@ -37,16 +38,18 @@ public class GeoJsonService {
         geoJsonParserResult.sanitize();
 
         // Create data structure
-        createDataStructure(geoJsonParserResult.getGeoJsonElements());
+        curveTree = createDataStructure(geoJsonParserResult.getGeoJsonElements());
 
         geoJsonElementRepository.add(geoJsonParserResult.getGeoJsonElements());
     }
 
-    private void createDataStructure(List<ParserGeoJsonElement> geoJsonElements) {
+    private CurveTree createDataStructure(List<ParserGeoJsonElement> geoJsonElements) {
         var curveTree = new CurveTree();
         for (ParserGeoJsonElement geoJsonElement : geoJsonElements) {
             curveTree.put(geoJsonElement);
         }
+
+        return curveTree;
     }
 
     public float getMinWaterLevel() {
@@ -56,4 +59,6 @@ public class GeoJsonService {
     public float getMaxWaterLevel() {
         return geoJsonElementRepository.getMaxWaterLevel();
     }
+
+    public CurveTree getCurveTree(){return curveTree;}
 }
