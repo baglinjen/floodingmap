@@ -4,7 +4,7 @@ import java.awt.geom.Area;
 
 public class PolygonUtils {
     /**
-     * Checks if the second polygon is fully contained within the first polygon.
+     * Checks if the second polygon is fully contained within the first polygon using ray casting.
      *
      * @param polygon1 Array of doubles representing vertices of first polygon in form [x1,y1,x2,y2,...,xn,yn]
      * @param polygon2 Array of doubles representing vertices of second polygon in form [x1,y1,x2,y2,...,xn,yn]

@@ -3,6 +3,7 @@ package dk.itu.ui;
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
 import dk.itu.common.configurations.CommonConfiguration;
+import dk.itu.common.models.GeoJsonElement;
 import dk.itu.data.services.Services;
 import dk.itu.ui.components.MouseEventOverlayComponent;
 import dk.itu.util.LoggerFactory;
@@ -12,6 +13,8 @@ import org.apache.logging.log4j.Logger;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.almasb.fxgl.dsl.FXGLForKtKt.*;
 import static dk.itu.util.DrawingUtils.bufferedImageToWritableImage;
@@ -35,7 +38,7 @@ public class FloodingApp extends GameApplication {
             while (true) {
                 long start = System.nanoTime();
 
-                var window = state.getWindow();
+                var window = state.getWindowBounds();
                 var osmElements = services
                         .getOsmService()
                         .getOsmElementsToBeDrawn(
@@ -45,9 +48,12 @@ public class FloodingApp extends GameApplication {
                                 window[2],
                                 window[3]
                         );
-                 var heightCurves = services.getGeoJsonService().getGeoJsonElements();
+                List<GeoJsonElement> heightCurves =
+                        state.shouldDrawGeoJson() ?
+                                services.getGeoJsonService().getGeoJsonElements()
+                                : new ArrayList<>();
 
-                float strokeBaseWidth = state.getStrokeBaseWidth();
+                float strokeBaseWidth = state.getSuperAffine().getStrokeBaseWidth();
 
                 image.flush();
 
@@ -89,16 +95,8 @@ public class FloodingApp extends GameApplication {
             //     services.getGeoJsonService().loadGeoJsonData("modified-tuna.geojson");
             // }
 
-            this.state = new State(0, 10);
-            this.state
-                    .getSuperAffine()
-                    .prependTranslation(
-                            -0.56 * services.getOsmService().getMinLon(),
-                            services.getOsmService().getMaxLat())
-                    .prependScale(
-                            HEIGHT / (services.getOsmService().getMaxLat() - services.getOsmService().getMinLat()),
-                            HEIGHT / (services.getOsmService().getMaxLat() - services.getOsmService().getMinLat())
-                    );
+            // Set State
+            this.state = new State(services);
         });
 
         StackPane root = new StackPane(

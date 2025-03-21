@@ -1,6 +1,7 @@
 package dk.itu.data.repositories;
 
 import dk.itu.common.models.OsmElement;
+import dk.itu.data.models.db.DbBounds;
 import dk.itu.data.models.db.DbNode;
 import dk.itu.data.models.db.DbRelation;
 import dk.itu.data.models.db.DbWay;
@@ -216,6 +217,54 @@ public class OsmElementRepository {
                         };
                     }
                 });
+    }
+
+    public void clearAll() {
+        ctx.batch(
+                ctx.truncate("nodes"),
+                ctx.truncate("ways"),
+                ctx.truncate("relations")
+        ).execute();
+    }
+
+    public DbBounds getBounds() {
+        return ctx.select(
+                DSL.field("MIN(minLon)", double.class),
+                DSL.field("MIN(minLat)", double.class),
+                DSL.field("MAX(maxLon)", double.class),
+                DSL.field("MAX(maxLat)", double.class)
+        ).from(
+                ctx.select(
+                                DSL.field("ST_XMin(n.coordinate)").as(DSL.field("minLon")),
+                                DSL.field("ST_YMin(n.coordinate)").as(DSL.field("minLat")),
+                                DSL.field("ST_XMax(n.coordinate)").as(DSL.field("maxLon")),
+                                DSL.field("ST_YMax(n.coordinate)").as(DSL.field("maxLat"))
+                        )
+                        .from(DSL.table("nodes").as("n"))
+                .unionAll(
+                        ctx.select(
+                                        DSL.field("ST_XMin({0})", DSL.coalesce(DSL.field("w.line"), DSL.field("w.polygon"))).as("minLon"),
+                                        DSL.field("ST_YMin({0})", DSL.coalesce(DSL.field("w.line"), DSL.field("w.polygon"))).as("minLat"),
+                                        DSL.field("ST_XMax({0})", DSL.coalesce(DSL.field("w.line"), DSL.field("w.polygon"))).as("maxLon"),
+                                        DSL.field("ST_YMax({0})", DSL.coalesce(DSL.field("w.line"), DSL.field("w.polygon"))).as("maxLat")
+                                )
+                                .from(DSL.table("ways").as("w"))
+                )
+                .unionAll(
+                        ctx.select(
+                                        DSL.field("ST_XMin(r.shape)").as("minLon"),
+                                        DSL.field("ST_YMin(r.shape)").as("minLat"),
+                                        DSL.field("ST_XMax(r.shape)").as("maxLon"),
+                                        DSL.field("ST_YMax(r.shape)").as("maxLat")
+                                )
+                                .from(DSL.table("relations").as("r"))
+                )
+        ).fetchOne(r -> {
+            if (r.component1() == null || r.component2() == null || r.component3() == null || r.component4() == null) {
+                return new DbBounds(0, 0, 180, 180);
+            }
+            return new DbBounds(r.component1(), r.component2(), r.component3(), r.component4());
+        });
     }
 
 //        // GEO JSON
