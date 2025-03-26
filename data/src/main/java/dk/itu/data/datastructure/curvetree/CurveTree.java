@@ -7,6 +7,10 @@ import java.util.*;
 public class CurveTree {
     private final List<CurveTreeNode> rootChildren = new ArrayList<>();
 
+    public CurveTree(){
+        System.out.println("Now building...");
+    }
+
     public void put(ParserGeoJsonElement geoJsonElement) {
         put(null, geoJsonElement);
     }

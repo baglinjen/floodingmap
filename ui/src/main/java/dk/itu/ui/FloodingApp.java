@@ -72,17 +72,7 @@ public class FloodingApp extends GameApplication {
 
                 osmElements.forEach(element -> element.draw(g2d, strokeBaseWidth));
 
-                //Detect if a change in water level has been registered
-                if(registeredWaterLevel != state.getWaterLevel()){
-                    //Water level has been changed
-                    registeredWaterLevel = state.getWaterLevel();
-                    List<List<ParserGeoJsonElement>> floodedElements = services.getGeoJsonService().getCurveTree().TraverseFromRoot(registeredWaterLevel);
-
-                    //TODO: Pickup here
-                    //TODO: Start coloring of elements on a new thread
-                }
-
-                //heightCurves.forEach(heightCurve -> heightCurve.setBelowWater(state.getWaterLevel() >= heightCurve.getHeight()));
+                heightCurves.forEach(heightCurve -> heightCurve.setBelowWater(state.getWaterLevel() >= heightCurve.getHeight()));
                 heightCurves.forEach(heightCurve -> heightCurve.draw(g2d, strokeBaseWidth));
 
                 g2d.dispose();
