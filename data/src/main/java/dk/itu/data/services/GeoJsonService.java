@@ -34,6 +34,9 @@ public class GeoJsonService {
         // Get data from GeoJson file
         GeoJsonParser.parse(geoJsonFileName, geoJsonParserResult);
 
+        //Mock a height curve that encapsulates all other curves
+        geoJsonParserResult.addWorldRoot();
+
         // Filter and sort data
         geoJsonParserResult.sanitize();
 

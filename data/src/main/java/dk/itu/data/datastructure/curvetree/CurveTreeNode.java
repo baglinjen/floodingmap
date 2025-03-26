@@ -21,6 +21,10 @@ public class CurveTreeNode {
         return children;
     }
 
+    public List<CurveTreeNode> getChildrenOrDefault(){
+        return children == null ? new ArrayList<>() : children;
+    }
+
     public void addChild(CurveTreeNode child) {
         if (children == null) {
             children = new ArrayList<>();

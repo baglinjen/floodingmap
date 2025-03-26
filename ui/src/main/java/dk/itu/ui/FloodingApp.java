@@ -4,6 +4,7 @@ import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
 import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.common.models.GeoJsonElement;
+import dk.itu.data.datastructure.curvetree.CurveTree;
 import dk.itu.data.models.parser.ParserGeoJsonElement;
 import dk.itu.data.services.Services;
 import dk.itu.ui.components.MouseEventOverlayComponent;
@@ -72,8 +73,10 @@ public class FloodingApp extends GameApplication {
 
                 osmElements.forEach(element -> element.draw(g2d, strokeBaseWidth));
 
-                heightCurves.forEach(heightCurve -> heightCurve.setBelowWater(state.getWaterLevel() >= heightCurve.getHeight()));
-                heightCurves.forEach(heightCurve -> heightCurve.draw(g2d, strokeBaseWidth));
+                heightCurves.forEach(hc -> {
+                    hc.setBelowWater(state.getWaterLevel() > hc.getHeight());
+                    hc.draw(g2d, strokeBaseWidth);
+                });
 
                 g2d.dispose();
 
