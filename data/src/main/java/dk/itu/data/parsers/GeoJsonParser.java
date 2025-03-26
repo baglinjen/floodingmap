@@ -1,6 +1,7 @@
 package dk.itu.data.parsers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.data.dto.GeoJsonParserResult;
 import dk.itu.util.LoggerFactory;
 import org.apache.logging.log4j.Logger;
@@ -14,7 +15,7 @@ public class GeoJsonParser {
 
     public static void parse(String fileName, GeoJsonParserResult geoJsonParserResult) {
         logger.info("Starting parsing file {}", fileName);
-        try (InputStream is = GeoJsonParser.class.getClassLoader().getResourceAsStream("geojson/"+fileName)) {
+        try (InputStream is = CommonConfiguration.class.getClassLoader().getResourceAsStream("geojson/"+fileName)) {
             GeoJsonParserResult.GeoJsonFile geoJsonFile = objectMapper.readValue(is, GeoJsonParserResult.GeoJsonFile.class);
             geoJsonParserResult.addGeoJsonFile(geoJsonFile);
         } catch (IOException e) {

@@ -3,75 +3,82 @@ package dk.itu.data.models.parser;
 import dk.itu.common.models.GeoJsonElement;
 
 import java.awt.*;
-import java.awt.geom.Area;
 import java.awt.geom.Path2D;
-import java.awt.geom.PathIterator;
+import java.util.ArrayList;
+import java.util.List;
+
+import static dk.itu.util.PolygonUtils.*;
 
 public class ParserGeoJsonElement extends ParserDrawable implements GeoJsonElement {
     private final float height;
-    private final double[] coordinates;
-    private final Shape shape;
+    private final double[] outerPolygon;
+    private final List<double[]> innerPolygons = new ArrayList<>();
+    private Path2D.Double shape;
+    private final double area;
     private double absoluteArea;
+    private boolean belowWater;
 
-    public ParserGeoJsonElement(float height, double[] coordinates, Path2D path) {
+    public ParserGeoJsonElement(float height, double[] outerPolygon) {
         this.height = height;
-        this.shape = new Area(path);
-        this.coordinates = coordinates;
+        this.outerPolygon = forceCounterClockwise(outerPolygon);
+        this.area = calculatePolygonArea(outerPolygon);
+        this.belowWater = false;
         setShouldBeDrawn(true);
         setStyle(styleBelowWater);
-        calculateAbsoluteArea();
+    }
+
+    public List<double[]> getInnerPolygons() {
+        return innerPolygons;
+    }
+
+    public void addInnerPolygon(double[] innerPolygon) {
+        innerPolygons.add(forceClockwise(innerPolygon));
+    }
+
+    public void calculateShape() {
+        this.shape = pathFromPolygonLists(List.of(outerPolygon), innerPolygons);
     }
 
     public float getHeight() {
         return height;
     }
 
-    public Shape getShape() {
-        return shape;
+    public double[] getOuterPolygon() {
+        return outerPolygon;
     }
 
-    public double[] getCoordinates() {
-        return coordinates;
+    public double getArea() {
+        return area;
     }
 
-    private void calculateAbsoluteArea() {
-        PathIterator iterator = shape.getPathIterator(null);
-        double area = 0;
-        double[] coords = new double[6];
-        double startX = 0, startY = 0;
-        double prevX = 0, prevY = 0;
+    public boolean contains(ParserGeoJsonElement parserGeoJsonElement) {
+        return contains(this.outerPolygon, parserGeoJsonElement);
+    }
 
-        while (!iterator.isDone()) {
-            int type = iterator.currentSegment(coords);
-            double x = coords[0], y = coords[1];
-
-            if (type == PathIterator.SEG_MOVETO) {
-                startX = x;
-                startY = y;
-                prevX = x;
-                prevY = y;
-            } else if (type == PathIterator.SEG_LINETO) {
-                area += (prevX * y - x * prevY);
-                prevX = x;
-                prevY = y;
-            } else if (type == PathIterator.SEG_CLOSE) {
-                area += (prevX * startY - startX * prevY);
-            }
-            iterator.next();
+    public static boolean contains(double[] p1, ParserGeoJsonElement parserGeoJsonElement) {
+        var p = parserGeoJsonElement.outerPolygon;
+        var isInside = true;
+        var i = 2;
+        while (isInside && i < p.length) {
+            isInside = isPointInPolygon(p1, p[i], p[i+1]);
+            i+=2;
         }
-        absoluteArea = Math.abs(area) / 2.0;
-    }
-
-    public double getAbsoluteArea() {
-        return absoluteArea;
+        return isInside;
     }
 
     @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
-        var rgba = getRgbaColor();
-        if (rgba != null) {
-            g2d.setColor(getRgbaColor());
-            g2d.fill(shape);
+        var rgba = belowWater ? getRgbaColor() : Color.BLACK;
+
+        if(rgba != null){
+            g2d.setColor(rgba);
+            if(belowWater) g2d.fill(shape);
+            else g2d.draw(shape);
         }
+    }
+
+    @Override
+    public void setBelowWater(boolean belowWater){
+        this.belowWater = belowWater;
     }
 }

@@ -1,6 +1,7 @@
 package dk.itu.data.repositories;
 
 import dk.itu.common.models.OsmElement;
+import dk.itu.data.models.db.DbBounds;
 import dk.itu.data.models.db.DbNode;
 import dk.itu.data.models.db.DbRelation;
 import dk.itu.data.models.db.DbWay;
@@ -8,6 +9,7 @@ import dk.itu.data.models.parser.ParserOsmElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.models.parser.ParserOsmRelation;
 import dk.itu.data.models.parser.ParserOsmWay;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.fury.Fury;
 import org.apache.fury.ThreadLocalFury;
 import org.apache.fury.ThreadSafeFury;
@@ -22,7 +24,6 @@ import java.awt.geom.Path2D;
 import java.sql.Connection;
 import java.util.*;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static dk.itu.util.PolygonUtils.isPolygonContained;
 
@@ -40,6 +41,7 @@ public class OsmElementRepository {
         f.register(DbWay.class);
         f.register(DbRelation.class);
         f.register(Color.class);
+        // TODO: For Path2D use another serializer which implements org.apache.fury.serializer.Serializer
         return f;
     });
 
@@ -50,18 +52,24 @@ public class OsmElementRepository {
     }
 
     public final void add(List<ParserOsmElement> osmElements) {
-        ctx.batch(
-                osmElements
-                        .parallelStream()
-                        .map(e -> switch (e) {
-                            case ParserOsmNode osmNode -> addNodeQuery(osmNode);
-                            case ParserOsmWay osmWay -> addWayQuery(osmWay);
-                            case ParserOsmRelation osmRelation -> addRelationQuery(osmRelation);
-                            default -> null;
-                        })
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toList())
-        ).execute();
+        // TODO: Fix to work with large lists (fx Denmark)
+        ListUtils
+                .partition(osmElements, 1000)
+                .parallelStream()
+                .forEach(batch -> {
+                    ctx.batch(
+                            batch
+                                    .parallelStream()
+                                    .map(osmElement -> switch (osmElement) {
+                                        case ParserOsmNode osmNode -> addNodeQuery(osmNode);
+                                        case ParserOsmWay osmWay -> addWayQuery(osmWay);
+                                        case ParserOsmRelation osmRelation -> addRelationQuery(osmRelation);
+                                        default -> null;
+                                    })
+                                    .filter(Objects::nonNull)
+                                    .toList()
+                    ).executeAsync();
+                });
     }
 
     private Query addNodeQuery(ParserOsmNode osmNode) {
@@ -175,8 +183,7 @@ public class OsmElementRepository {
     }
 
     public List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
-        String condWaysLine = String.format("w.line && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
-        String condWaysPoly = String.format("w.polygon && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
+        String condWays = String.format("COALESCE(w.line, w.polygon) && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
         String condRelations = String.format("r.shape && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
         return ctx.select(
                         DSL.field("n.dbObj", byte[].class),
@@ -191,7 +198,7 @@ public class OsmElementRepository {
                                         DSL.field("w.area", Float.class)
                                 )
                                 .from(DSL.table("ways").as("w"))
-                                .where(DSL.condition(condWaysLine).or(condWaysPoly))
+                                .where(DSL.condition(condWays))
                                 .unionAll(
                                         ctx.select(
                                                         DSL.field("r.dbObj", byte[].class),
@@ -218,6 +225,54 @@ public class OsmElementRepository {
                 });
     }
 
+    public void clearAll() {
+        ctx.batch(
+                ctx.truncate("nodes"),
+                ctx.truncate("ways"),
+                ctx.truncate("relations")
+        ).execute();
+    }
+
+    public DbBounds getBounds() {
+        return ctx.select(
+                DSL.field("MIN(minLon)", double.class),
+                DSL.field("MIN(minLat)", double.class),
+                DSL.field("MAX(maxLon)", double.class),
+                DSL.field("MAX(maxLat)", double.class)
+        ).from(
+                ctx.select(
+                                DSL.field("ST_XMin(n.coordinate)").as(DSL.field("minLon")),
+                                DSL.field("ST_YMin(n.coordinate)").as(DSL.field("minLat")),
+                                DSL.field("ST_XMax(n.coordinate)").as(DSL.field("maxLon")),
+                                DSL.field("ST_YMax(n.coordinate)").as(DSL.field("maxLat"))
+                        )
+                        .from(DSL.table("nodes").as("n"))
+                .unionAll(
+                        ctx.select(
+                                        DSL.field("ST_XMin({0})", DSL.coalesce(DSL.field("w.line"), DSL.field("w.polygon"))).as("minLon"),
+                                        DSL.field("ST_YMin({0})", DSL.coalesce(DSL.field("w.line"), DSL.field("w.polygon"))).as("minLat"),
+                                        DSL.field("ST_XMax({0})", DSL.coalesce(DSL.field("w.line"), DSL.field("w.polygon"))).as("maxLon"),
+                                        DSL.field("ST_YMax({0})", DSL.coalesce(DSL.field("w.line"), DSL.field("w.polygon"))).as("maxLat")
+                                )
+                                .from(DSL.table("ways").as("w"))
+                )
+                .unionAll(
+                        ctx.select(
+                                        DSL.field("ST_XMin(r.shape)").as("minLon"),
+                                        DSL.field("ST_YMin(r.shape)").as("minLat"),
+                                        DSL.field("ST_XMax(r.shape)").as("maxLon"),
+                                        DSL.field("ST_YMax(r.shape)").as("maxLat")
+                                )
+                                .from(DSL.table("relations").as("r"))
+                )
+        ).fetchOne(r -> {
+            if (r.component1() == null || r.component2() == null || r.component3() == null || r.component4() == null) {
+                return new DbBounds(0, 0, 180, 180);
+            }
+            return new DbBounds(r.component1(), r.component2(), r.component3(), r.component4());
+        });
+    }
+
 //        // GEO JSON
 //        var geoJsons = ctx.select(DSL.field("id"),
 //                        DSL.field("height"),
@@ -234,10 +289,4 @@ public class OsmElementRepository {
 //
 //        return elements;
 //    }
-
-    public boolean areElementsInDatabase() {
-        if (ctx.fetchCount(DSL.table("nodes")) > 0) return true;
-        if (ctx.fetchCount(DSL.table("ways")) > 0) return true;
-        return ctx.fetchCount(DSL.table("relations")) > 0;
-    }
 }

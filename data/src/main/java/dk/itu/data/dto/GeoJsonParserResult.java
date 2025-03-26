@@ -5,15 +5,36 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import dk.itu.data.models.parser.ParserGeoJsonElement;
 
-import java.awt.geom.Path2D;
 import java.util.*;
 import java.util.List;
+import java.util.stream.DoubleStream;
+
+import static dk.itu.data.models.parser.ParserGeoJsonElement.contains;
+import static dk.itu.util.ArrayUtils.appendExcludingN;
+import static dk.itu.util.PolygonUtils.*;
 
 public class GeoJsonParserResult {
     private List<ParserGeoJsonElement> geoJsonElements = new ArrayList<>();
 
     public void sanitize() {
-        geoJsonElements = geoJsonElements.parallelStream().sorted(Comparator.comparing(ParserGeoJsonElement::getAbsoluteArea).reversed()).toList();
+        geoJsonElements = geoJsonElements.parallelStream().sorted(Comparator.comparing(ParserGeoJsonElement::getArea).reversed()).toList();
+
+        for (int i = 0; i < geoJsonElements.size(); i++) {
+            ParserGeoJsonElement e1 = geoJsonElements.get(i);
+            for (int j = i + 1; j < geoJsonElements.size(); j++) {
+                ParserGeoJsonElement e2 = geoJsonElements.get(j);
+                if (e1.contains(e2)) {
+                    // Check if inner is already added
+                    var innerCovered = e1
+                            .getInnerPolygons()
+                            .parallelStream()
+                            .anyMatch(innerPolygon -> contains(innerPolygon, e2));
+                    if (!innerCovered) e1.addInnerPolygon(e2.getOuterPolygon());
+                }
+            }
+        }
+
+        geoJsonElements.parallelStream().forEach(ParserGeoJsonElement::calculateShape);
     }
 
     public List<ParserGeoJsonElement> getGeoJsonElements() {
@@ -21,132 +42,95 @@ public class GeoJsonParserResult {
     }
 
     public void addGeoJsonFile(GeoJsonFile geoJsonFile) {
-        Map<Float, List<GeoJsonFile.Feature.Geometry>> heightToCoordinates = new HashMap<>();
+        // Map height to coordinates
+        Map<Float, List<GeoJsonFile.Feature.Geometry>> heightToGeometry = new HashMap<>();
         for (GeoJsonFile.Feature feature : geoJsonFile.features) {
-            heightToCoordinates.putIfAbsent(feature.properties.height, new ArrayList<>());
-            heightToCoordinates.get(feature.properties.height).add(feature.geometry);
+            heightToGeometry.putIfAbsent(feature.properties.height, new ArrayList<>());
+            heightToGeometry.get(feature.properties.height).add(feature.geometry);
         }
 
-        for (Float height : heightToCoordinates.keySet()) {
-            List<List<Double>> closePathCoordinates = new ArrayList<>();
-            List<Path2D> closedPaths = new ArrayList<>();
-            List<GeoJsonFile.Feature.Geometry> openGeometries = new ArrayList<>();
-            var geometries = heightToCoordinates.get(height);
+        List<GeoJsonHeightCurve> closedHeightCurves = new ArrayList<>();
+
+        for (Float height : heightToGeometry.keySet()) {
+            List<GeoJsonHeightCurve> heightCurvesForHeight = new ArrayList<>();
+            List<GeoJsonHeightCurve> openHeightCurvesForHeight = new ArrayList<>();
+
+            var geometries = heightToGeometry.get(height);
 
             for (GeoJsonFile.Feature.Geometry geometry : geometries) {
-                if (geometryClosesItself(geometry)) {
-                    Path2D path = new Path2D.Double();
-                    path.moveTo(0.56*geometry.coordinates.getFirst().longitude, -geometry.coordinates.getFirst().latitude);
-                    for (int i = 1; i < geometry.coordinates.size() - 1; i++) {
-                        path.lineTo(0.56*geometry.coordinates.get(i).longitude, -geometry.coordinates.get(i).latitude);
-                    }
-                    path.closePath();
-
-                    List<Double> coordinates = new ArrayList<>();
-                    for (int i = 0; i < geometry.coordinates.size(); i+=2) {
-                        coordinates.add(geometry.coordinates.get(i).longitude);
-                        coordinates.add(geometry.coordinates.get(i).latitude);
-                    }
-                    if (!coordinates.getFirst().equals(coordinates.get(coordinates.size()-2))) {
-                        // Close polygon
-                        coordinates.add(coordinates.getFirst());
-                        coordinates.add(coordinates.get(1));
-                    }
-                    closePathCoordinates.add(coordinates);
-
-                    closedPaths.add(path);
+                var geometryCoords = geometry.coords;
+                if (isClosed(geometryCoords)) {
+                    // If closed => add to closed height curves => outers should be clockwise
+                    heightCurvesForHeight.add(new GeoJsonHeightCurve(height, geometryCoords));
                 } else {
-                    openGeometries.add(geometry);
+                    // If open => add as open height curve
+                    openHeightCurvesForHeight.add(new GeoJsonHeightCurve(height, geometryCoords));
                 }
             }
 
-            for (int i = 0; i < openGeometries.size(); i++) {
-                var currentGeometry = openGeometries.get(i);
-                var currentGeometryFirst = currentGeometry.coordinates.getFirst();
-                var currentGeometryLast = currentGeometry.coordinates.getLast();
+            // Chain the opens height curves
+            for (int i = 0; i < openHeightCurvesForHeight.size(); i++) {
+                var ii = openHeightCurvesForHeight.get(i);
 
-                for (int j = i + 1; j < openGeometries.size(); j++) {
-                    var geometryJ = openGeometries.get(j);
-                    var geometryJFirst = geometryJ.coordinates.getFirst();
-                    var geometryJLast = geometryJ.coordinates.getLast();
+                if (isClosed(ii.outerPolygon)) {
+                    // Test if i closes itself => ensure it is counterclockwise as outer
+                    heightCurvesForHeight.add(ii);
+                    openHeightCurvesForHeight.remove(ii);
+                    i = -1;
+                    continue;
+                }
 
-                    if (currentGeometryFirst.latitude == geometryJFirst.latitude && currentGeometryFirst.longitude == geometryJFirst.longitude) {
-                        // Same first
+                for (int j = 0; j < openHeightCurvesForHeight.size(); j++) {
+                    if (i == j || i == -1) continue;
+                    var jj = openHeightCurvesForHeight.get(j);
 
-                        var newList = new ArrayList<>(geometryJ.coordinates.reversed().stream().toList().subList(0, geometryJ.coordinates.size() - 1));
-                        newList.addAll(currentGeometry.coordinates);
-                        currentGeometry.replaceCoordinates(newList);
-
-                        openGeometries.remove(j);
-                        i = -1;
-                        break;
-                    } else if (currentGeometryLast.latitude == geometryJLast.latitude && currentGeometryLast.longitude == geometryJLast.longitude) {
-                        // Same last
-
-                        var newList = new ArrayList<>(geometryJ.coordinates.reversed().stream().toList().subList(1, geometryJ.coordinates.size()));
-                        newList.addAll(currentGeometry.coordinates);
-                        currentGeometry.replaceCoordinates(newList);
-
-                        openGeometries.remove(j);
-                        i = -1;
-                        break;
-                    } else if (currentGeometryFirst.latitude == geometryJLast.latitude && currentGeometryFirst.longitude == geometryJLast.longitude) {
-                        // Same i first as j last
-                        var newList = new ArrayList<>(geometryJ.coordinates.subList(0, geometryJ.coordinates.size() - 1));
-                        newList.addAll(currentGeometry.coordinates);
-                        geometryJ.replaceCoordinates(newList);
-
-                        openGeometries.remove(i);
-                        i = -1;
-                        break;
-                    } else if (currentGeometryLast.latitude == geometryJFirst.latitude && currentGeometryLast.longitude == geometryJFirst.longitude) {
-                        // Same i last as j first
-                        var newList = new ArrayList<>(currentGeometry.coordinates.subList(0, currentGeometry.coordinates.size() - 1));
-                        newList.addAll(geometryJ.coordinates);
-                        currentGeometry.replaceCoordinates(newList);
-
-                        openGeometries.remove(j);
-                        i = -1;
-                        break;
+                    switch (findOpenPolygonMatchType(ii.outerPolygon, jj.outerPolygon)) {
+                        case FIRST_FIRST -> {
+                            // Reverse geometryCoords and prepend openHeightCurve
+                            ii.outerPolygon = appendExcludingN(reversePairs(jj.outerPolygon), ii.outerPolygon, 2);
+                            openHeightCurvesForHeight.remove(j);
+                            i = -1;
+                        }
+                        case FIRST_LAST -> {
+                            // Append geometryCoords to openHeightCurve
+                            ii.outerPolygon = appendExcludingN(jj.outerPolygon, ii.outerPolygon, 2);
+                            openHeightCurvesForHeight.remove(j);
+                            i = -1;
+                        }
+                        case LAST_FIRST -> {
+                            // Prepend geometryCoords to openHeightCurve
+                            ii.outerPolygon = appendExcludingN(ii.outerPolygon, jj.outerPolygon, 2);
+                            openHeightCurvesForHeight.remove(j);
+                            i = -1;
+                        }
+                        case LAST_LAST -> {
+                            // Reverse geometryCoords and append openHeightCurve
+                            ii.outerPolygon = appendExcludingN(ii.outerPolygon, reversePairs(jj.outerPolygon), 2);
+                            openHeightCurvesForHeight.remove(j);
+                            i = -1;
+                        }
                     }
                 }
             }
 
-            // Geometries should now be closing themselves
-            for (GeoJsonFile.Feature.Geometry openGeometry : openGeometries) {
-                Path2D path = new Path2D.Double();
-                path.moveTo(0.56*openGeometry.coordinates.getFirst().longitude, -openGeometry.coordinates.getFirst().latitude);
-                for (int i = 1; i < openGeometry.coordinates.size() - 1; i++) {
-                    path.lineTo(0.56*openGeometry.coordinates.get(i).longitude, -openGeometry.coordinates.get(i).latitude);
-                }
-                path.closePath();
-                closedPaths.add(path);
-
-
-                List<Double> coordinates = new ArrayList<>();
-                for (int i = 0; i < openGeometry.coordinates.size(); i+=2) {
-                    coordinates.add(openGeometry.coordinates.get(i).longitude);
-                    coordinates.add(openGeometry.coordinates.get(i).latitude);
-                }
-                if (!coordinates.getFirst().equals(coordinates.get(coordinates.size()-2))) {
-                    // Close polygon
-                    coordinates.add(coordinates.getFirst());
-                    coordinates.add(coordinates.get(1));
-                }
-                closePathCoordinates.add(coordinates);
-            }
-
-            for (int i = 0; i < closedPaths.size(); i++) {
-                geoJsonElements.add(new ParserGeoJsonElement(height, closePathCoordinates.get(i).parallelStream().mapToDouble(Double::doubleValue).toArray(), closedPaths.get(i)));
-            }
+            closedHeightCurves.addAll(heightCurvesForHeight);
+            closedHeightCurves.addAll(openHeightCurvesForHeight);
         }
+
+        geoJsonElements = closedHeightCurves.parallelStream().map(GeoJsonHeightCurve::createParserGeoJsonElement).toList();
     }
 
-    private boolean geometryClosesItself(GeoJsonFile.Feature.Geometry geometry) {
-        var coordFirst = geometry.coordinates.getFirst();
-        var coordLast = geometry.coordinates.getLast();
+    public static class GeoJsonHeightCurve {
+        private final float height;
+        private double[] outerPolygon;
+        public GeoJsonHeightCurve(float height, double[] outerPolygon) {
+            this.height = height;
+            this.outerPolygon = outerPolygon;
+        }
 
-        return coordFirst.latitude == coordLast.latitude && coordFirst.longitude == coordLast.longitude;
+        public ParserGeoJsonElement createParserGeoJsonElement() {
+            return new ParserGeoJsonElement(height, outerPolygon);
+        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -157,24 +141,15 @@ public class GeoJsonParserResult {
             public record Property(@JsonProperty("hoejde") Float height) {}
             @JsonIgnoreProperties(ignoreUnknown = true)
             public static class Geometry {
-                public List<GeoJsonFile.Feature.Geometry.Coordinate> coordinates = new ArrayList<>();
+                public double[] coords;
 
                 @JsonCreator
-                public Geometry(@JsonProperty("coordinates") List<Double[]> rawCoordinates) {
-                    for (Double[] coordinate : rawCoordinates) {
-                        coordinates.add(new GeoJsonFile.Feature.Geometry.Coordinate(coordinate[0], coordinate[1]));
-                    }
+                public Geometry(@JsonProperty("coordinates") List<Double[]> coordinates) {
+                    coords = coordinates
+                            .parallelStream()
+                            .flatMapToDouble(arr -> DoubleStream.of(arr[0], arr[1]))
+                            .toArray();
                 }
-
-                public void replaceCoordinates(List<GeoJsonFile.Feature.Geometry.Coordinate> coordinates) {
-                    this.coordinates = coordinates;
-                }
-
-                public List<GeoJsonFile.Feature.Geometry.Coordinate> getCoordinates() {
-                    return coordinates;
-                }
-
-                public record Coordinate(double longitude, double latitude) {}
             }
         }
     }
