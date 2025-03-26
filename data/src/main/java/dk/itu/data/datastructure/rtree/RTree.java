@@ -83,26 +83,6 @@ public class RTree {
         return groupB;
     }
 
-    private void adjustTree(RTreeNode node, RTreeNode newNode) {
-        if (node == root) {
-            RTreeNode newRoot = new RTreeNode();
-            newRoot.addChild(node);
-            newRoot.addChild(newNode);
-            root = newRoot;
-            return;
-        }
-
-        RTreeNode parent = findParent(root, node);
-
-        assert parent != null;
-        parent.addChild(newNode);
-
-        if (parent.children.size() > MAX_ENTRIES) {
-            RTreeNode splitParent = splitInternal(parent);
-            adjustTree(parent, splitParent);
-        }
-    }
-
     public OsmElement nearestNeighbor(RTreeNode node, Point query, OsmElement bestSoFar, double bestDistance) {
         if (node.isLeaf()) {
             for (OsmElement element : node.elements) {
@@ -230,4 +210,32 @@ public class RTree {
 
         return sortedEntries;
     }
+
+    private void adjustTree(RTreeNode node, RTreeNode newNode) {
+        if (node == root) {
+            // If we split the root, we need a new root
+            RTreeNode newRoot = new RTreeNode();
+            newRoot.addChild(node);
+            newRoot.addChild(newNode);
+            root = newRoot;
+            return;
+        }
+
+        // Find the parent of the current node
+        RTreeNode parent = findParent(root, node);
+
+        if (parent == null) {
+            throw new IllegalStateException("Parent node not found for adjustment!");
+        }
+
+        // Add the new node as a sibling
+        parent.addChild(newNode);
+
+        // If parent overflows, split it recursively
+        if (parent.children.size() > MAX_ENTRIES) {
+            RTreeNode splitParent = splitInternal(parent);
+            adjustTree(parent, splitParent);
+        }
+    }
+
 }
