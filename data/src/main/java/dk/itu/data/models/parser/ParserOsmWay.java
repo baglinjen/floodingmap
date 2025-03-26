@@ -34,7 +34,7 @@ public class ParserOsmWay extends ParserOsmElement {
         bounds[2] = maxLat;
         bounds[3] = maxLon;
 
-        isLine = nodes.getFirst().getId() != nodes.getLast().getId();
+        isLine = nodes.getFirst().id() != nodes.getLast().id();
 
         if (!isLine) {
             coordinates = isClockwise(coordinatesRaw) ? reversePairs(coordinatesRaw) : coordinatesRaw;

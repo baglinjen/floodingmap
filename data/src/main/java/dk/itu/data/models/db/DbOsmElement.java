@@ -13,7 +13,7 @@ public abstract class DbOsmElement extends Colored implements OsmElement, Serial
     }
 
     @Override
-    public long getId() {
+    public long id() {
         return id;
     }
 }

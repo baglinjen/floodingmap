@@ -13,7 +13,7 @@ public abstract class ParserOsmElement extends ParserDrawable implements OsmElem
     }
 
     @Override
-    public long getId() {
+    public long id() {
         return id;
     }
 

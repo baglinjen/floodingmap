@@ -76,7 +76,7 @@ public class OsmParserResult {
             return null;
         } else if (leftIndexBoundInclusive == rightIndexBoundExclusive-1) {
             var lastElement = elements.get(leftIndexBoundInclusive);
-            if (lastElement.getId() == id) {
+            if (lastElement.id() == id) {
                 return lastElement;
             } else {
                 return null;
@@ -85,10 +85,10 @@ public class OsmParserResult {
 
         var halfwayIndex = leftIndexBoundInclusive + ((rightIndexBoundExclusive - leftIndexBoundInclusive) / 2);
         var halfWayElement = elements.get(halfwayIndex);
-        if (id > halfWayElement.getId()) {
+        if (id > halfWayElement.id()) {
             // Look at right side
             return findElement(id, halfwayIndex+1, rightIndexBoundExclusive, elements);
-        } else if (id < halfWayElement.getId()) {
+        } else if (id < halfWayElement.id()) {
             // Look at left side
             return findElement(id, leftIndexBoundInclusive, halfwayIndex, elements);
         } else {

@@ -72,9 +72,9 @@ public class OsmElementRepository {
                 DSL.field("dbObj"),
                 DSL.field("area")
         ).values(
-                osmNode.getId(),
+                osmNode.id(),
                 geoField,
-                DSL.val(fury.serializeJavaObject(new DbNode(osmNode.getId()))),
+                DSL.val(fury.serializeJavaObject(new DbNode(osmNode.id()))),
                 DSL.field("ST_Area(ST_Envelope({0}::geometry), false)", geoField)
         ).onConflict(DSL.field("id")).doNothing();
     }
@@ -88,10 +88,10 @@ public class OsmElementRepository {
                 DSL.field("dbObj"),
                 DSL.field("area")
         ).values(
-                osmWay.getId(),
+                osmWay.id(),
                 osmWay.isLine() ? geoField : null,
                 osmWay.isLine() ? null : geoField,
-                fury.serializeJavaObject(new DbWay(osmWay.getId(), osmWay.getShape(), osmWay.isLine() ? "line" : "polygon", osmWay.getRgbaColor().hashCode())),
+                fury.serializeJavaObject(new DbWay(osmWay.id(), osmWay.getShape(), osmWay.isLine() ? "line" : "polygon", osmWay.getRgbaColor().hashCode())),
                 DSL.field("ST_Area(ST_Envelope({0}::geometry), false)", geoField)
         ).onConflict(DSL.field("id")).doNothing();
     }
@@ -104,9 +104,9 @@ public class OsmElementRepository {
                 DSL.field("dbObj"),
                 DSL.field("area")
         ).values(
-                osmRelation.getId(),
+                osmRelation.id(),
                 geoField,
-                fury.serializeJavaObject(new DbRelation(osmRelation.getId(), osmRelation.getShape(), osmRelation.getRgbaColor().hashCode())),
+                fury.serializeJavaObject(new DbRelation(osmRelation.id(), osmRelation.getShape(), osmRelation.getRgbaColor().hashCode())),
                 DSL.field("ST_Area(ST_Envelope({0}::geometry), false)", geoField)
         ).onConflict(DSL.field("id")).doNothing();
     }
