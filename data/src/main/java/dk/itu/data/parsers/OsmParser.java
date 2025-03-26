@@ -57,12 +57,6 @@ public class OsmParser {
                                 OsmElementBuilder.OsmElementType.fromString(reader.getAttributeValue(null, "type")),
                                 ParserOsmRelation.OsmRelationMemberType.fromString(reader.getAttributeValue(null, "role").intern())
                         );
-                        case "bounds" -> osmParserResult.setBounds(
-                                Double.parseDouble(reader.getAttributeValue(null, "minlon")),
-                                Double.parseDouble(reader.getAttributeValue(null, "minlat")),
-                                Double.parseDouble(reader.getAttributeValue(null, "maxlon")),
-                                Double.parseDouble(reader.getAttributeValue(null, "maxlat"))
-                        );
                     }
                     continue;
                 }

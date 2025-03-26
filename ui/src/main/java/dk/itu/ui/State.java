@@ -13,7 +13,6 @@ public class State {
     private final List<Consumer<Point2D.Double>> mouseMovedListeners = new ArrayList<>();
     private boolean shouldDrawGeoJson = true;
     private double mouseX, mouseY;
-    private double[] windowBounds = new double[4];
     private float waterLevel = 0f;
     private final float minWaterLevel, maxWaterLevel;
     private final SuperAffine superAffine = new SuperAffine();
@@ -89,7 +88,13 @@ public class State {
 
     // Getter and updater for window bounds
     public double[] getWindowBounds() {
-        return windowBounds;
+        var min = this.superAffine.inverseTransform(0, 0);
+        var max = this.superAffine.inverseTransform(FloodingApp.WIDTH, FloodingApp.HEIGHT);
+        return new double[] {min.getX()/0.56, -max.getY(), max.getX()/0.56, -min.getY()};
+    }
+
+    public void resetWindowBounds() {
+        Services.withServices(this::resetWindowBounds);
     }
 
     public void resetWindowBounds(Services services) {
@@ -104,12 +109,5 @@ public class State {
                         scale,
                         scale
                 );
-        var min = this.superAffine.inverseTransform(0, 0);
-        var max = this.superAffine.inverseTransform(FloodingApp.WIDTH, HEIGHT);
-        windowBounds = new double[] {min.getX()/0.56, -max.getY(), max.getX()/0.56, -min.getY()};
-    }
-
-    public void resetWindowBounds() {
-        Services.withServices(this::resetWindowBounds);
     }
 }

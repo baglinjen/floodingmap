@@ -20,12 +20,11 @@ public class DataLoadComponent extends SplitMenuButton {
                         .toList()
         );
         setOnAction(_ -> {
+            if (task != null || selectedFile == null || (!selectedFile.endsWith(".osm") && !selectedFile.endsWith(".geojson"))) {
+                return;
+            }
             Services.withServices(services -> {
-                if (selectedFile == null) return;
                 if (selectedFile.endsWith(".osm")) {
-                    if (task != null) {
-                        return;
-                    }
                     task = new Thread(() -> {
                         setDisable(true);
                         setText("Loading OSM file");
@@ -36,12 +35,8 @@ public class DataLoadComponent extends SplitMenuButton {
                         task = null;
                     });
                     task.start();
-                    return;
-                }
-                if (selectedFile.endsWith(".geojson")) {
-                    if (task != null) {
-                        return;
-                    }
+                } else if (selectedFile.endsWith(".geojson")) {
+
                     task = new Thread(() -> {
                         setDisable(true);
                         setText("Loading GeoJson file");

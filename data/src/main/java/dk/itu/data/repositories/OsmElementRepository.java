@@ -9,6 +9,7 @@ import dk.itu.data.models.parser.ParserOsmElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.models.parser.ParserOsmRelation;
 import dk.itu.data.models.parser.ParserOsmWay;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.fury.Fury;
 import org.apache.fury.ThreadLocalFury;
 import org.apache.fury.ThreadSafeFury;
@@ -23,7 +24,6 @@ import java.awt.geom.Path2D;
 import java.sql.Connection;
 import java.util.*;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static dk.itu.util.PolygonUtils.isPolygonContained;
 
@@ -41,6 +41,7 @@ public class OsmElementRepository {
         f.register(DbWay.class);
         f.register(DbRelation.class);
         f.register(Color.class);
+        // TODO: For Path2D use another serializer which implements org.apache.fury.serializer.Serializer
         return f;
     });
 
@@ -51,18 +52,24 @@ public class OsmElementRepository {
     }
 
     public final void add(List<ParserOsmElement> osmElements) {
-        ctx.batch(
-                osmElements
-                        .parallelStream()
-                        .map(e -> switch (e) {
-                            case ParserOsmNode osmNode -> addNodeQuery(osmNode);
-                            case ParserOsmWay osmWay -> addWayQuery(osmWay);
-                            case ParserOsmRelation osmRelation -> addRelationQuery(osmRelation);
-                            default -> null;
-                        })
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toList())
-        ).execute();
+        // TODO: Fix to work with large lists (fx Denmark)
+        ListUtils
+                .partition(osmElements, 1000)
+                .parallelStream()
+                .forEach(batch -> {
+                    ctx.batch(
+                            batch
+                                    .parallelStream()
+                                    .map(osmElement -> switch (osmElement) {
+                                        case ParserOsmNode osmNode -> addNodeQuery(osmNode);
+                                        case ParserOsmWay osmWay -> addWayQuery(osmWay);
+                                        case ParserOsmRelation osmRelation -> addRelationQuery(osmRelation);
+                                        default -> null;
+                                    })
+                                    .filter(Objects::nonNull)
+                                    .toList()
+                    ).executeAsync();
+                });
     }
 
     private Query addNodeQuery(ParserOsmNode osmNode) {
@@ -176,8 +183,7 @@ public class OsmElementRepository {
     }
 
     public List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
-        String condWaysLine = String.format("w.line && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
-        String condWaysPoly = String.format("w.polygon && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
+        String condWays = String.format("COALESCE(w.line, w.polygon) && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
         String condRelations = String.format("r.shape && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
         return ctx.select(
                         DSL.field("n.dbObj", byte[].class),
@@ -192,7 +198,7 @@ public class OsmElementRepository {
                                         DSL.field("w.area", Float.class)
                                 )
                                 .from(DSL.table("ways").as("w"))
-                                .where(DSL.condition(condWaysLine).or(condWaysPoly))
+                                .where(DSL.condition(condWays))
                                 .unionAll(
                                         ctx.select(
                                                         DSL.field("r.dbObj", byte[].class),
@@ -283,10 +289,4 @@ public class OsmElementRepository {
 //
 //        return elements;
 //    }
-
-    public boolean areElementsInDatabase() {
-        if (ctx.fetchCount(DSL.table("nodes")) > 0) return true;
-        if (ctx.fetchCount(DSL.table("ways")) > 0) return true;
-        return ctx.fetchCount(DSL.table("relations")) > 0;
-    }
 }

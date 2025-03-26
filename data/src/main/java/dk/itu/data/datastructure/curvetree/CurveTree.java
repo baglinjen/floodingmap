@@ -4,8 +4,6 @@ import dk.itu.data.models.parser.ParserGeoJsonElement;
 
 import java.util.*;
 
-import static dk.itu.util.PolygonUtils.isPolygonContained;
-
 public class CurveTree {
     private final List<CurveTreeNode> rootChildren = new ArrayList<>();
 
@@ -29,11 +27,12 @@ public class CurveTree {
     private void lookupChildren(List<CurveTreeNode> children, ParserGeoJsonElement geoJsonElement) {
         for (CurveTreeNode child : children) {
             // If geoJsonElement in child => add + return
-            if (isPolygonContained(child.getGeoJsonElement().getCoordinates(), geoJsonElement.getCoordinates())) {
+            if (child.getGeoJsonElement().contains(geoJsonElement)) {
                 // Add to node + return
                 put(child, geoJsonElement);
                 return;
             }
+            // Else => iterate
         }
         children.add(new CurveTreeNode(geoJsonElement));
     }
