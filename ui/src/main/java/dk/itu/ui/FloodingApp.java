@@ -8,6 +8,7 @@ import dk.itu.data.datastructure.curvetree.CurveTree;
 import dk.itu.data.models.parser.ParserGeoJsonElement;
 import dk.itu.data.services.Services;
 import dk.itu.ui.components.MouseEventOverlayComponent;
+import dk.itu.ui.utils.SimulationRunnable;
 import dk.itu.util.LoggerFactory;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
@@ -26,6 +27,7 @@ public class FloodingApp extends GameApplication {
     private final Logger logger = LoggerFactory.getLogger();
 
     private volatile State state;
+    private volatile boolean simulationRunning;
 
     // Drawing related
     private BufferedImage image;
@@ -37,7 +39,7 @@ public class FloodingApp extends GameApplication {
             // Temporary whilst using in-memory
             services.getGeoJsonService().loadGeoJsonData("tuna.geojson");
 
-            float registeredWaterLevel = 0;
+            float registeredWaterLevel = 0.0f;
 
             while (true) {
                 long start = System.nanoTime();
@@ -73,10 +75,35 @@ public class FloodingApp extends GameApplication {
 
                 osmElements.forEach(element -> element.draw(g2d, strokeBaseWidth));
 
-                heightCurves.forEach(hc -> {
-                    hc.setBelowWater(state.getWaterLevel() > hc.getHeight());
-                    hc.draw(g2d, strokeBaseWidth);
-                });
+                if(state.getWaterLevel() != registeredWaterLevel){
+                    simulationRunning = false;
+
+                    heightCurves.forEach(hc -> hc.setBelowWater(false));
+
+                    simulationRunning = true;
+
+                    Thread simulationThread = new Thread(() -> {
+                        try{
+                            var x = services.getGeoJsonService().getCurveTree().TraverseFromRoot(state.getWaterLevel());
+
+                            for(List<ParserGeoJsonElement> list : x){
+                                if(!simulationRunning) return;
+                                Thread.sleep(500);
+                                list.forEach(hc -> {
+                                    hc.setBelowWater(state.getWaterLevel() > hc.getHeight());
+                                });
+                            }
+                        } catch (Exception ex){
+                            Thread.currentThread().interrupt();
+                        }
+                    });
+
+                    simulationThread.start();
+
+                    registeredWaterLevel = state.getWaterLevel();
+                }
+
+                heightCurves.forEach(hc -> hc.draw(g2d, strokeBaseWidth));
 
                 g2d.dispose();
 
