@@ -78,7 +78,8 @@ public class FloodingApp extends GameApplication {
                     registeredWaterLevel = state.getWaterLevel();
                     List<List<ParserGeoJsonElement>> floodedElements = services.getGeoJsonService().getCurveTree().TraverseFromRoot(registeredWaterLevel);
 
-                    
+                    //TODO: Pickup here
+                    //TODO: Start coloring of elements on a new thread
                 }
 
                 //heightCurves.forEach(heightCurve -> heightCurve.setBelowWater(state.getWaterLevel() >= heightCurve.getHeight()));
