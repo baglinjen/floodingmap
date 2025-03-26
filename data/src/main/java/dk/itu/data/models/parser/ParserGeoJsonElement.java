@@ -15,8 +15,6 @@ public class ParserGeoJsonElement extends ParserDrawable implements GeoJsonEleme
     private final List<double[]> innerPolygons = new ArrayList<>();
     private Path2D.Double shape;
     private final double area;
-    private final double[] coordinates;
-    private final Shape shape;
     private double absoluteArea;
     private boolean belowWater;
 
@@ -24,8 +22,6 @@ public class ParserGeoJsonElement extends ParserDrawable implements GeoJsonEleme
         this.height = height;
         this.outerPolygon = forceCounterClockwise(outerPolygon);
         this.area = calculatePolygonArea(outerPolygon);
-        this.shape = new Area(path);
-        this.coordinates = coordinates;
         this.belowWater = false;
         setShouldBeDrawn(true);
         setStyle(styleBelowWater);

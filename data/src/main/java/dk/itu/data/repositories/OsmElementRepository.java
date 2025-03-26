@@ -9,7 +9,6 @@ import dk.itu.data.models.parser.ParserOsmElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.models.parser.ParserOsmRelation;
 import dk.itu.data.models.parser.ParserOsmWay;
-import org.apache.commons.collections4.ListUtils;
 import org.apache.fury.Fury;
 import org.apache.fury.ThreadLocalFury;
 import org.apache.fury.ThreadSafeFury;
