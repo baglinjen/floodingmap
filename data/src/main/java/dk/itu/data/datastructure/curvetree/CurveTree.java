@@ -5,11 +5,17 @@ import dk.itu.data.models.parser.ParserGeoJsonElement;
 import java.util.*;
 
 public class CurveTree {
-    private final List<CurveTreeNode> rootChildren = new ArrayList<>();
+    //Simulates the 'world', i.e. creates a height curve that ensures to encapsulate all other curves
+    private final double[] worldCurvePolygon = {
+            Double.MAX_VALUE, Double.MIN_VALUE, //NE
+            Double.MIN_VALUE, Double.MIN_VALUE, //NW
+            Double.MIN_VALUE, Double.MAX_VALUE, //SW
+            Double.MAX_VALUE, Double.MAX_VALUE  //SE
+    };
 
-    public CurveTree(){
-        System.out.println("Now building...");
-    }
+    private final CurveTreeNode worldRoot = new CurveTreeNode(new ParserGeoJsonElement(0, worldCurvePolygon));
+
+    private final List<CurveTreeNode> rootChildren = new ArrayList<>();
 
     public void put(ParserGeoJsonElement geoJsonElement) {
         put(null, geoJsonElement);

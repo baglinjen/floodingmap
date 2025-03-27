@@ -3,6 +3,7 @@ package dk.itu.data.dto;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import dk.itu.common.utils.extensions.ArrayExtensions;
 import dk.itu.data.models.parser.ParserGeoJsonElement;
 
 import java.util.*;
@@ -35,6 +36,17 @@ public class GeoJsonParserResult {
         }
 
         geoJsonElements.parallelStream().forEach(ParserGeoJsonElement::calculateShape);
+    }
+
+    public void addWorldRoot(){
+        double[] worldCurvePolygon = {
+                180, -180, //NE
+                -180, -180, //NW
+                -180, 180, //SW
+                180, 180  //SE
+        };
+
+        geoJsonElements = ArrayExtensions.appendSingle(geoJsonElements, new ParserGeoJsonElement(0, worldCurvePolygon));
     }
 
     public List<ParserGeoJsonElement> getGeoJsonElements() {
