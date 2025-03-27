@@ -14,7 +14,6 @@ public class MouseEventOverlayComponent extends BorderPane {
             double dx = event.getX() - state.getMouseX(), dy = event.getY() - state.getMouseY();
             state.getSuperAffine().prependTranslation(dx, dy);
             state.mouseMoved(event.getX(), event.getY());
-            state.setShouldRedraw(true);
         });
         setOnScroll(event -> {
             double zoom = event.getDeltaY() > 0 ? 1.05 : 1/1.05;
@@ -22,7 +21,6 @@ public class MouseEventOverlayComponent extends BorderPane {
                     .prependTranslation(-event.getX(), -event.getY())
                     .prependScale(zoom, zoom)
                     .prependTranslation(event.getX(), event.getY());
-            state.setShouldRedraw(true);
         });
         setOnMouseMoved(event -> {
             state.mouseMoved(event.getX(), event.getY());

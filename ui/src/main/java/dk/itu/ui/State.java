@@ -12,7 +12,6 @@ import static dk.itu.ui.FloodingApp.HEIGHT;
 public class State {
     private final List<Consumer<Point2D.Double>> mouseMovedListeners = new ArrayList<>();
     private boolean shouldDrawGeoJson = true;
-    private boolean shouldRedraw = true;
     private double mouseX, mouseY;
     private float waterLevel = 0f;
     private final float minWaterLevel, maxWaterLevel;
@@ -30,12 +29,6 @@ public class State {
     }
     public boolean shouldDrawGeoJson() {
         return shouldDrawGeoJson;
-    }
-
-    public boolean shouldRedraw(){return shouldRedraw;}
-
-    public void setShouldRedraw(boolean val){
-        shouldRedraw = val;
     }
 
     // Calculates mouse lon/lat
