@@ -49,6 +49,7 @@ public class OsmElementBuilder {
                     var newNode = new ParserOsmNode(currentId, lat, lon);
                     newNode.setShouldBeDrawn(newNode.shouldBeDrawn() && style != null);
                     newNode.setStyle(style);
+                    if(this.tags.containsKey("highway")) newNode.setRouting();
                     osmParserResult.addNode(newNode);
                 } else {
                     logger.warn("Parsing node with id {} is invalid", currentId);
@@ -64,6 +65,9 @@ public class OsmElementBuilder {
                     newWay.setShouldBeDrawn(newWay.shouldBeDrawn() && style != null);
                     newWay.setStyle(style);
                     osmParserResult.addWay(newWay);
+
+                    //If the way is traversable -> modify the containing nodes
+                    if(this.tags.containsKey("highway")) wayNodes.forEach(ParserOsmNode::setRouting);
                 } else {
                     logger.warn("Parsing way with id {} is invalid", currentId);
                 }

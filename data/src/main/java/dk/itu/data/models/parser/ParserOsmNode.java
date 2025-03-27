@@ -5,11 +5,16 @@ import java.awt.geom.Path2D;
 
 public class ParserOsmNode extends ParserOsmElement {
     private final double lat, lon;
+    private boolean isRouting;
+
     public ParserOsmNode(long id, double lat, double lon) {
         super(id);
         this.lat = lat;
         this.lon = lon;
     }
+
+    public boolean isRouting(){return isRouting;}
+    public void setRouting(){isRouting = true;}
 
     public double getLat() {
         return lat;

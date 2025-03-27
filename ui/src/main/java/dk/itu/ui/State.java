@@ -1,6 +1,7 @@
 package dk.itu.ui;
 
 import dk.itu.data.services.Services;
+import dk.itu.data.utils.DijkstraConfiguration;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
@@ -12,12 +13,14 @@ import static dk.itu.ui.FloodingApp.HEIGHT;
 public class State {
     private final List<Consumer<Point2D.Double>> mouseMovedListeners = new ArrayList<>();
     private boolean shouldDrawGeoJson = true;
+    private final DijkstraConfiguration dijkstraConfiguration;
     private double mouseX, mouseY;
     private float waterLevel = 0f;
     private final float minWaterLevel, maxWaterLevel;
     private final SuperAffine superAffine = new SuperAffine();
 
     public State(Services services) {
+        this.dijkstraConfiguration = new DijkstraConfiguration();
         this.minWaterLevel = services.getGeoJsonService().getMinWaterLevel();
         this.maxWaterLevel = services.getGeoJsonService().getMaxWaterLevel();
         this.resetWindowBounds();
@@ -29,6 +32,11 @@ public class State {
     }
     public boolean shouldDrawGeoJson() {
         return shouldDrawGeoJson;
+    }
+
+    // Getter and setter for dijkstra
+    public DijkstraConfiguration getDijkstraConfiguration(){
+        return dijkstraConfiguration;
     }
 
     // Calculates mouse lon/lat

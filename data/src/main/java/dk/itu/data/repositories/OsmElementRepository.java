@@ -225,6 +225,32 @@ public class OsmElementRepository {
                 });
     }
 
+    public List<OsmElement> getOsmNodes(){
+        try{
+            return ctx.select(
+                            DSL.field("n.dbObj", byte[].class),
+                            DSL.field("'n' as type", String.class),
+                            DSL.field("n.area", Float.class)
+                    )
+                    .from(DSL.table("nodes").as("n"))
+                    .fetch(new RecordMapper<>() {
+                        @Nullable
+                        @Override
+                        public OsmElement map(Record3<byte[], String, Float> r) {
+                            return switch (r.component2()) {
+                                case "n" -> fury.deserializeJavaObject(r.component1(), DbNode.class);
+                                case "w" -> fury.deserializeJavaObject(r.component1(), DbWay.class);
+                                case "r" -> fury.deserializeJavaObject(r.component1(), DbRelation.class);
+                                default -> null;
+                            };
+                        }
+                    });
+        } catch(Exception ex){
+            System.out.println("Exception");
+        }
+        return null;
+    }
+
     public void clearAll() {
         ctx.batch(
                 ctx.truncate("nodes"),
