@@ -34,8 +34,6 @@ public class DijkstraToggle extends MenuButton {
         var buttonItem = new CustomMenuItem(button);
 
         this.getItems().addAll(fromItem, toItem, buttonItem);
-
-        setOnAction(_ -> state.getDijkstraConfiguration().toggleSelectionMode());
     }
 
     private void DisplayAlert(String errorMessage){
