@@ -1,12 +1,17 @@
 package dk.itu.data.utils;
 import dk.itu.common.models.OsmElement;
 import dk.itu.data.models.db.DbNode;
+import dk.itu.data.models.db.DbWay;
 import dk.itu.data.services.Services;
+import dk.itu.util.PolygonUtils;
 
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 
 public class DijkstraConfiguration {
     private long startNodeId, endNodeId;
+    private OsmElement route;
 
     //Getters and setters for start node
     public long getStartNodeId(){return startNodeId;}
@@ -18,6 +23,10 @@ public class DijkstraConfiguration {
     public long getEndNodeId(){return endNodeId;}
     public void setEndNodeId(String endNodeId){
         this.endNodeId = Long.parseLong(endNodeId);
+    }
+
+    public OsmElement getRoute(){
+        return route;
     }
 
     public void calculateRoute(){
@@ -33,7 +42,7 @@ public class DijkstraConfiguration {
 
             if(route == null) throw new RuntimeException("No possible route could be found between: " + startNodeId + ", " + endNodeId);
 
-            //TODO: Return route and display it
+            this.route = route;
         });
 
     }
@@ -49,25 +58,30 @@ public class DijkstraConfiguration {
         pq.offer(startNode);
 
         while(!pq.isEmpty()){
-            DbNode curNode = (DbNode)pq.poll();
+            try{
+                DbNode curNode = (DbNode)pq.poll();
 
-            if(curNode == endNode){
-                return createDijkstraPath(previousNodes, startNode, endNode);
-            }
-
-            double currDistance = distances.get(curNode);
-
-            for(var connection : curNode.getConnectionMap().entrySet()){
-                OsmElement nextNode = nodes.stream().filter(o -> o.getId() == connection.getKey()).findFirst().get();
-                double connectionDistance = connection.getValue();
-                double newDist = currDistance + connectionDistance;
-
-                if(newDist < distances.get(nextNode)){
-                    distances.put(nextNode, newDist);
-                    previousNodes.put(nextNode, curNode);
-                    pq.offer(nextNode);
+                if(curNode == endNode){
+                    return createDijkstraPath(previousNodes, startNode, endNode);
                 }
+
+                double currDistance = distances.get(curNode);
+
+                for(var connection : curNode.getConnectionMap().entrySet()){
+                    OsmElement nextNode = nodes.stream().filter(o -> o.getId() == connection.getKey()).findFirst().get();
+                    double connectionDistance = connection.getValue();
+                    double newDist = currDistance + connectionDistance;
+
+                    if(newDist < distances.get(nextNode)){
+                        distances.put(nextNode, newDist);
+                        previousNodes.put(nextNode, curNode);
+                        pq.offer(nextNode);
+                    }
+                }
+            } catch(Exception ex){
+                System.out.println("WAIT HERE");
             }
+
         }
 
         return null;//No path found
@@ -84,7 +98,15 @@ public class DijkstraConfiguration {
 
         path.addFirst(startNode);
 
-        //Build an way from the path
-        return null;
+        var coordinateList = new double[path.size() * 2];
+        var count = 0;
+        for(var x : path){
+            var dbNodeX = (DbNode)x;
+            coordinateList[count] = dbNodeX.getLon();
+            coordinateList[count+1] = dbNodeX.getLat();
+            count = count + 2;
+        }
+
+        return new DbWay(1L, PolygonUtils.pathFromShape(coordinateList, false), "line", Color.yellow.hashCode());
     }
 }
