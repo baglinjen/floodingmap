@@ -58,7 +58,6 @@ public class DijkstraConfiguration {
         pq.offer(startNode);
 
         while(!pq.isEmpty()){
-            try{
                 DbNode curNode = (DbNode)pq.poll();
 
                 if(curNode == endNode){
@@ -68,7 +67,13 @@ public class DijkstraConfiguration {
                 double currDistance = distances.get(curNode);
 
                 for(var connection : curNode.getConnectionMap().entrySet()){
-                    OsmElement nextNode = nodes.parallelStream().filter(o -> o.getId() == connection.getKey()).findFirst().get();
+                    OsmElement nextNode;
+                    try{
+                        nextNode = nodes.parallelStream().filter(o -> o.getId() == connection.getKey()).findFirst().get();
+                    } catch(NoSuchElementException e){
+                        continue;
+                    }
+
                     double connectionDistance = connection.getValue();
                     double newDist = currDistance + connectionDistance;
 
@@ -78,10 +83,6 @@ public class DijkstraConfiguration {
                         pq.offer(nextNode);
                     }
                 }
-            } catch(Exception ex){
-                throw new RuntimeException(ex.getMessage());
-            }
-
         }
 
         return null;//No path found
