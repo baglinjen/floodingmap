@@ -24,9 +24,9 @@ public class DijkstraToggle extends MenuButton {
                 state.getDijkstraConfiguration().setEndNodeId(toField.getText().trim());
                 state.getDijkstraConfiguration().calculateRoute();
             } catch(NumberFormatException ex){
-                DisplayAlert("Invalid node ID");
+                displayAlert("Invalid node ID");
             } catch(Exception ex){
-                DisplayAlert(ex.getMessage());
+                displayAlert(ex.getMessage());
             }
 
         });
@@ -36,7 +36,7 @@ public class DijkstraToggle extends MenuButton {
         this.getItems().addAll(fromItem, toItem, buttonItem);
     }
 
-    private void DisplayAlert(String errorMessage){
+    private void displayAlert(String errorMessage){
         var alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Something went wrong");
         alert.setHeaderText("An exception was thrown when attempting to calculate routing");

@@ -35,8 +35,8 @@ public class DijkstraConfiguration {
 
             if(startNodeId == endNodeId) throw new IllegalArgumentException("Start node and end node can not be the same");
 
-            var startNode = nodes.stream().filter(o -> o.getId() == startNodeId).findFirst().orElseThrow(() -> new IllegalArgumentException("No start node found with ID: " + startNodeId));
-            var endNode = nodes.stream().filter(o -> o.getId() == endNodeId).findFirst().orElseThrow(() -> new IllegalArgumentException("No end node found with ID: " + endNodeId));
+            var startNode = nodes.parallelStream().filter(o -> o.getId() == startNodeId).findFirst().orElseThrow(() -> new IllegalArgumentException("No start node found with ID: " + startNodeId));
+            var endNode = nodes.parallelStream().filter(o -> o.getId() == endNodeId).findFirst().orElseThrow(() -> new IllegalArgumentException("No end node found with ID: " + endNodeId));
 
             var route = createDijkstra(startNode, endNode, nodes);
 
@@ -68,7 +68,7 @@ public class DijkstraConfiguration {
                 double currDistance = distances.get(curNode);
 
                 for(var connection : curNode.getConnectionMap().entrySet()){
-                    OsmElement nextNode = nodes.stream().filter(o -> o.getId() == connection.getKey()).findFirst().get();
+                    OsmElement nextNode = nodes.parallelStream().filter(o -> o.getId() == connection.getKey()).findFirst().get();
                     double connectionDistance = connection.getValue();
                     double newDist = currDistance + connectionDistance;
 
@@ -79,7 +79,7 @@ public class DijkstraConfiguration {
                     }
                 }
             } catch(Exception ex){
-                System.out.println("WAIT HERE");
+                throw new RuntimeException(ex.getMessage());
             }
 
         }

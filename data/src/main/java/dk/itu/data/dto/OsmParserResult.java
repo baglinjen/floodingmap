@@ -21,7 +21,7 @@ public class OsmParserResult {
     }
 
     public List<ParserOsmElement> getNodesForRouting(){
-        return nodes.stream()
+        return nodes.parallelStream()
                 .filter(e -> e instanceof ParserOsmNode)
                 .map(e -> (ParserOsmNode)e)
                 .filter(ParserOsmNode::isRouting)

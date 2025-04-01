@@ -23,8 +23,7 @@ public class OsmService {
     }
 
     public List<OsmElement> getOsmNodes(){
-        var x = osmElementRepository.getOsmNodes();
-        return x.stream().filter(element -> element instanceof DbNode).toList();//TODO: Reduce use of 'instanceof'?
+        return osmElementRepository.getOsmNodes();
     }
 
     public void loadOsmDataInDb(String osmFileName) {
