@@ -24,6 +24,7 @@ import java.awt.geom.Path2D;
 import java.sql.Connection;
 import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static dk.itu.util.PolygonUtils.isPolygonContained;
 
@@ -53,23 +54,18 @@ public class OsmElementRepository {
 
     public final void add(List<ParserOsmElement> osmElements) {
         // TODO: Fix to work with large lists (fx Denmark)
-        ListUtils
-                .partition(osmElements, 1000)
-                .parallelStream()
-                .forEach(batch -> {
-                    ctx.batch(
-                            batch
-                                    .parallelStream()
-                                    .map(osmElement -> switch (osmElement) {
-                                        case ParserOsmNode osmNode -> addNodeQuery(osmNode);
-                                        case ParserOsmWay osmWay -> addWayQuery(osmWay);
-                                        case ParserOsmRelation osmRelation -> addRelationQuery(osmRelation);
-                                        default -> null;
-                                    })
-                                    .filter(Objects::nonNull)
-                                    .toList()
-                    ).executeAsync();
-                });
+        ctx.batch(
+                osmElements
+                        .parallelStream()
+                        .map(e -> switch (e) {
+                            case ParserOsmNode osmNode -> addNodeQuery(osmNode);
+                            case ParserOsmWay osmWay -> addWayQuery(osmWay);
+                            case ParserOsmRelation osmRelation -> addRelationQuery(osmRelation);
+                            default -> null;
+                        })
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList())
+        ).execute();
     }
 
     private Query addNodeQuery(ParserOsmNode osmNode) {

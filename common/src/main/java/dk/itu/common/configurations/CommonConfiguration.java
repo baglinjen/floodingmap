@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.util.*;
 
 public class CommonConfiguration {
-    private static Logger logger = LoggerFactory.getLogger();
+    private static final Logger logger = LoggerFactory.getLogger();
     private static CommonConfiguration commonConfiguration = null;
     public static CommonConfiguration getInstance() {
         if (commonConfiguration == null) {
@@ -18,11 +18,12 @@ public class CommonConfiguration {
     }
 
     private final boolean forceParseOsm, forceParseGeoJson;
+    private final String dataForsyningenToken;
 
     private CommonConfiguration() {
-        Properties properties = System.getProperties();
-        this.forceParseOsm = Boolean.parseBoolean(properties.getProperty("configuration.forceParseOsm", "false"));
-        this.forceParseGeoJson = Boolean.parseBoolean(properties.getProperty("configuration.forceParseGeoJson", "false"));
+        this.forceParseOsm = Boolean.parseBoolean(Objects.requireNonNullElse(System.getenv("configuration.forceParseOsm"), "false"));
+        this.forceParseGeoJson = Boolean.parseBoolean(Objects.requireNonNullElse(System.getenv("forceParseGeoJson.forceParseOsm"), "false"));
+        this.dataForsyningenToken = System.getenv("configuration.dataForsyningenToken");
     }
 
     public boolean shouldForceParseOsm() {
@@ -31,6 +32,10 @@ public class CommonConfiguration {
 
     public boolean shouldForceParseGeoJson() {
         return this.forceParseGeoJson;
+    }
+
+    public String getDataForsyningenToken() {
+        return this.dataForsyningenToken;
     }
 
     public List<String> getDataFiles() {
