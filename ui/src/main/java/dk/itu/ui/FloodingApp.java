@@ -106,7 +106,7 @@ public class FloodingApp extends GameApplication {
                     hc.draw(g2d, strokeBaseWidth);
                 });
 
-                var dijkstraRoute = state.getDijkstraConfiguration().getRoute();
+                var dijkstraRoute = state.getDijkstraConfiguration().getRoute(state.getWaterLevel());
                 if(dijkstraRoute != null){
                     dijkstraRoute.draw(g2d, strokeBaseWidth * 6);
                 }
