@@ -16,7 +16,15 @@ public class GeoJsonService {
     private final GeoJsonElementRepository geoJsonElementRepository;
     private CurveTree curveTree;
 
-    public GeoJsonService() {
+    private static GeoJsonService instance;
+    public static GeoJsonService getInstance() {
+        if (instance == null) {
+            instance = new GeoJsonService();
+        }
+        return instance;
+    }
+
+    private GeoJsonService() {
         geoJsonElementRepository = new GeoJsonElementRepositoryMemory();
     }
 

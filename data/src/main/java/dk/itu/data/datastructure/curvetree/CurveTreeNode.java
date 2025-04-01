@@ -7,7 +7,7 @@ import java.util.List;
 
 public class CurveTreeNode {
     private final ParserGeoJsonElement geoJsonElement;
-    private List<CurveTreeNode> children;
+    private List<CurveTreeNode> children = new ArrayList<>();
 
     public CurveTreeNode(ParserGeoJsonElement geoJsonElement) {
         this.geoJsonElement = geoJsonElement;

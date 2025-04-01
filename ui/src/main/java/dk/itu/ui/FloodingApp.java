@@ -19,6 +19,7 @@ import java.util.List;
 
 import static com.almasb.fxgl.dsl.FXGLForKtKt.*;
 import static dk.itu.util.DrawingUtils.bufferedImageToWritableImage;
+import static dk.itu.util.DrawingUtils.toARGB;
 
 public class FloodingApp extends GameApplication {
     public static final int WIDTH = 1920, HEIGHT = 920;
@@ -101,7 +102,9 @@ public class FloodingApp extends GameApplication {
                     registeredWaterLevel = state.getWaterLevel();
                 }
 
-                heightCurves.forEach(hc -> hc.draw(g2d, strokeBaseWidth));
+                heightCurves.forEach(hc -> {
+                    hc.draw(g2d, strokeBaseWidth);
+                });
 
                 g2d.dispose();
 

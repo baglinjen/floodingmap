@@ -1,5 +1,6 @@
 package dk.itu.ui;
 
+import dk.itu.data.models.parser.ParserGeoJsonElement;
 import dk.itu.data.services.Services;
 
 import java.awt.geom.Point2D;
@@ -16,11 +17,27 @@ public class State {
     private float waterLevel = 0f;
     private final float minWaterLevel, maxWaterLevel;
     private final SuperAffine superAffine = new SuperAffine();
+    private boolean showSelected = false;
+    private ParserGeoJsonElement hcSelected = null;
 
     public State(Services services) {
         this.minWaterLevel = services.getGeoJsonService().getMinWaterLevel();
         this.maxWaterLevel = services.getGeoJsonService().getMaxWaterLevel();
         this.resetWindowBounds();
+    }
+
+    public void setShowSelected(boolean showSelected) {
+        this.showSelected = showSelected;
+    }
+    public boolean getShowSelected() {
+        return showSelected;
+    }
+
+    public ParserGeoJsonElement getHcSelected() {
+        return hcSelected;
+    }
+    public void setHcSelected(ParserGeoJsonElement hcSelected) {
+        this.hcSelected = hcSelected;
     }
 
     // Getter and setter for drawing GeoJson

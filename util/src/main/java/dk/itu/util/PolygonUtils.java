@@ -308,4 +308,15 @@ public class PolygonUtils {
         double epsilon = 1e-10; // Small tolerance for floating-point comparison
         return Math.abs(x1 - x2) < epsilon && Math.abs(y1 - y2) < epsilon;
     }
+
+    /**
+     *
+     * @param x Longitude
+     * @param y Latitude
+     * @param bounds [minX, minY, maxX, maxY]
+     * @return True if point in bounds or intersects
+     */
+    public static boolean pointInBounds(double x, double y, double[] bounds) {
+        return x >= bounds[0] && x <= bounds[2] && y >= bounds[1] && y <= bounds[3];
+    }
 }
