@@ -8,6 +8,7 @@ import dk.itu.data.models.parser.ParserOsmWay;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class OsmParserResult {
     private final List<ParserOsmElement> nodes = new ArrayList<>();
@@ -17,6 +18,15 @@ public class OsmParserResult {
 
     public List<ParserOsmElement> getElementsToBeDrawn() {
         return elementsToBeDrawn;
+    }
+
+    public List<ParserOsmElement> getNodesForRouting(){
+        return nodes.parallelStream()
+                .filter(e -> e instanceof ParserOsmNode)
+                .map(e -> (ParserOsmNode)e)
+                .filter(ParserOsmNode::isRouting)
+                .map(e -> (ParserOsmElement)e)
+                .collect(Collectors.toList());
     }
 
     public void sanitize() {
@@ -33,6 +43,7 @@ public class OsmParserResult {
     public void addNode(ParserOsmNode node) {
         this.nodes.add(node);
     }
+
     public void addWay(ParserOsmWay way) {
         this.ways.add(way);
     }

@@ -106,6 +106,11 @@ public class FloodingApp extends GameApplication {
                     hc.draw(g2d, strokeBaseWidth);
                 });
 
+                var dijkstraRoute = state.getDijkstraConfiguration().getRoute();
+                if(dijkstraRoute != null){
+                    dijkstraRoute.draw(g2d, strokeBaseWidth * 6);
+                }
+
                 g2d.dispose();
 
                 view.setImage(bufferedImageToWritableImage(image));

@@ -10,12 +10,7 @@ public class MouseEventOverlayComponent extends BorderPane {
         super();
 
         // Set event handlers
-        setOnMousePressed(event -> {
-            state.mouseMoved(event.getX(), event.getY());
-
-        });
-        setOnMouseClicked(e -> {
-        });
+        setOnMousePressed(event -> {state.mouseMoved(event.getX(), event.getY());});
         setOnMouseDragged(event -> {
             double dx = event.getX() - state.getMouseX(), dy = event.getY() - state.getMouseY();
             state.getSuperAffine().prependTranslation(dx, dy);
