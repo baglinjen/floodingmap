@@ -36,7 +36,8 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-            services.getGeoJsonService().loadGeoJsonData("tuna.geojson");
+            // services.getGeoJsonService().loadGeoJsonData("tuna.geojson");
+            services.getOsmService().loadOsmData("tuna.osm");
 
             float registeredWaterLevel = 0.0f;
 
@@ -129,8 +130,11 @@ public class FloodingApp extends GameApplication {
                 .createCompatibleImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB_PRE);
         Services.withServices(services -> {
             if (CommonConfiguration.getInstance().shouldForceParseOsm()) {
-                services.getOsmService().loadOsmDataInDb("modified-tuna.osm");
+                services.getOsmService().loadOsmData("tuna.osm");
             }
+//            if (CommonConfiguration.getInstance().shouldForceParseOsm()) {
+//                services.getOsmService().loadOsmDataInDb("modified-tuna.osm");
+//            }
             // TODO: Load in DB using GeoJson service
             // if (CommonConfiguration.getInstance().shouldForceParseGeoJson()) {
             //     services.getGeoJsonService().loadGeoJsonData("modified-tuna.geojson");

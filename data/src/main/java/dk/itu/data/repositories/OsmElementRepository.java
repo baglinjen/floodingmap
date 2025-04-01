@@ -1,7 +1,7 @@
 package dk.itu.data.repositories;
 
 import dk.itu.common.models.OsmElement;
-import dk.itu.data.models.db.DbBounds;
+import dk.itu.data.models.db.Bounds;
 import dk.itu.data.models.db.DbNode;
 import dk.itu.data.models.db.DbRelation;
 import dk.itu.data.models.db.DbWay;
@@ -10,7 +10,6 @@ import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.models.parser.ParserOsmRelation;
 import dk.itu.data.models.parser.ParserOsmWay;
 import dk.itu.data.utils.DijkstraUtils;
-import org.apache.commons.collections4.ListUtils;
 import org.apache.fury.Fury;
 import org.apache.fury.ThreadLocalFury;
 import org.apache.fury.ThreadSafeFury;
@@ -252,7 +251,7 @@ public class OsmElementRepository {
         ).execute();
     }
 
-    public DbBounds getBounds() {
+    public Bounds getBounds() {
         return ctx.select(
                 DSL.field("MIN(minLon)", double.class),
                 DSL.field("MIN(minLat)", double.class),
@@ -286,9 +285,9 @@ public class OsmElementRepository {
                 )
         ).fetchOne(r -> {
             if (r.component1() == null || r.component2() == null || r.component3() == null || r.component4() == null) {
-                return new DbBounds(0, 0, 180, 180);
+                return new Bounds(0, 0, 180, 180);
             }
-            return new DbBounds(r.component1(), r.component2(), r.component3(), r.component4());
+            return new Bounds(r.component1(), r.component2(), r.component3(), r.component4());
         });
     }
 

@@ -37,7 +37,8 @@ public interface Services {
             public OsmService getOsmService() {
                 if (osmService == null) {
                     var connection = getConnection();
-                    osmService = new OsmService(connection);
+
+                    osmService = new OsmService();
                     connections.add(connection);
                 }
                 return osmService;

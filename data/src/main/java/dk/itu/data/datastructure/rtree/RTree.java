@@ -1,10 +1,7 @@
 package dk.itu.data.datastructure.rtree;
 
 import dk.itu.common.models.OsmElement;
-import dk.itu.data.models.osm.BoundingBox;
-import dk.itu.data.models.osm.OsmNode;
-import dk.itu.data.models.osm.OsmRelation;
-import dk.itu.data.models.osm.OsmWay;
+import dk.itu.data.models.memory.*;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -15,8 +12,53 @@ public class RTree {
     private static final int MAX_ENTRIES = 10; // TODO: Test most efficient max per node before split
     private RTreeNode root;
 
-    public RTree() {
-        this.root = new RTreeNode();
+    public List<OsmElement> search(double minLon, double minLat, double maxLon, double maxLat) {
+        if (root == null) {
+            return List.of();
+        }
+
+        return new ArrayList<>(searchRecursive(root, new BoundingBox(minLon, minLat, maxLon, maxLat))
+                .parallelStream()
+                .map(RTreeNode::getElements)
+                .flatMap(List::stream)
+                .sorted(Comparator.comparingDouble(OsmElementMemory::getArea).reversed())
+                .toList());
+    }
+
+    public void insert(OsmElementMemory element) {
+        if (root == null) {
+            root = new RTreeNode();
+        }
+
+        RTreeNode leaf = chooseLeaf(root, element.getBoundingBox());
+        leaf.addEntry(element);
+
+        if (leaf.elements.size() > MAX_ENTRIES) {
+            splitLeaf(leaf);
+//          adjustTree(leaf, newLeaf);
+        }
+    }
+
+    public OsmElementMemory nearestNeighbor(RTreeNode node, Point query, OsmElementMemory bestSoFar, double bestDistance) {
+        if (node.isLeaf()) {
+            for (OsmElementMemory element : node.elements) {
+                BoundingBox bbox = element.getBoundingBox();
+                double distance = bbox.distanceTo(query);
+                if (distance < bestDistance) {
+                    bestSoFar = element;
+                    bestDistance = distance;
+                }
+            }
+        } else {
+            node.children.sort(Comparator.comparingDouble(e -> e.mbr.distanceTo(query)));
+            for (RTreeNode child : node.children) {
+                double distance = child.mbr.distanceTo(query);
+                if (distance < bestDistance) {
+                    bestSoFar = nearestNeighbor(child, query, bestSoFar, bestDistance);
+                }
+            }
+        }
+        return bestSoFar;
     }
 
     private RTreeNode chooseLeaf(RTreeNode node, BoundingBox bbox) {
@@ -45,96 +87,65 @@ public class RTree {
         return chooseLeaf(bestChild, bbox);
     }
 
-    public void insert(OsmElement element, BoundingBox bbox) {
-        RTreeNode leaf = chooseLeaf(root, bbox);
-        leaf.addEntry(element, bbox);
-
-        if (leaf.elements.size() > MAX_ENTRIES) {
-            RTreeNode newLeaf = splitLeaf(leaf);
-            adjustTree(leaf, newLeaf);
-        }
-    }
-
-    private RTreeNode splitLeaf(RTreeNode leaf) {
-        List<OsmElement> elements = new ArrayList<>(leaf.elements);
+    private void splitLeaf(RTreeNode leaf) {
+        List<OsmElementMemory> elements = new ArrayList<>(leaf.elements);
         leaf.elements.clear();
 
-        OsmElement entryA = elements.removeFirst();
-        OsmElement entryB = elements.removeLast();
+        OsmElementMemory entryA = elements.removeFirst(); // TODO: Choose the two elements furthest from each other
+        OsmElementMemory entryB = elements.removeLast();
 
         RTreeNode groupA = new RTreeNode();
         RTreeNode groupB = new RTreeNode();
 
-        groupA.addEntry(entryA, getBoundingBox(entryA));
-        groupB.addEntry(entryB, getBoundingBox(entryB));
+        groupA.addEntry(entryA);
+        groupB.addEntry(entryB);
 
-        for (OsmElement element : elements) {
-            BoundingBox bbox = getBoundingBox(element);
+        for (OsmElementMemory element : elements) {
+            BoundingBox bbox = element.getBoundingBox();
             double expansionA = groupA.mbr.getExpanded(bbox).area() - groupA.mbr.area();
             double expansionB = groupB.mbr.getExpanded(bbox).area() - groupB.mbr.area();
 
             if (expansionA < expansionB) {
-                groupA.addEntry(element, bbox);
+                groupA.addEntry(element);
             } else {
-                groupB.addEntry(element, bbox);
+                groupB.addEntry(element);
             }
         }
 
-        return groupB;
+        leaf.addChild(groupA);
+        leaf.addChild(groupB);
     }
 
-    public OsmElement nearestNeighbor(RTreeNode node, Point query, OsmElement bestSoFar, double bestDistance) {
-        if (node.isLeaf()) {
-            for (OsmElement element : node.elements) {
-                BoundingBox bbox = getBoundingBox(element);
-                double distance = bbox.distanceTo(query);
-                if (distance < bestDistance) {
-                    bestSoFar = element;
-                    bestDistance = distance;
-                }
-            }
-        } else {
-            node.children.sort(Comparator.comparingDouble(e -> e.mbr.distanceTo(query)));
-            for (RTreeNode child : node.children) {
-                double distance = child.mbr.distanceTo(query);
-                if (distance < bestDistance) {
-                    bestSoFar = nearestNeighbor(child, query, bestSoFar, bestDistance);
-                }
-            }
-        }
-        return bestSoFar;
-    }
-
-    private BoundingBox getBoundingBox(Object element) {
-        if (element instanceof OsmNode node) {
-            return new BoundingBox(node.getLongitude(), node.getLatitude(), node.getLongitude(), node.getLatitude());
-        } else if (element instanceof OsmWay way) {
-            double minX = Double.MAX_VALUE, minY = Double.MAX_VALUE;
-            double maxX = Double.MIN_VALUE, maxY = Double.MIN_VALUE;
-
-            for (OsmNode node : way.getNodes()) {
-                minX = Math.min(minX, node.getLongitude());
-                minY = Math.min(minY, node.getLatitude());
-                maxX = Math.max(maxX, node.getLongitude());
-                maxY = Math.max(maxY, node.getLatitude());
-            }
-
-            return new BoundingBox(minX, minY, maxX, maxY);
-        } else if (element instanceof OsmRelation relation) {
-            BoundingBox bbox = null;
-            for (OsmWay way : relation.getWays()) {
-                BoundingBox wayBbox = getBoundingBox(way);
-                if (bbox == null) {
-                    bbox = new BoundingBox(wayBbox.getMinX(), wayBbox.getMinY(), wayBbox.getMaxX(), wayBbox.getMaxY());
-                } else {
-                    bbox.expand(wayBbox);
-                }
-            }
-            return bbox;
-        }
-
-        throw new IllegalArgumentException("Unsupported element type");
-    }
+//    private BoundingBox getBoundingBox(OsmElement element) {
+//        if (element instanceof OsmNode node) {
+//            return new BoundingBox(node.getLongitude(), node.getLatitude(), node.getLongitude(), node.getLatitude());
+//        } else if (element instanceof OsmWay way) {
+//            double minX = Double.MAX_VALUE, minY = Double.MAX_VALUE;
+//            double maxX = Double.MIN_VALUE, maxY = Double.MIN_VALUE;
+//
+//            for (OsmNode node : way.getNodes()) {
+//                minX = Math.min(minX, node.getLongitude());
+//                minY = Math.min(minY, node.getLatitude());
+//                maxX = Math.max(maxX, node.getLongitude());
+//                maxY = Math.max(maxY, node.getLatitude());
+//            }
+//
+//            return new BoundingBox(minX, minY, maxX, maxY);
+//        } else if (element instanceof OsmRelation relation) {
+//            BoundingBox bbox = null;
+//            for (OsmWay way : relation.getWayMembers()) {
+//                BoundingBox wayBbox = getBoundingBox(way);
+//                if (bbox == null) {
+//                    bbox = new BoundingBox(wayBbox.getMinX(), wayBbox.getMinY(), wayBbox.getMaxX(), wayBbox.getMaxY());
+//                } else {
+//                    bbox.expand(wayBbox);
+//                }
+//            }
+//            return bbox;
+//        }
+//
+//        throw new IllegalArgumentException("Unsupported element type");
+//    }
 
     private RTreeNode findParent(RTreeNode current, RTreeNode child) {
         // If the current node contains the child node, return current as the parent
@@ -238,4 +249,25 @@ public class RTree {
         }
     }
 
+    private List<RTreeNode> searchRecursive(RTreeNode node, BoundingBox queryBox) {
+        List<RTreeNode> results = new ArrayList<>();
+
+        if (!node.mbr.intersects(queryBox)) {
+            return results; // No intersection, skip this branch
+        }
+
+        if (node.isLeaf()) { // If it's a leaf, add matching elements
+            for (OsmElementMemory element : node.elements) {
+                if (element.getBoundingBox().intersects(queryBox)) {
+                    results.add(node);
+                }
+            }
+        } else {
+            for (RTreeNode child : node.children) {   // Recurse into children
+                results.addAll(searchRecursive(child, queryBox));
+            }
+        }
+
+        return results;
+    }
 }

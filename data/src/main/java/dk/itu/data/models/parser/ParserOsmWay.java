@@ -24,19 +24,19 @@ public class ParserOsmWay extends ParserOsmElement {
             nodes.get(i).setShouldBeDrawn(false);
             var lon = nodes.get(i).getLon();
             var lat = nodes.get(i).getLat();
-            if (lat < minLat) minLat = lat;
             if (lon < minLon) minLon = lon;
-            if (lat > maxLat) maxLat = lat;
+            if (lat < minLat) minLat = lat;
             if (lon > maxLon) maxLon = lon;
+            if (lat > maxLat) maxLat = lat;
             coordinatesRaw[i*2] = lon;
             coordinatesRaw[i*2 + 1] = lat;
         }
-        bounds[0] = minLat;
-        bounds[1] = minLon;
-        bounds[2] = maxLat;
-        bounds[3] = maxLon;
+        bounds[0] = minLon;
+        bounds[1] = minLat;
+        bounds[2] = maxLon;
+        bounds[3] = maxLat;
 
-        isLine = nodes.getFirst().id() != nodes.getLast().id();
+        isLine = nodes.getFirst().getId() != nodes.getLast().getId();
 
         coordinates = isLine ? coordinatesRaw : forceCounterClockwise(coordinatesRaw);
 

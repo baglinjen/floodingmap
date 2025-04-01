@@ -28,7 +28,7 @@ public class DataLoadComponent extends SplitMenuButton {
                     task = new Thread(() -> {
                         setDisable(true);
                         setText("Loading OSM file");
-                        services.getOsmService().loadOsmDataInDb(selectedFile);
+                        services.getOsmService().loadOsmData(selectedFile);
                         setDisable(false);
                         setText("Select data file");
                         selectedFile = null;

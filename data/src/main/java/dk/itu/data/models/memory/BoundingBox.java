@@ -1,4 +1,4 @@
-package dk.itu.data.models.osm;
+package dk.itu.data.models.memory;
 
 import java.awt.*;
 

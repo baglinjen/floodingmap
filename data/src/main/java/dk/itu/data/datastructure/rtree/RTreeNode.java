@@ -1,14 +1,15 @@
 package dk.itu.data.datastructure.rtree;
 
 import dk.itu.common.models.OsmElement;
-import dk.itu.data.models.osm.BoundingBox;
+import dk.itu.data.models.memory.BoundingBox;
+import dk.itu.data.models.memory.OsmElementMemory;
 
 import java.util.List;
 import java.util.ArrayList;
 
-class RTreeNode {
+public class RTreeNode {
     BoundingBox mbr;
-    List<OsmElement> elements = new ArrayList<>();
+    List<OsmElementMemory> elements = new ArrayList<>();
     List<RTreeNode> children = new ArrayList<>();
 
     public RTreeNode() {
@@ -19,9 +20,13 @@ class RTreeNode {
         return children.isEmpty();
     }
 
-    public void addEntry(OsmElement entry, BoundingBox bbox) {
+    public void addEntry(OsmElementMemory entry) {
         elements.add(entry);
-        updateMBR(bbox);
+        updateMBR(entry.getBoundingBox());
+    }
+
+    public List<OsmElementMemory> getElements() {
+        return elements;
     }
 
     public void addChild(RTreeNode child) {
