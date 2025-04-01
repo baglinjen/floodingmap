@@ -47,7 +47,7 @@ public interface Services {
             public GeoJsonService getGeoJsonService() {
                 if (geoJsonService == null) {
 //                    var connection = getConnection();
-                    geoJsonService = new GeoJsonService();
+                    geoJsonService = GeoJsonService.getInstance();
 //                    connections.add(connection);
                 }
                 return geoJsonService;

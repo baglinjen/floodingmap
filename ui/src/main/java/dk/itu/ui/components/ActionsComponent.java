@@ -8,6 +8,7 @@ public class ActionsComponent extends HBox {
         super(12);
         getChildren().addAll(
                 new ReCenterComponent(state),
+                new SelectedHeightCurveToggle(state),
                 new DrawingToggle(state),
                 new DijkstraToggle(state),
                 new DataResetComponent(),

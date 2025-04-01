@@ -4,6 +4,9 @@ import dk.itu.data.models.parser.ParserGeoJsonElement;
 
 import java.util.*;
 
+import static dk.itu.util.PolygonUtils.isPointInPolygon;
+import static dk.itu.util.PolygonUtils.pointInBounds;
+
 public class CurveTree {
     //Simulates the 'world', i.e. creates a height curve that ensures to encapsulate all other curves
     private final double[] worldCurvePolygon = {
@@ -15,8 +18,6 @@ public class CurveTree {
 
     private final CurveTreeNode worldRoot = new CurveTreeNode(new ParserGeoJsonElement(0, worldCurvePolygon));
 
-    private final List<CurveTreeNode> rootChildren = new ArrayList<>();
-
     public void put(ParserGeoJsonElement geoJsonElement) {
         put(null, geoJsonElement);
     }
@@ -24,7 +25,7 @@ public class CurveTree {
     private void put(CurveTreeNode curveTreeNode, ParserGeoJsonElement geoJsonElement) {
         if (curveTreeNode == null) {
             // Adding to root
-            lookupChildren(rootChildren, geoJsonElement);
+            lookupChildren(worldRoot.getChildren(), geoJsonElement);
         } else {
             if (curveTreeNode.getChildren() == null) {
                 curveTreeNode.addChild(new CurveTreeNode(geoJsonElement));
@@ -47,12 +48,38 @@ public class CurveTree {
         children.add(new CurveTreeNode(geoJsonElement));
     }
 
+    public ParserGeoJsonElement getHeightCurveForPoint(double x, double y) {
+        return getHeightCurveForPoint(worldRoot, x, y);
+    }
+
+    private ParserGeoJsonElement getHeightCurveForPoint(CurveTreeNode node, double x, double y) {
+        if (node.getChildren().isEmpty()) {
+            return node.getGeoJsonElement();
+        } else {
+            List<CurveTreeNode> nodesToCheck = new ArrayList<>();
+            for (CurveTreeNode child : node.getChildren()) {
+                if (pointInBounds(x, y, child.getGeoJsonElement().getBounds())) nodesToCheck.add(child);
+            }
+
+            if (nodesToCheck.isEmpty()) { nodesToCheck.addAll(node.getChildren()); }
+
+            ParserGeoJsonElement foundHeightCurve = node.getGeoJsonElement();
+            for (CurveTreeNode child : nodesToCheck) {
+                if (isPointInPolygon(child.getGeoJsonElement().getOuterPolygon(), x, y)) {
+                    foundHeightCurve = getHeightCurveForPoint(child, x, y);
+                }
+            }
+
+            return foundHeightCurve;
+        }
+    }
+
     ///Returns the stages at which affected height curves will be flooded
     public List<List<ParserGeoJsonElement>> TraverseFromRoot(float waterHeight){
         var result = new ArrayList<List<ParserGeoJsonElement>>();
 
         var map = new HashMap<Integer, List<ParserGeoJsonElement>>();
-        aux(map, rootChildren, waterHeight, 0);
+        aux(map, worldRoot.getChildren(), waterHeight, 0);
 
         //Convert map to list and return
         for(int i = 0; i < map.size(); i++){
