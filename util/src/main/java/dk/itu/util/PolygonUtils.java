@@ -1,10 +1,187 @@
 package dk.itu.util;
 
 import java.awt.geom.Area;
+import java.awt.geom.Path2D;
+import java.util.List;
 
 public class PolygonUtils {
     /**
-     * Checks if the second polygon is fully contained within the first polygon.
+     * Calculates the exact area of a polygon from an array of coordinates using the shoelace formula
+     *
+     * @param coordinates Array of coordinates in the format [x1, y1, x2, y2, ...]
+     * @return The area of the polygon
+     * @throws IllegalArgumentException If input array has odd length or fewer than 6 elements (minimum 3 points)
+     */
+    public static double calculatePolygonArea(double[] coordinates) {
+        // Validate input
+        if (coordinates.length % 2 != 0) {
+            throw new IllegalArgumentException("Coordinates array must contain an even number of elements");
+        }
+
+        if (coordinates.length < 6) {
+            throw new IllegalArgumentException("A polygon must have at least 3 vertices (6 coordinates)");
+        }
+
+        // Apply Shoelace formula directly on the array
+        double area = getArea(coordinates);
+
+        // Take the absolute value and divide by 2
+        return Math.abs(area) / 2.0;
+    }
+
+    private static double getArea(double[] coordinates) {
+        double area = 0.0;
+        int numPoints = coordinates.length / 2;
+
+        for (int i = 0; i < numPoints; i++) {
+            int currentIndex = i * 2;
+            int nextIndex = ((i + 1) % numPoints) * 2;
+
+            double currentX = coordinates[currentIndex];
+            double currentY = coordinates[currentIndex + 1];
+            double nextX = coordinates[nextIndex];
+            double nextY = coordinates[nextIndex + 1];
+
+            // Add the cross product
+            area += (currentX * nextY) - (nextX * currentY);
+        }
+        return area;
+    }
+
+    public static Path2D.Double pathFromShape(double[] coordinates, boolean isPolygon) {
+        Path2D.Double path = new Path2D.Double(Path2D.WIND_NON_ZERO);
+        buildOnPath2D(path, coordinates, isPolygon);
+        return path;
+    }
+
+    @SafeVarargs
+    public static Path2D.Double pathFromPolygonLists(List<double[]>... polygonLists) {
+        Path2D.Double p = new Path2D.Double(Path2D.WIND_EVEN_ODD);
+        for (List<double[]> polygonList : polygonLists) {
+            for (double[] polygon : polygonList) {
+                buildOnPath2D(p, polygon, true);
+            }
+        }
+        return p;
+    }
+
+    public static void buildOnPath2D(Path2D.Double path, double[] coordinates, boolean isPolygon) {
+        path.moveTo(0.56*coordinates[0], -coordinates[1]);
+        for (int i = 2; i < coordinates.length; i+=2) {
+            path.lineTo(0.56*coordinates[i], -coordinates[i+1]);
+        }
+        if (isPolygon) path.closePath();
+    }
+
+    public static double[] forceClockwise(double[] polygon) {
+        if (isClockwise(polygon)) {
+            return polygon;
+        } else {
+            return reversePairs(polygon);
+        }
+    }
+
+
+    public static double[] forceCounterClockwise(double[] polygon) {
+        if (isClockwise(polygon)) {
+            return reversePairs(polygon);
+        } else {
+            return polygon;
+        }
+    }
+
+    private static boolean isClockwise(double[] coordinates) {
+        // Ensure we have at least a triangle (6 values: 3 points with x,y each)
+        if (coordinates.length < 6 || coordinates.length % 2 != 0) {
+            return true;
+        }
+
+        // Calculate signed area using the shoelace formula
+        double sum = 0;
+        int n = coordinates.length / 2;
+
+        for (int i = 0; i < n; i++) {
+            // Get current and next vertex (wrapping around for the last vertex)
+            int j = (i + 1) % n;
+
+            // Get coordinates
+            double x1 = coordinates[i * 2];
+            double y1 = coordinates[i * 2 + 1];
+            double x2 = coordinates[j * 2];
+            double y2 = coordinates[j * 2 + 1];
+
+            // Add cross product
+            sum += (x1 * y2) - (y1 * x2);
+        }
+
+        // If sum is positive, the polygon is counterclockwise
+        // If sum is negative, the polygon is clockwise
+        return sum < 0;
+    }
+
+    public static double[] reversePairs(double[] array) {
+        // Check if array has an even number of elements
+        if (array.length % 2 != 0) {
+            throw new IllegalArgumentException("Array length must be even to keep pairs together");
+        }
+
+        // Create result array of the same size
+        double[] result = new double[array.length];
+
+        // Reverse the array pair by pair
+        for (int i = 0; i < array.length / 2; i++) {
+            // Get the index of the source pair (from the end)
+            int sourceIndex = array.length - 2 - (i * 2);
+
+            // Get the index of the destination pair (from the beginning)
+            int destIndex = i * 2;
+
+            // Copy the pair
+            result[destIndex] = array[sourceIndex];
+            result[destIndex + 1] = array[sourceIndex + 1];
+        }
+
+        return result;
+    }
+
+    public static boolean isClosed(double[] coords) {
+        return coords[0] == coords[coords.length - 2] && coords[1] == coords[coords.length - 1];
+    }
+
+    public static OpenPolygonMatchType findOpenPolygonMatchType(double[] polygon1, double[] polygon2) {
+        if (polygon1[0] == polygon2[0] && polygon1[1] == polygon2[1]) {
+            return OpenPolygonMatchType.FIRST_FIRST;
+        } else if (polygon1[0] == polygon2[polygon2.length - 2] && polygon1[1] == polygon2[polygon2.length - 1]) {
+            return OpenPolygonMatchType.FIRST_LAST;
+        } else if (polygon1[polygon1.length - 2] == polygon2[0] && polygon1[polygon1.length - 1] == polygon2[1]) {
+            return OpenPolygonMatchType.LAST_FIRST;
+        } else if (polygon1[polygon1.length - 2] == polygon2[polygon2.length - 2] && polygon1[polygon1.length - 1] == polygon2[polygon2.length - 1]) {
+            return OpenPolygonMatchType.LAST_LAST;
+        } else {
+            return OpenPolygonMatchType.NONE;
+        }
+    }
+
+    public enum OpenPolygonMatchType {
+        FIRST_FIRST,
+        FIRST_LAST,
+        LAST_FIRST,
+        LAST_LAST,
+        NONE
+    }
+
+    // Polygon 1 contains polygon 2
+    public static boolean isPolygonContainedLibrary(double[] polygon1, double[] polygon2) {
+        var p1 = new Area(pathFromShape(polygon1, true));
+        var p2 = new Area(pathFromShape(polygon2, true));
+
+        p2.subtract(p1);
+
+        return p2.isEmpty();
+    }
+
+    /**
+     * Checks if the second polygon is fully contained within the first polygon using ray casting.
      *
      * @param polygon1 Array of doubles representing vertices of first polygon in form [x1,y1,x2,y2,...,xn,yn]
      * @param polygon2 Array of doubles representing vertices of second polygon in form [x1,y1,x2,y2,...,xn,yn]
@@ -63,7 +240,7 @@ public class PolygonUtils {
     /**
      * Checks if a point is inside a polygon using the ray casting algorithm.
      */
-    private static boolean isPointInPolygon(double[] polygon, double x, double y) {
+    public static boolean isPointInPolygon(double[] polygon, double x, double y) {
         boolean inside = false;
         int numVertices = polygon.length / 2;
 
@@ -132,17 +309,14 @@ public class PolygonUtils {
         return Math.abs(x1 - x2) < epsilon && Math.abs(y1 - y2) < epsilon;
     }
 
-    public static boolean fullyContains(Area container, Area contained) {
-        // Create Area objects from the paths
-        Area containerArea = new Area(container);
-
-        // Create a copy of the contained area
-        Area copyContainedArea = new Area(contained);
-
-        // Subtract the container from the contained copy
-        copyContainedArea.subtract(containerArea);
-
-        // If the result is empty, the contained path is fully within the container
-        return copyContainedArea.isEmpty();
+    /**
+     *
+     * @param x Longitude
+     * @param y Latitude
+     * @param bounds [minX, minY, maxX, maxY]
+     * @return True if point in bounds or intersects
+     */
+    public static boolean pointInBounds(double x, double y, double[] bounds) {
+        return x >= bounds[0] && x <= bounds[2] && y >= bounds[1] && y <= bounds[3];
     }
 }

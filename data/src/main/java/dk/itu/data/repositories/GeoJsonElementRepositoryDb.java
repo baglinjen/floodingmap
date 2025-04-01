@@ -5,6 +5,7 @@ import dk.itu.data.models.parser.ParserGeoJsonElement;
 import org.jooq.DSLContext;
 
 import java.sql.Connection;
+import java.util.ArrayList;
 import java.util.List;
 
 public class GeoJsonElementRepositoryDb implements GeoJsonElementRepository {
@@ -22,7 +23,7 @@ public class GeoJsonElementRepositoryDb implements GeoJsonElementRepository {
 
     @Override
     public List<GeoJsonElement> getGeoJsonElements() {
-        return List.of();
+        return new ArrayList<>();
     }
 
     @Override

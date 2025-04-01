@@ -25,6 +25,7 @@ public interface Services {
             throw new RuntimeException(e);
         }
     }
+
     static void withServices(Consumer<Services> consumer) {
         List<Connection> connections = new ArrayList<>();
         consumer.accept(new Services() {
@@ -46,7 +47,7 @@ public interface Services {
             public GeoJsonService getGeoJsonService() {
                 if (geoJsonService == null) {
 //                    var connection = getConnection();
-                    geoJsonService = new GeoJsonService();
+                    geoJsonService = GeoJsonService.getInstance();
 //                    connections.add(connection);
                 }
                 return geoJsonService;

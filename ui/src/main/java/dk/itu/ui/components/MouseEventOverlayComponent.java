@@ -1,29 +1,20 @@
 package dk.itu.ui.components;
 
+import dk.itu.data.services.Services;
 import dk.itu.ui.State;
-import javafx.geometry.Insets;
-import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 
-import java.awt.geom.Point2D;
-
 public class MouseEventOverlayComponent extends BorderPane {
-    private double mouseX, mouseY;
-    private final Label mouseCoordinatesLabel = new Label();
 
     public MouseEventOverlayComponent(State state) {
         super();
 
         // Set event handlers
-        setOnMousePressed(event -> {
-            mouseX = event.getX();
-            mouseY = event.getY();
-        });
+        setOnMousePressed(event -> {state.mouseMoved(event.getX(), event.getY());});
         setOnMouseDragged(event -> {
-            double dx = event.getX() - mouseX, dy = event.getY() - mouseY;
+            double dx = event.getX() - state.getMouseX(), dy = event.getY() - state.getMouseY();
             state.getSuperAffine().prependTranslation(dx, dy);
-            mouseX = event.getX();
-            mouseY = event.getY();
+            state.mouseMoved(event.getX(), event.getY());
         });
         setOnScroll(event -> {
             double zoom = event.getDeltaY() > 0 ? 1.05 : 1/1.05;
@@ -33,18 +24,20 @@ public class MouseEventOverlayComponent extends BorderPane {
                     .prependTranslation(event.getX(), event.getY());
         });
         setOnMouseMoved(event -> {
-            Point2D mousePoint = state.getSuperAffine().inverseTransform(event.getX(), event.getY());
-            String formattedString = "Y:" + String.format("%.4f", -mousePoint.getY()) + " X:" + String.format("%.4f", mousePoint.getX()/0.56);
-            mouseCoordinatesLabel.setText(formattedString);
+            state.mouseMoved(event.getX(), event.getY());
+            if (!state.getShowSelected()) return;
+            var mousePos = state.getMouseLonLat();
+            Services.withServices(services -> {
+                var hc = services.getGeoJsonService().getCurveTree().getHeightCurveForPoint(mousePos.getX(), mousePos.getY());
+                if (state.getHcSelected() != null) {
+                    state.getHcSelected().setSelected(false);
+                    hc.setSelected(true);
+                }
+                state.setHcSelected(hc);
+            });
         });
 
-        // Add Visuals
-        BorderPane bp = new BorderPane();
-        bp.setPadding(new Insets(12));
-        bp.setStyle("-fx-background-color: white;");
-        bp.setRight(mouseCoordinatesLabel);
-        bp.setLeft(new WaterScalerComponent(state));
-
-        setBottom(bp);
+        // Add debug component
+        setBottom(new DebugComponent(state));
     }
 }

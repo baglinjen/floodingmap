@@ -4,6 +4,8 @@ import java.awt.*;
 import java.awt.geom.Path2D;
 import java.util.List;
 
+import static dk.itu.util.PolygonUtils.*;
+
 public class ParserOsmWay extends ParserOsmElement {
     private final double[] bounds = new double[4];
     private final double[] coordinates;
@@ -36,21 +38,9 @@ public class ParserOsmWay extends ParserOsmElement {
 
         isLine = nodes.getFirst().id() != nodes.getLast().id();
 
-        if (!isLine) {
-            coordinates = isClockwise(coordinatesRaw) ? reversePairs(coordinatesRaw) : coordinatesRaw;
-        } else {
-            coordinates = coordinatesRaw;
-        }
+        coordinates = isLine ? coordinatesRaw : forceCounterClockwise(coordinatesRaw);
 
-        shape = new Path2D.Double(Path2D.WIND_NON_ZERO);
-        shape.moveTo(0.56*coordinates[0], -coordinates[1]);
-        for (int i = 2; i < coordinates.length; i+=2) {
-            shape.lineTo(0.56*coordinates[i], -coordinates[i+1]);
-        }
-
-        if (!isLine) {
-            shape.closePath();
-        }
+        shape = pathFromShape(coordinates, !isLine);
     }
 
     @Override

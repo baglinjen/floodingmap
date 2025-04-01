@@ -3,13 +3,14 @@ package dk.itu.data.models.parser;
 import dk.itu.util.LoggerFactory;
 import kotlin.Pair;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.awt.geom.Path2D;
 import java.util.*;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import static dk.itu.util.ArrayUtils.appendExcludingN;
+import static dk.itu.util.PolygonUtils.*;
 
 public class ParserOsmRelation extends ParserOsmElement {
     private static final Logger logger = LoggerFactory.getLogger();
@@ -17,7 +18,6 @@ public class ParserOsmRelation extends ParserOsmElement {
     private Path2D.Double shape = null;
     private final List<double[]> innerPolygons = new ArrayList<>();
     private final List<double[]> outerPolygons = new ArrayList<>();
-    private final List<List<List<double[]>>> polygons = new ArrayList<>();
 
     public ParserOsmRelation(long id, List<Pair<ParserOsmElement, OsmRelationMemberType>> elements, OsmRelationType type) {
         super(id);
@@ -44,40 +44,32 @@ public class ParserOsmRelation extends ParserOsmElement {
                         case ParserOsmWay osmWay -> {
                             var coordinates = osmWay.getCoordinates();
                             if (!osmWay.isLine()) {
-                                // Closes => add as completed polygon
-                                if (!isClockwise(coordinates)) {
-                                    coordinates = reversePairs(coordinates);
-                                }
+                                // Closes => add as completed polygon => ensure inners are counter clockwise
+                                coordinates = forceCounterClockwise(coordinates);
                                 innerPolygons.add(coordinates);
                             } else {
                                 setShouldBeDrawn(false);
                                 return;
-//                                pathsToAdd.add(coordinates);
                             }
                         }
                         case ParserOsmRelation osmRelation -> {
                             var outerCoordinates = osmRelation.getOuterPolygons();
                             for (var coordinates : outerCoordinates) {
-                                if (coordinates[0] == coordinates[coordinates.length - 2] && coordinates[1] == coordinates[coordinates.length - 1]) {
-                                    // Closes => add as completed polygon
-                                    if (!isClockwise(coordinates)) {
-                                        coordinates = reversePairs(coordinates);
-                                    }
+                                if (isClosed(coordinates)) {
+                                    // Closes => add as completed polygon => ensure inners are counter clockwise
+                                    coordinates = forceCounterClockwise(coordinates);
                                     innerPolygons.add(coordinates);
                                 } else {
                                     setShouldBeDrawn(false);
                                     return;
-//                                    pathsToAdd.add(coordinates);
                                 }
                             }
 
                             var innerCoordinates = osmRelation.getInnerPolygons();
                             for (var coordinates : innerCoordinates) {
-                                if (coordinates[0] == coordinates[coordinates.length - 2] && coordinates[1] == coordinates[coordinates.length - 1]) {
-                                    // Closes => add as completed polygon
-                                    if (isClockwise(coordinates)) {
-                                        coordinates = reversePairs(coordinates);
-                                    }
+                                if (isClosed(coordinates)) {
+                                    // Closes => add as completed polygon => ensure inner-inners are clockwise
+                                    coordinates = forceClockwise(coordinates);
                                     innerPolygons.add(coordinates);
                                 } else {
                                     pathsToAdd.add(coordinates);
@@ -92,10 +84,8 @@ public class ParserOsmRelation extends ParserOsmElement {
                         case ParserOsmWay osmWay -> {
                             var coordinates = osmWay.getCoordinates();
                             if (!osmWay.isLine()) {
-                                // Closes => add as completed polygon
-                                if (isClockwise(coordinates)) {
-                                    coordinates = reversePairs(coordinates);
-                                }
+                                // Closes => add as completed polygon => ensure outers are clockwise
+                                coordinates = forceClockwise(coordinates);
                                 outerPolygons.add(coordinates);
                             } else {
                                 pathsToAdd.add(coordinates);
@@ -104,11 +94,9 @@ public class ParserOsmRelation extends ParserOsmElement {
                         case ParserOsmRelation osmRelation -> {
                             var outerCoordinates = osmRelation.getOuterPolygons();
                             for (var coordinates : outerCoordinates) {
-                                if (coordinates[0] == coordinates[coordinates.length - 2] && coordinates[1] == coordinates[coordinates.length - 1]) {
-                                    // Closes => add as completed polygon
-                                    if (isClockwise(coordinates)) {
-                                        coordinates = reversePairs(coordinates);
-                                    }
+                                if (isClosed(coordinates)) {
+                                    // Closes => add as completed polygon => ensure outers are clockwise
+                                    coordinates = forceClockwise(coordinates);
                                     outerPolygons.add(coordinates);
                                 } else {
                                     pathsToAdd.add(coordinates);
@@ -117,11 +105,9 @@ public class ParserOsmRelation extends ParserOsmElement {
 
                             var innerCoordinates = osmRelation.getInnerPolygons();
                             for (var coordinates : innerCoordinates) {
-                                if (coordinates[0] == coordinates[coordinates.length - 2] && coordinates[1] == coordinates[coordinates.length - 1]) {
-                                    // Closes => add as completed polygon
-                                    if (!isClockwise(coordinates)) {
-                                        coordinates = reversePairs(coordinates);
-                                    }
+                                if (isClosed(coordinates)) {
+                                    // Closes => add as completed polygon => ensure outer-inners are counter clockwise
+                                    coordinates = forceCounterClockwise(coordinates);
                                     outerPolygons.add(coordinates);
                                 } else {
                                     pathsToAdd.add(coordinates);
@@ -131,7 +117,7 @@ public class ParserOsmRelation extends ParserOsmElement {
                         default -> {}
                     }
                 }
-                default -> logger.warn("Relation with id {} has invalid member", id);
+                default -> {}
             }
 
             double[] elementBounds = element.getBounds();
@@ -148,60 +134,44 @@ public class ParserOsmRelation extends ParserOsmElement {
         for (int i = 0; i < pathsToAdd.size(); i++) {
             var ii = pathsToAdd.get(i);
 
-            if (ii[0] == ii[ii.length - 2] && ii[1] == ii[ii.length - 1]) {
-                // Test if i closes itself
-                if (isClockwise(ii)) {
-                    ii = reversePairs(ii);
-                }
+            if (isClosed(ii)) {
+                // Test if i closes itself => ensure it is counterclockwise as outer
+                ii = forceCounterClockwise(ii);
                 outerPolygons.add(ii);
                 pathsToAdd.remove(i);
                 i = -1;
                 continue;
             }
 
-            for (int j = 1; j < pathsToAdd.size(); j++) {
-                if (i == j) continue;
+            for (int j = 0; j < pathsToAdd.size(); j++) {
+                if (i == j || i == -1) continue;
                 var jj = pathsToAdd.get(j);
-                if (ii[0] == jj[0] && ii[1] == jj[1]) {
-                    // i start - j start => reverse j and add i
-                    List<Double> newJj = Arrays.stream(reversePairs(jj)).parallel().boxed().collect(Collectors.toList());
-                    newJj.removeLast(); // remove last 2 => included in i
-                    newJj.removeLast(); // remove last 2 => included in i
-                    newJj.addAll(Arrays.stream(ii).parallel().boxed().toList()); // Add i
-                    pathsToAdd.set(j, newJj.parallelStream().mapToDouble(Double::doubleValue).toArray());
-                    pathsToAdd.remove(i);
-                    i = -1;
-                    break;
-                } else if (ii[0] == jj[jj.length-2] && ii[1] == jj[jj.length-2]) {
-                    // i start - j end => add j then i
-                    List<Double> newJj = Arrays.stream(reversePairs(jj)).parallel().boxed().collect(Collectors.toList());
-                    newJj.removeLast(); // remove last 2 => included in i
-                    newJj.removeLast(); // remove last 2 => included in i
-                    newJj.addAll(Arrays.stream(ii).boxed().toList()); // Add i
-                    pathsToAdd.set(j, newJj.parallelStream().mapToDouble(Double::doubleValue).toArray());
-                    pathsToAdd.remove(i);
-                    i = -1;
-                    break;
-                } else if (ii[ii.length-2] == jj[0] && ii[ii.length-1] == jj[1]) {
-                    // i end - j start => add j to i
-                    List<Double> newIi = Arrays.stream(ii).parallel().boxed().collect(Collectors.toList());
-                    newIi.removeLast(); // remove last 2 => included in i
-                    newIi.removeLast(); // remove last 2 => included in i
-                    newIi.addAll(Arrays.stream(jj).parallel().boxed().toList()); // Add i
-                    pathsToAdd.set(i, newIi.parallelStream().mapToDouble(Double::doubleValue).toArray());
-                    pathsToAdd.remove(j);
-                    i = -1;
-                    break;
-                } else if (ii[ii.length-2] == jj[jj.length-2] && ii[ii.length-1] == jj[jj.length-1]){
-                    // i end - j end => reverse j and add it to i
-                    List<Double> newJj = Arrays.stream(jj).parallel().boxed().collect(Collectors.toList());
-                    newJj.removeLast(); // remove last 2 => included in i
-                    newJj.removeLast(); // remove last 2 => included in i
-                    newJj.addAll(Arrays.stream(reversePairs(ii)).parallel().boxed().toList()); // Add j
-                    pathsToAdd.set(j, newJj.parallelStream().mapToDouble(Double::doubleValue).toArray());
-                    pathsToAdd.remove(i);
-                    i = -1;
-                    break;
+
+                switch (findOpenPolygonMatchType(ii, jj)) {
+                    case FIRST_FIRST -> {
+                        // i start - j start => reverse j and add i
+                        pathsToAdd.set(j, appendExcludingN(reversePairs(jj), ii, 2));
+                        pathsToAdd.remove(i);
+                        i = -1;
+                    }
+                    case FIRST_LAST -> {
+                        // i start - j end => add j then i
+                        pathsToAdd.set(j, appendExcludingN(jj, ii, 2));
+                        pathsToAdd.remove(i);
+                        i = -1;
+                    }
+                    case LAST_FIRST -> {
+                        // i end - j start => add j to i
+                        pathsToAdd.set(j, appendExcludingN(ii, jj, 2));
+                        pathsToAdd.remove(i);
+                        i = -1;
+                    }
+                    case LAST_LAST -> {
+                        // i end - j end => reverse j and add it to i
+                        pathsToAdd.set(j, appendExcludingN(ii, reversePairs(jj), 2));
+                        pathsToAdd.remove(i);
+                        i = -1;
+                    }
                 }
             }
         }
@@ -209,28 +179,8 @@ public class ParserOsmRelation extends ParserOsmElement {
         if (!pathsToAdd.isEmpty() || outerPolygons.isEmpty()) {
             setShouldBeDrawn(false);
         } else {
-            shape = getPath2D();
+            shape = pathFromPolygonLists(outerPolygons, innerPolygons);
         }
-    }
-
-    @NotNull
-    private Path2D.Double getPath2D() {
-        Path2D.Double p = new Path2D.Double(Path2D.WIND_NON_ZERO);
-        for (double[] polygon : outerPolygons) {
-            p.moveTo(0.56*polygon[0], -polygon[1]);
-            for (int i = 2; i < polygon.length; i+=2) {
-                p.lineTo(0.56*polygon[i], -polygon[i+1]);
-            }
-            p.closePath();
-        }
-        for (double[] polygon : innerPolygons) {
-            p.moveTo(0.56*polygon[0], -polygon[1]);
-            for (int i = 2; i < polygon.length; i+=2) {
-                p.lineTo(0.56*polygon[i], -polygon[i+1]);
-            }
-            p.closePath();
-        }
-        return p;
     }
 
     @Override
@@ -253,10 +203,6 @@ public class ParserOsmRelation extends ParserOsmElement {
     }
     public List<double[]> getInnerPolygons() {
         return innerPolygons;
-    }
-
-    public List<List<List<double[]>>> getPolygons() {
-        return polygons;
     }
 
     @Override

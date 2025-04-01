@@ -18,4 +18,7 @@ public class DbGeoJson extends Colored implements GeoJsonElement {
 
     @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {}
+
+    @Override
+    public void setBelowWater(boolean beloeWater){}
 }

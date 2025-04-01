@@ -2,6 +2,8 @@ package dk.itu.data.services;
 
 import dk.itu.common.models.OsmElement;
 import dk.itu.data.dto.OsmParserResult;
+import dk.itu.data.models.db.DbBounds;
+import dk.itu.data.models.db.DbNode;
 import dk.itu.data.parsers.OsmParser;
 import dk.itu.data.repositories.OsmElementRepository;
 
@@ -20,37 +22,31 @@ public class OsmService {
         return osmElementRepository.getOsmElements(limit, minLon, minLat, maxLon, maxLat);
     }
 
+    public List<OsmElement> getOsmNodes(){
+        return osmElementRepository.getOsmNodes();
+    }
+
     public void loadOsmDataInDb(String osmFileName) {
         OsmParserResult osmParserResult = new OsmParserResult();
 
         // Get data from OSM file
         OsmParser.parse(osmFileName, osmParserResult);
 
-        // Filter and sort data
+        //Add nodes to database for routing
+        osmElementRepository.add(osmParserResult.getNodesForRouting());
+
+        // Filter and sort data for visual purposes
         osmParserResult.sanitize();
 
         // Add to Database
         osmElementRepository.add(osmParserResult.getElementsToBeDrawn());
     }
 
-    public double getMinLat() {
-        // TODO: Add bounds in DB
-//        return bounds[0];
-        return 54.96;
+    public DbBounds getBounds() {
+        return osmElementRepository.getBounds();
     }
-    public double getMinLon(){
-        // TODO: Add bounds in DB
-//        return bounds[1];
-        return 10.4005300;
-    }
-    public double getMaxLat() {
-        // TODO: Add bounds in DB
-//        return bounds[2];
-        return 57;
-    }
-    public double getMaxLon() {
-        // TODO: Add bounds in DB
-//        return bounds[3];
-        return 15.2;
+
+    public void clearAll() {
+        osmElementRepository.clearAll();
     }
 }

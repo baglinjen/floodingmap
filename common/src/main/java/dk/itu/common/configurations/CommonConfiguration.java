@@ -1,8 +1,14 @@
 package dk.itu.common.configurations;
 
-import java.util.Properties;
+import dk.itu.util.LoggerFactory;
+import org.apache.logging.log4j.Logger;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
 
 public class CommonConfiguration {
+    private static Logger logger = LoggerFactory.getLogger();
     private static CommonConfiguration commonConfiguration = null;
     public static CommonConfiguration getInstance() {
         if (commonConfiguration == null) {
@@ -25,6 +31,44 @@ public class CommonConfiguration {
 
     public boolean shouldForceParseGeoJson() {
         return this.forceParseGeoJson;
+    }
+
+    public List<String> getDataFiles() {
+        try {
+            List<String> dataFiles = new ArrayList<>();
+            dataFiles.addAll(
+                    Arrays.stream(Objects.requireNonNull(
+                                    new File(
+                                            CommonConfiguration.class
+                                                    .getClassLoader()
+                                                    .getResources("osm")
+                                                    .nextElement()
+                                                    .toURI()
+                                    ).listFiles()
+                            ))
+                            .parallel()
+                            .map(File::getName)
+                            .toList()
+            );
+            dataFiles.addAll(
+                    Arrays.stream(Objects.requireNonNull(
+                                    new File(
+                                            CommonConfiguration.class
+                                                    .getClassLoader()
+                                                    .getResources("geojson")
+                                                    .nextElement()
+                                                    .toURI()
+                                    ).listFiles()
+                            ))
+                            .parallel()
+                            .map(File::getName)
+                            .toList()
+            );
+            return dataFiles;
+        } catch (Exception e) {
+            logger.warn("Can't find resources: {}", e.getMessage());
+            return new ArrayList<>();
+        }
     }
 
     public SqlCredentials getSqlCredentials() {

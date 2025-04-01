@@ -1,5 +1,6 @@
 package dk.itu.data.parsers;
 
+import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.data.models.parser.ParserOsmRelation;
 import dk.itu.data.dto.OsmElementBuilder;
 import dk.itu.data.dto.OsmParserResult;
@@ -20,7 +21,7 @@ public class OsmParser {
 
         OsmElementBuilder elementBuilder = new OsmElementBuilder(osmParserResult);
 
-        try (InputStream is = OsmParser.class.getClassLoader().getResourceAsStream("osm/"+fileName)) {
+        try (InputStream is = CommonConfiguration.class.getClassLoader().getResourceAsStream("osm/"+fileName)) {
             // Reading utils
             XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
             XMLStreamReader reader = xmlInputFactory.createXMLStreamReader(is);
@@ -55,12 +56,6 @@ public class OsmParser {
                                 Long.parseLong(reader.getAttributeValue(null, "ref")),
                                 OsmElementBuilder.OsmElementType.fromString(reader.getAttributeValue(null, "type")),
                                 ParserOsmRelation.OsmRelationMemberType.fromString(reader.getAttributeValue(null, "role").intern())
-                        );
-                        case "bounds" -> osmParserResult.setBounds(
-                                Double.parseDouble(reader.getAttributeValue(null, "minlon")),
-                                Double.parseDouble(reader.getAttributeValue(null, "minlat")),
-                                Double.parseDouble(reader.getAttributeValue(null, "maxlon")),
-                                Double.parseDouble(reader.getAttributeValue(null, "maxlat"))
                         );
                     }
                     continue;

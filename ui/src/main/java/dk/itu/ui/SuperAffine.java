@@ -14,6 +14,11 @@ public class SuperAffine extends AffineTransform {
         super();
     }
 
+    public SuperAffine reset() {
+        setTransform(new AffineTransform());
+        return this;
+    }
+
     /**
      * Prepends a translation transformation to this transform.
      * @param x The x translation
@@ -38,6 +43,14 @@ public class SuperAffine extends AffineTransform {
         scale.concatenate(this);
         setTransform(scale);
         return this;
+    }
+
+    /**
+     * Calculates the base stroke width used for when drawing
+     * @return The scale-adjusted width for strokes when drawing
+     */
+    public float getStrokeBaseWidth() {
+        return (float) (1/Math.sqrt(this.getDeterminant()));
     }
 
     /**

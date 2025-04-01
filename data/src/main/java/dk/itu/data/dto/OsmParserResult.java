@@ -8,9 +8,9 @@ import dk.itu.data.models.parser.ParserOsmWay;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class OsmParserResult {
-    private double minLon, minLat, maxLon, maxLat;
     private final List<ParserOsmElement> nodes = new ArrayList<>();
     private final List<ParserOsmElement> ways = new ArrayList<>();
     private final List<ParserOsmElement> relations = new ArrayList<>();
@@ -18,6 +18,15 @@ public class OsmParserResult {
 
     public List<ParserOsmElement> getElementsToBeDrawn() {
         return elementsToBeDrawn;
+    }
+
+    public List<ParserOsmElement> getNodesForRouting(){
+        return nodes.parallelStream()
+                .filter(e -> e instanceof ParserOsmNode)
+                .map(e -> (ParserOsmNode)e)
+                .filter(ParserOsmNode::isRouting)
+                .map(e -> (ParserOsmElement)e)
+                .collect(Collectors.toList());
     }
 
     public void sanitize() {
@@ -31,34 +40,15 @@ public class OsmParserResult {
         this.elementsToBeDrawn = allElements.parallelStream().sorted(Comparator.comparing(ParserOsmElement::getArea).reversed()).toList();
     }
 
-    public double[] getBounds() {
-        return new double[]{minLat, minLon, maxLat, maxLon};
-    }
-
-    public void setBounds(double minLon, double minLat, double maxLon, double maxLat) {
-        this.minLon = minLon;
-        this.minLat = minLat;
-        this.maxLon = maxLon;
-        this.maxLat = maxLat;
-    }
-
     public void addNode(ParserOsmNode node) {
         this.nodes.add(node);
     }
+
     public void addWay(ParserOsmWay way) {
         this.ways.add(way);
     }
     public void addRelation(ParserOsmRelation relation) {
         this.relations.add(relation);
-    }
-    public List<ParserOsmElement> getNodes() {
-        return nodes;
-    }
-    public List<ParserOsmElement> getWays() {
-        return ways;
-    }
-    public List<ParserOsmElement> getRelations() {
-        return relations;
     }
 
     public ParserOsmElement findNode(long id) {
