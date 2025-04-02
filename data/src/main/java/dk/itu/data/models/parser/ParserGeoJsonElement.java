@@ -86,7 +86,7 @@ public class ParserGeoJsonElement extends ParserDrawable implements GeoJsonEleme
 
     @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
-        setStyle(styleSelected);
+        adjustStyles();
         var rgba = (belowWater || selected) ? getRgbaColor() : Color.BLACK;
 
         if(rgba != null){
@@ -96,6 +96,16 @@ public class ParserGeoJsonElement extends ParserDrawable implements GeoJsonEleme
             } else {
                 g2d.draw(shape);
             }
+        }
+    }
+
+    private void adjustStyles() {
+        if (selected) {
+            setStyle(styleSelected);
+        } else if (belowWater) {
+            setStyle(styleBelowWater);
+        } else {
+            setStyle(null);
         }
     }
 
