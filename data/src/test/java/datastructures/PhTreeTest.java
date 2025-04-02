@@ -1,3 +1,5 @@
+package datastructures;
+
 import dk.itu.data.models.parser.ParserOsmElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.models.parser.ParserOsmWay;

@@ -11,8 +11,8 @@ public class ActionsComponent extends HBox {
                 new SelectedHeightCurveToggle(state),
                 new DrawingToggle(state),
                 new DijkstraToggle(state),
-                new DataResetComponent(),
-                new DataLoadComponent()
+                new DataResetComponent(state),
+                new DataLoadComponent(state)
         );
     }
 }
