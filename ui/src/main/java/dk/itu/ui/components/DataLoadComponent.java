@@ -2,13 +2,14 @@ package dk.itu.ui.components;
 
 import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.data.services.Services;
+import dk.itu.ui.State;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.SplitMenuButton;
 
 public class DataLoadComponent extends SplitMenuButton {
     private String selectedFile = null;
     private Thread task = null;
-    public DataLoadComponent() {
+    public DataLoadComponent(State state) {
         super();
         setText("Select data file");
         getItems().addAll(
@@ -28,7 +29,7 @@ public class DataLoadComponent extends SplitMenuButton {
                     task = new Thread(() -> {
                         setDisable(true);
                         setText("Loading OSM file");
-                        services.getOsmService().loadOsmData(selectedFile);
+                        services.getOsmService(state.isWithDb()).loadOsmData(selectedFile);
                         setDisable(false);
                         setText("Select data file");
                         selectedFile = null;

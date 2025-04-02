@@ -4,7 +4,8 @@ import dk.itu.common.models.OsmElement;
 import dk.itu.data.dto.OsmParserResult;
 import dk.itu.data.models.db.Bounds;
 import dk.itu.data.parsers.OsmParser;
-import dk.itu.data.repositories.IOsmElementRepository;
+import dk.itu.data.repositories.OsmElementRepository;
+import dk.itu.data.repositories.OsmElementRepositoryDb;
 import dk.itu.data.repositories.OsmElementRepositoryMemory;
 
 import java.sql.Connection;
@@ -12,11 +13,10 @@ import java.util.List;
 
 public class OsmService {
 
-    private final IOsmElementRepository osmElementRepository;
+    private final OsmElementRepository osmElementRepository;
 
     public OsmService(Connection connection) {
-        // osmElementRepository = new OsmElementRepository(connection);
-        osmElementRepository = null;
+        osmElementRepository = new OsmElementRepositoryDb(connection);
     }
 
     public OsmService() {

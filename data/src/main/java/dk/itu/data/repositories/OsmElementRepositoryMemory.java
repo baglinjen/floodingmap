@@ -8,11 +8,10 @@ import dk.itu.data.models.parser.ParserOsmElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.models.parser.ParserOsmRelation;
 import dk.itu.data.models.parser.ParserOsmWay;
-import kotlin.Pair;
 
 import java.util.List;
 
-public class OsmElementRepositoryMemory implements IOsmElementRepository{
+public class OsmElementRepositoryMemory implements OsmElementRepository {
     private static OsmElementRepositoryMemory instance;
     private final RTree rtree = new RTree();
 

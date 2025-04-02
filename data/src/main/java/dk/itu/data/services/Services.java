@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public interface Services {
-    OsmService getOsmService();
+    OsmService getOsmService(boolean withDb);
     GeoJsonService getGeoJsonService();
 
     Logger logger = LoggerFactory.getLogger();
@@ -29,19 +29,17 @@ public interface Services {
     static void withServices(Consumer<Services> consumer) {
         List<Connection> connections = new ArrayList<>();
         consumer.accept(new Services() {
-
-            private OsmService osmService = null;
             private GeoJsonService geoJsonService = null;
 
             @Override
-            public OsmService getOsmService() {
-                if (osmService == null) {
+            public OsmService getOsmService(boolean withDb) {
+                if (withDb) {
                     var connection = getConnection();
-
-                    osmService = new OsmService();
                     connections.add(connection);
+                    return new OsmService(connection);
+                } else {
+                    return new OsmService();
                 }
-                return osmService;
             }
 
             @Override

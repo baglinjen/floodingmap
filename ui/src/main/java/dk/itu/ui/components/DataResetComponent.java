@@ -1,12 +1,13 @@
 package dk.itu.ui.components;
 
 import dk.itu.data.services.Services;
+import dk.itu.ui.State;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.SplitMenuButton;
 
 public class DataResetComponent extends SplitMenuButton {
     private ResetOption option = ResetOption.OSM;
-    public DataResetComponent() {
+    public DataResetComponent(State state) {
         super();
         setText("Reset OSM");
         getItems().addAll(
@@ -16,7 +17,7 @@ public class DataResetComponent extends SplitMenuButton {
         setOnAction(_ -> {
             Services.withServices(services -> {
                 if (option == ResetOption.OSM) {
-                    services.getOsmService().clearAll();
+                    services.getOsmService(state.isWithDb()).clearAll();
                 }
             });
         });
