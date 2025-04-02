@@ -83,7 +83,7 @@ public class DijkstraConfiguration {
 
                     //Determine if next node should even be considered
                     var casted = (DbNode)nextNode;
-                    var height = curveTree.getHeightCurveForPoint(casted.getLat(), casted.getLon()).getHeight();
+                    var height = curveTree.getHeightCurveForPoint(casted.getLon(), casted.getLat()).getHeight();
                     if(height < waterLevel) continue;//This road is not usable
 
                     double connectionDistance = connection.getValue();
