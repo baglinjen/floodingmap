@@ -36,7 +36,7 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-            services.getGeoJsonService().loadGeoJsonData("tuna.geojson");
+            services.getGeoJsonService().loadGeoJsonData("tuna-dijkstra.geojson");
 
             float registeredWaterLevel = 0.0f;
 
@@ -106,7 +106,7 @@ public class FloodingApp extends GameApplication {
                     hc.draw(g2d, strokeBaseWidth);
                 });
 
-                var dijkstraRoute = state.getDijkstraConfiguration().getRoute();
+                var dijkstraRoute = state.getDijkstraConfiguration().getRoute(state.getWaterLevel());
                 if(dijkstraRoute != null){
                     dijkstraRoute.draw(g2d, strokeBaseWidth * 6);
                 }
