@@ -3,13 +3,10 @@ package dk.itu.data.models.parser;
 import java.awt.*;
 import java.awt.geom.Path2D;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class ParserOsmNode extends ParserOsmElement {
     private final double lat, lon;
-    private boolean isRouting;
     private final List<ParserOsmNode> connections = new ArrayList<>();
 
     public ParserOsmNode(long id, double lat, double lon) {
@@ -18,8 +15,9 @@ public class ParserOsmNode extends ParserOsmElement {
         this.lon = lon;
     }
 
-    public boolean isRouting(){return isRouting;}
-    public void setRouting(){isRouting = true;}
+    public void setRouting(){
+        setShouldBeDrawn(true);
+    }
 
     public void addConnection(ParserOsmNode connection){
         connections.add(connection);

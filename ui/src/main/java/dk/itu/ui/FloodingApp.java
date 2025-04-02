@@ -19,7 +19,6 @@ import java.util.List;
 
 import static com.almasb.fxgl.dsl.FXGLForKtKt.*;
 import static dk.itu.util.DrawingUtils.bufferedImageToWritableImage;
-import static dk.itu.util.DrawingUtils.toARGB;
 
 public class FloodingApp extends GameApplication {
     public static final int WIDTH = 1920, HEIGHT = 920;
@@ -89,9 +88,7 @@ public class FloodingApp extends GameApplication {
                             for(List<ParserGeoJsonElement> list : x){
                                 if(!simulationRunning) return;
                                 Thread.sleep(500);
-                                list.forEach(hc -> {
-                                    hc.setBelowWater(state.getWaterLevel() > hc.getHeight());
-                                });
+                                list.forEach(hc -> hc.setBelowWater(state.getWaterLevel() > hc.getHeight()));
                             }
                         } catch (Exception ex){
                             Thread.currentThread().interrupt();
@@ -103,13 +100,11 @@ public class FloodingApp extends GameApplication {
                     registeredWaterLevel = state.getWaterLevel();
                 }
 
-                heightCurves.forEach(hc -> {
-                    hc.draw(g2d, strokeBaseWidth);
-                });
+                heightCurves.forEach(hc -> hc.draw(g2d, strokeBaseWidth));
 
                 var dijkstraRoute = state.getDijkstraConfiguration().getRoute();
                 if(dijkstraRoute != null){
-                    dijkstraRoute.draw(g2d, strokeBaseWidth * 6);
+                    dijkstraRoute.draw(g2d, strokeBaseWidth);
                 }
 
                 g2d.dispose();
@@ -132,9 +127,6 @@ public class FloodingApp extends GameApplication {
             if (CommonConfiguration.getInstance().shouldForceParseOsm()) {
                 services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
             }
-//            if (CommonConfiguration.getInstance().shouldForceParseOsm()) {
-//                services.getOsmService().loadOsmDataInDb("modified-tuna.osm");
-//            }
             // TODO: Load in DB using GeoJson service
             // if (CommonConfiguration.getInstance().shouldForceParseGeoJson()) {
             //     services.getGeoJsonService().loadGeoJsonData("modified-tuna.geojson");

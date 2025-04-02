@@ -1,9 +1,7 @@
 package dk.itu.data.repositories;
 
-import dk.itu.common.models.OsmElement;
 import dk.itu.data.datastructure.rtree.RTree;
-import dk.itu.data.models.db.Bounds;
-import dk.itu.data.models.memory.*;
+import dk.itu.data.models.db.*;
 import dk.itu.data.models.parser.ParserOsmElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.models.parser.ParserOsmRelation;
@@ -13,7 +11,7 @@ import java.util.List;
 
 public class OsmElementRepositoryMemory implements OsmElementRepository {
     private static OsmElementRepositoryMemory instance;
-    private final RTree rtree = new RTree();
+    private RTree rtree = new RTree();
 
     public static OsmElementRepositoryMemory getInstance() {
         if (instance == null) {
@@ -43,7 +41,21 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     }
 
     @Override
-    public Bounds getBounds() {
-        return new Bounds(10.37, 55.94, 10.5, 56); // TODO: Find actual lat/lon from rtree
+    public List<OsmNode> getOsmNodes() {
+        return rtree.getNodes();
+    }
+
+    @Override
+    public void clearAll() {
+        rtree = new RTree();
+    }
+
+    @Override
+    public BoundingBox getBounds() {
+        if (rtree.getBoundingBox() == null) {
+            return new BoundingBox(-180, -90, 180, 90);
+        } else {
+            return rtree.getBoundingBox();
+        }
     }
 }

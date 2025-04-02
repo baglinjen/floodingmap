@@ -1,7 +1,8 @@
 package dk.itu.data.datastructure.rtree;
 
-import dk.itu.common.models.OsmElement;
-import dk.itu.data.models.memory.*;
+import dk.itu.data.models.db.BoundingBox;
+import dk.itu.data.models.db.OsmElement;
+import dk.itu.data.models.db.OsmNode;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -21,11 +22,11 @@ public class RTree {
                 .parallelStream()
                 .map(RTreeNode::getElements)
                 .flatMap(List::stream)
-                .sorted(Comparator.comparingDouble(OsmElementMemory::getArea).reversed())
+                .sorted(Comparator.comparingDouble(OsmElement::getArea).reversed())
                 .toList());
     }
 
-    public void insert(OsmElementMemory element) {
+    public void insert(OsmElement element) {
         if (root == null) {
             root = new RTreeNode();
         }
@@ -39,9 +40,9 @@ public class RTree {
         }
     }
 
-    public OsmElementMemory nearestNeighbor(RTreeNode node, Point query, OsmElementMemory bestSoFar, double bestDistance) {
+    public OsmElement nearestNeighbor(RTreeNode node, Point query, OsmElement bestSoFar, double bestDistance) {
         if (node.isLeaf()) {
-            for (OsmElementMemory element : node.elements) {
+            for (OsmElement element : node.elements) {
                 BoundingBox bbox = element.getBoundingBox();
                 double distance = bbox.distanceTo(query);
                 if (distance < bestDistance) {
@@ -70,10 +71,10 @@ public class RTree {
         for (RTreeNode child : node.children) {
             double originalArea = child.mbr.area();
             BoundingBox expandedMBR = new BoundingBox(
-                    Math.min(child.mbr.getMinX(), bbox.getMinX()),
-                    Math.min(child.mbr.getMinY(), bbox.getMinY()),
-                    Math.max(child.mbr.getMaxX(), bbox.getMaxX()),
-                    Math.max(child.mbr.getMaxY(), bbox.getMaxY())
+                    Math.min(child.mbr.getMinLon(), bbox.getMinLon()),
+                    Math.min(child.mbr.getMinLat(), bbox.getMinLat()),
+                    Math.max(child.mbr.getMaxLon(), bbox.getMaxLon()),
+                    Math.max(child.mbr.getMaxLat(), bbox.getMaxLat())
             );
             double expansion = expandedMBR.area() - originalArea;
 
@@ -88,11 +89,11 @@ public class RTree {
     }
 
     private void splitLeaf(RTreeNode leaf) {
-        List<OsmElementMemory> elements = new ArrayList<>(leaf.elements);
+        List<OsmElement> elements = new ArrayList<>(leaf.elements);
         leaf.elements.clear();
 
-        OsmElementMemory entryA = elements.removeFirst(); // TODO: Choose the two elements furthest from each other
-        OsmElementMemory entryB = elements.removeLast();
+        OsmElement entryA = elements.removeFirst(); // TODO: Choose the two elements furthest from each other
+        OsmElement entryB = elements.removeLast();
 
         RTreeNode groupA = new RTreeNode();
         RTreeNode groupB = new RTreeNode();
@@ -100,7 +101,7 @@ public class RTree {
         groupA.addEntry(entryA);
         groupB.addEntry(entryB);
 
-        for (OsmElementMemory element : elements) {
+        for (OsmElement element : elements) {
             BoundingBox bbox = element.getBoundingBox();
             double expansionA = groupA.mbr.getExpanded(bbox).area() - groupA.mbr.area();
             double expansionB = groupB.mbr.getExpanded(bbox).area() - groupB.mbr.area();
@@ -204,8 +205,8 @@ public class RTree {
     }
 
     private int chooseSplitAxis(RTreeNode node) {
-        double width = node.mbr.getMaxX() - node.mbr.getMinX();
-        double height = node.mbr.getMaxY() - node.mbr.getMinY();
+        double width = node.mbr.getMaxLon() - node.mbr.getMinLon();
+        double height = node.mbr.getMaxLat() - node.mbr.getMinLat();
 
         return width > height ? 0 : 1; // 0 for X-axis, 1 for Y-axis
     }
@@ -214,8 +215,8 @@ public class RTree {
         List<RTreeNode> sortedEntries = new ArrayList<>(node.children);
 
         sortedEntries.sort((a, b) -> {
-            double aCoord = axis == 0 ? a.mbr.getMinX() : a.mbr.getMinY();
-            double bCoord = axis == 0 ? b.mbr.getMinX() : b.mbr.getMinY();
+            double aCoord = axis == 0 ? a.mbr.getMinLon() : a.mbr.getMinLat();
+            double bCoord = axis == 0 ? b.mbr.getMinLon() : b.mbr.getMinLat();
             return Double.compare(aCoord, bCoord);
         });
 
@@ -257,8 +258,8 @@ public class RTree {
         }
 
         if (node.isLeaf()) { // If it's a leaf, add matching elements
-            for (OsmElementMemory element : node.elements) {
-                if (element.getBoundingBox().intersects(queryBox)) {
+            for (OsmElement element : node.elements) {
+                if (!(element instanceof OsmNode) && element.getBoundingBox().intersects(queryBox)) {
                     results.add(node);
                 }
             }
@@ -269,5 +270,21 @@ public class RTree {
         }
 
         return results;
+    }
+
+    public List<OsmNode> getNodes() {
+        List<OsmNode> nodes = new ArrayList<>();
+        getNodes(root, nodes);
+        return nodes;
+    }
+    private void getNodes(RTreeNode node, List<OsmNode> nodes) {
+        nodes.addAll(node.elements.parallelStream().filter(e -> e instanceof OsmNode).map(e -> (OsmNode) e).toList());
+        for (RTreeNode child : node.children) {
+            getNodes(child, nodes);
+        }
+    }
+
+    public BoundingBox getBoundingBox() {
+        return root == null ? null : root.mbr;
     }
 }

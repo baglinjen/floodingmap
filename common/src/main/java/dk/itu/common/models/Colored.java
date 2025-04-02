@@ -26,9 +26,6 @@ public abstract class Colored implements Drawable {
     public Color getRgbaColor() {
         return rgbaColor;
     }
-    public void setRgbaColor(int rgbaColor) {
-        this.rgbaColor = new Color(rgbaColor, true);
-    }
     public float getStroke() {
         return stroke;
     }

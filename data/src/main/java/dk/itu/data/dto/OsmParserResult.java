@@ -8,25 +8,15 @@ import dk.itu.data.models.parser.ParserOsmWay;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class OsmParserResult {
-    private final List<ParserOsmElement> nodes = new ArrayList<>();
+    private final List<ParserOsmNode> nodes = new ArrayList<>();
     private final List<ParserOsmElement> ways = new ArrayList<>();
     private final List<ParserOsmElement> relations = new ArrayList<>();
     private List<ParserOsmElement> elementsToBeDrawn;
 
     public List<ParserOsmElement> getElementsToBeDrawn() {
         return elementsToBeDrawn;
-    }
-
-    public List<ParserOsmElement> getNodesForRouting(){
-        return nodes.parallelStream()
-                .filter(e -> e instanceof ParserOsmNode)
-                .map(e -> (ParserOsmNode)e)
-                .filter(ParserOsmNode::isRouting)
-                .map(e -> (ParserOsmElement)e)
-                .collect(Collectors.toList());
     }
 
     public void sanitize() {
@@ -43,7 +33,6 @@ public class OsmParserResult {
     public void addNode(ParserOsmNode node) {
         this.nodes.add(node);
     }
-
     public void addWay(ParserOsmWay way) {
         this.ways.add(way);
     }
@@ -52,7 +41,7 @@ public class OsmParserResult {
     }
 
     public ParserOsmElement findNode(long id) {
-        return findElement(id, 0, this.nodes.size(), this.nodes);
+        return findElement(id, 0, this.nodes.size(), new ArrayList<>(this.nodes));
     }
     public ParserOsmElement findWay(long id) {
         return findElement(id, 0, this.ways.size(), this.ways);

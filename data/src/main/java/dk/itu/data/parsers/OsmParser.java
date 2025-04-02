@@ -1,9 +1,6 @@
 package dk.itu.data.parsers;
 
 import dk.itu.common.configurations.CommonConfiguration;
-import dk.itu.common.models.OsmElement;
-import dk.itu.data.dto.OsmResult;
-import dk.itu.data.models.memory.*;
 import dk.itu.data.models.parser.ParserOsmRelation;
 import dk.itu.data.dto.OsmElementBuilder;
 import dk.itu.data.dto.OsmParserResult;
@@ -15,10 +12,6 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class OsmParser {
     private static final Logger logger = LoggerFactory.getLogger();

@@ -1,5 +1,6 @@
 package dk.itu.ui;
 
+import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.data.models.parser.ParserGeoJsonElement;
 import dk.itu.data.services.Services;
 import dk.itu.data.utils.DijkstraConfiguration;
@@ -21,7 +22,7 @@ public class State {
     private final SuperAffine superAffine = new SuperAffine();
     private boolean showSelected = false;
     private ParserGeoJsonElement hcSelected = null;
-    private boolean withDb = false; // TODO: Initialize from common config
+    private boolean withDb = CommonConfiguration.getInstance().getUseDb();
 
     public State(Services services) {
         this.dijkstraConfiguration = new DijkstraConfiguration();
@@ -125,12 +126,12 @@ public class State {
 
     public void resetWindowBounds(Services services) {
         var bounds = services.getOsmService(withDb).getBounds();
-        double scale = HEIGHT / (bounds.maxLat() - bounds.minLat());
+        double scale = HEIGHT / (bounds.getMaxLat() - bounds.getMinLat());
         getSuperAffine()
                 .reset()
                 .prependTranslation(
-                        -0.56 * bounds.minLon(),
-                        bounds.maxLat())
+                        -0.56 * bounds.getMinLon(),
+                        bounds.getMaxLat())
                 .prependScale(
                         scale,
                         scale
@@ -142,6 +143,7 @@ public class State {
     }
 
     public void setWithDb(boolean withDb) {
+        // TODO: Use this in component
         this.withDb = withDb;
     }
 }

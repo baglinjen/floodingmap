@@ -18,11 +18,11 @@ public class DijkstraToggle extends MenuButton {
         toItem.setHideOnClick(false);
 
         var button = new Button("Calculate");
-        button.setOnAction(e -> {
+        button.setOnAction(_ -> {
             try{
                 state.getDijkstraConfiguration().setStartNodeId(fromField.getText().trim());
                 state.getDijkstraConfiguration().setEndNodeId(toField.getText().trim());
-                state.getDijkstraConfiguration().calculateRoute();
+                state.getDijkstraConfiguration().calculateRoute(state.isWithDb());
             } catch(NumberFormatException ex){
                 displayAlert("Invalid node ID");
             } catch(Exception ex){

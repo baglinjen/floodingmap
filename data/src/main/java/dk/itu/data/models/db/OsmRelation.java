@@ -1,12 +1,10 @@
-package dk.itu.data.models.memory;
+package dk.itu.data.models.db;
 
 import dk.itu.data.models.parser.ParserOsmRelation;
-import kotlin.Pair;
 
 import java.awt.*;
 
-
-public class OsmRelation extends OsmElementMemory {
+public class OsmRelation extends OsmElement {
     private final Shape shape;
 
     public OsmRelation(long id, Shape shape, BoundingBox boundingBox, double area) {

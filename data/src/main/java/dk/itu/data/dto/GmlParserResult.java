@@ -1,7 +1,5 @@
 package dk.itu.data.dto;
 
-import org.locationtech.jts.geom.Coordinates;
-
 public class GmlParserResult {
     public GmlParserResult() {
 

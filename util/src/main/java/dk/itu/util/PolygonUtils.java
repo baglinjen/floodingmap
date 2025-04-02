@@ -1,6 +1,5 @@
 package dk.itu.util;
 
-import java.awt.geom.Area;
 import java.awt.geom.Path2D;
 import java.util.List;
 
@@ -168,16 +167,6 @@ public class PolygonUtils {
         LAST_FIRST,
         LAST_LAST,
         NONE
-    }
-
-    // Polygon 1 contains polygon 2
-    public static boolean isPolygonContainedLibrary(double[] polygon1, double[] polygon2) {
-        var p1 = new Area(pathFromShape(polygon1, true));
-        var p2 = new Area(pathFromShape(polygon2, true));
-
-        p2.subtract(p1);
-
-        return p2.isEmpty();
     }
 
     /**

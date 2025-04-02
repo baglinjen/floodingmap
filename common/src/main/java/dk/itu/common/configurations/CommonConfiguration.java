@@ -4,7 +4,6 @@ import dk.itu.util.LoggerFactory;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 public class CommonConfiguration {
@@ -19,11 +18,13 @@ public class CommonConfiguration {
 
     private final boolean forceParseOsm, forceParseGeoJson;
     private final String dataForsyningenToken;
+    private final boolean useDb;
 
     private CommonConfiguration() {
         this.forceParseOsm = Boolean.parseBoolean(Objects.requireNonNullElse(System.getenv("configuration.forceParseOsm"), "false"));
         this.forceParseGeoJson = Boolean.parseBoolean(Objects.requireNonNullElse(System.getenv("forceParseGeoJson.forceParseOsm"), "false"));
         this.dataForsyningenToken = System.getenv("configuration.dataForsyningenToken");
+        this.useDb = Boolean.parseBoolean(Objects.requireNonNullElse(System.getenv("configuration.useDb"), "false"));
     }
 
     public boolean shouldForceParseOsm() {
@@ -36,6 +37,9 @@ public class CommonConfiguration {
 
     public String getDataForsyningenToken() {
         return this.dataForsyningenToken;
+    }
+    public boolean getUseDb() {
+        return this.useDb;
     }
 
     public List<String> getDataFiles() {

@@ -1,7 +1,7 @@
 package dk.itu.data.utils;
-import dk.itu.common.models.OsmElement;
-import dk.itu.data.models.db.DbNode;
-import dk.itu.data.models.db.DbWay;
+import dk.itu.data.models.db.OsmElement;
+import dk.itu.data.models.db.OsmNode;
+import dk.itu.data.models.db.OsmWay;
 import dk.itu.data.services.Services;
 import dk.itu.util.PolygonUtils;
 
@@ -29,11 +29,11 @@ public class DijkstraConfiguration {
         return route;
     }
 
-    public void calculateRoute(){
+    public void calculateRoute(boolean isWithDb) {
         Services.withServices(s -> {
-            var nodes = s.getOsmService().getOsmNodes();
+            var nodes = s.getOsmService(isWithDb).getOsmNodes();
 
-            if(startNodeId == endNodeId) throw new IllegalArgumentException("Start node and end node can not be the same");
+            if (startNodeId == endNodeId) throw new IllegalArgumentException("Start node and end node can not be the same");
 
             var startNode = nodes.parallelStream().filter(o -> o.getId() == startNodeId).findFirst().orElseThrow(() -> new IllegalArgumentException("No start node found with ID: " + startNodeId));
             var endNode = nodes.parallelStream().filter(o -> o.getId() == endNodeId).findFirst().orElseThrow(() -> new IllegalArgumentException("No end node found with ID: " + endNodeId));
@@ -58,7 +58,7 @@ public class DijkstraConfiguration {
         pq.offer(startNode);
 
         while(!pq.isEmpty()){
-                DbNode curNode = (DbNode)pq.poll();
+            OsmNode curNode = (OsmNode) pq.poll();
 
                 if(curNode == endNode){
                     return createDijkstraPath(previousNodes, startNode, endNode);
@@ -102,12 +102,12 @@ public class DijkstraConfiguration {
         var coordinateList = new double[path.size() * 2];
         var count = 0;
         for(var x : path){
-            var dbNodeX = (DbNode)x;
+            var dbNodeX = (OsmNode) x;
             coordinateList[count] = dbNodeX.getLon();
             coordinateList[count+1] = dbNodeX.getLat();
             count = count + 2;
         }
 
-        return new DbWay(1L, PolygonUtils.pathFromShape(coordinateList, false), "line", Color.yellow.hashCode());
+        return OsmWay.createWayForDijkstra(coordinateList);
     }
 }

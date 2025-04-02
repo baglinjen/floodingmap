@@ -11,7 +11,9 @@ public class DijkstraUtils {
     public static Map<Long, Double> buildConnectionMap(ParserOsmNode node){
         var result = new HashMap<Long, Double>();
 
-        for(var c : node.getConnections()) result.put(c.getId(), distanceMeters(node.getLat(), node.getLon(), c.getLat(), c.getLon()));
+        for (ParserOsmNode connection : node.getConnections()) {
+            result.put(connection.getId(), distanceMeters(node.getLat(), node.getLon(), connection.getLat(), connection.getLon()));
+        }
 
         return result;
     }

@@ -3,7 +3,6 @@ package dk.itu.data.dto;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import dk.itu.common.utils.extensions.ArrayExtensions;
 import dk.itu.data.models.parser.ParserGeoJsonElement;
 
 import java.util.*;
@@ -12,6 +11,7 @@ import java.util.stream.DoubleStream;
 
 import static dk.itu.data.models.parser.ParserGeoJsonElement.contains;
 import static dk.itu.util.ArrayUtils.appendExcludingN;
+import static dk.itu.util.ArrayUtils.appendSingle;
 import static dk.itu.util.PolygonUtils.*;
 
 public class GeoJsonParserResult {
@@ -40,13 +40,13 @@ public class GeoJsonParserResult {
 
     public void addWorldRoot(){
         double[] worldCurvePolygon = {
-                180, -180, //NE
-                -180, -180, //NW
-                -180, 180, //SW
-                180, 180  //SE
+                180, 90, //NE
+                -180, 90, //NW
+                -180, -90, //SW
+                180, -90  //SE
         };
 
-        geoJsonElements = ArrayExtensions.appendSingle(geoJsonElements, new ParserGeoJsonElement(0, worldCurvePolygon));
+        geoJsonElements = appendSingle(geoJsonElements, new ParserGeoJsonElement(0, worldCurvePolygon));
     }
 
     public List<ParserGeoJsonElement> getGeoJsonElements() {

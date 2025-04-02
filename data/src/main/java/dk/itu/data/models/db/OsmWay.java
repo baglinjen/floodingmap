@@ -1,16 +1,11 @@
-package dk.itu.data.models.memory;
+package dk.itu.data.models.db;
 
-import dk.itu.common.configurations.DrawingConfiguration;
-import dk.itu.common.models.OsmElement;
 import dk.itu.data.models.parser.ParserOsmWay;
-import kotlin.Pair;
+import dk.itu.util.PolygonUtils;
 
 import java.awt.*;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
-public class OsmWay extends OsmElementMemory {
+public class OsmWay extends OsmElement {
     private final Shape shape;
     private final boolean isLine;
 
@@ -24,11 +19,17 @@ public class OsmWay extends OsmElementMemory {
         var bounds = parserOsmWay.getBounds();
 
         BoundingBox boundingBox = new BoundingBox(bounds[0], bounds[1], bounds[2], bounds[3]);
-        var osmWay = new OsmWay(parserOsmWay.getId(), parserOsmWay.getShape(), parserOsmWay.isLine(), boundingBox, parserOsmWay.getArea());
+        var osmWay = new OsmWay(parserOsmWay.getId(), parserOsmWay.getShape(), parserOsmWay.isLine(), boundingBox, parserOsmWay.isLine() ? 0 : parserOsmWay.getArea());
 
         osmWay.setStyle(parserOsmWay.getRgbaColor(), parserOsmWay.getStroke());
 
         return osmWay;
+    }
+
+    public static OsmWay createWayForDijkstra(double[] coordinates) {
+        var way = new OsmWay(0, PolygonUtils.pathFromShape(coordinates, false), true, null, 0);
+        way.setStyle(Color.yellow, 6);
+        return way;
     }
 
     @Override

@@ -16,7 +16,6 @@ public class ParserGeoJsonElement extends ParserDrawable implements GeoJsonEleme
     private final double[] bounds = new double[] {Double.MAX_VALUE, Double.MAX_VALUE, Double.MIN_VALUE, Double.MIN_VALUE};
     private Path2D.Double shape;
     private final double area;
-    private double absoluteArea;
     private boolean belowWater;
     private boolean selected;
 
