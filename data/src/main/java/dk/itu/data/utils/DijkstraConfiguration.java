@@ -31,7 +31,7 @@ public class DijkstraConfiguration {
     public OsmElement getRoute(double currentWaterLevel){
         if(route == null) return null;
 
-        if(route.getSecond() != currentWaterLevel) calculateRoute();//Return route
+        if(route.getSecond() != currentWaterLevel) calculateRoute();
 
         return (route == null ? null : route.getFirst());
     }
@@ -47,7 +47,7 @@ public class DijkstraConfiguration {
 
             var route = createDijkstra(startNode, endNode, nodes, s.getGeoJsonService().getCurveTree());
 
-            //if(route == null || route.getFirst() == null) throw new RuntimeException("No possible route could be found between: " + startNodeId + ", " + endNodeId);
+            if(route == null) throw new RuntimeException("No possible route could be found between: " + startNodeId + ", " + endNodeId);
 
             this.route = new Pair<>(route, waterLevel);
         });
@@ -81,10 +81,9 @@ public class DijkstraConfiguration {
                         continue;
                     }
 
-                    //Determine if next node should even be considered
                     var casted = (DbNode)nextNode;
                     var height = curveTree.getHeightCurveForPoint(casted.getLon(), casted.getLat()).getHeight();
-                    if(height < waterLevel) continue;//This road is not usable
+                    if(height < waterLevel) continue;//Road is flooded
 
                     double connectionDistance = connection.getValue();
                     double newDist = currDistance + connectionDistance;
