@@ -1,5 +1,8 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="FloodingApp" type="Application" factoryName="Application" nameIsGenerated="true">
+    <envs>
+      <env name="useDb" value="true" />
+    </envs>
     <option name="MAIN_CLASS_NAME" value="dk.itu.ui.FloodingApp" />
     <module name="ui" />
     <option name="PROGRAM_PARAMETERS" value="-Xms2g -Xmx26g " />

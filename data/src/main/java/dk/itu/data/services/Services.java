@@ -29,14 +29,18 @@ public interface Services {
     static void withServices(Consumer<Services> consumer) {
         List<Connection> connections = new ArrayList<>();
         consumer.accept(new Services() {
+            private OsmService osmServiceDb;
             private GeoJsonService geoJsonService = null;
 
             @Override
             public OsmService getOsmService(boolean withDb) {
                 if (withDb) {
-                    var connection = getConnection();
-                    connections.add(connection);
-                    return new OsmService(connection);
+                    if (osmServiceDb == null) {
+                        var connection = getConnection();
+                        connections.add(connection);
+                        osmServiceDb = new OsmService(connection);
+                    }
+                    return osmServiceDb;
                 } else {
                     return new OsmService();
                 }

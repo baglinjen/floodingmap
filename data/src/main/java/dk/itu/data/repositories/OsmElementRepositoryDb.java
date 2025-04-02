@@ -37,6 +37,7 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
         f.register(OsmWay.class);
         f.register(OsmRelation.class);
         f.register(Color.class);
+        f.register(BoundingBox.class);
         // TODO: For Path2D use another serializer which implements org.apache.fury.serializer.Serializer or java default serializer
         return f;
     });

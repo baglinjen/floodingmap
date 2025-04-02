@@ -1,8 +1,9 @@
 package dk.itu.data.models.db;
 
 import java.awt.*;
+import java.io.Serializable;
 
-public class BoundingBox {
+public class BoundingBox implements Serializable {
     private double minLon, minLat, maxLon, maxLat;
 
     public BoundingBox(double minLon, double minLat, double maxLon, double maxLat) {
