@@ -9,6 +9,7 @@ import dk.itu.data.models.parser.ParserOsmElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.models.parser.ParserOsmRelation;
 import dk.itu.data.models.parser.ParserOsmWay;
+import dk.itu.data.utils.DijkstraUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.fury.Fury;
 import org.apache.fury.ThreadLocalFury;
@@ -70,6 +71,10 @@ public class OsmElementRepository {
 
     private Query addNodeQuery(ParserOsmNode osmNode) {
         var geoField = DSL.field("ST_GeomFromText({0}, {1})", DSL.val(String.format("POINT(%s %s)", osmNode.getLon(), osmNode.getLat())), DSL.val(4326), Geometry.class);
+
+        var dbNode = new DbNode(osmNode.getId(), osmNode.getLat(), osmNode.getLon());
+        dbNode.setConnectionMap(DijkstraUtils.buildConnectionMap(osmNode));
+
         return ctx.insertInto(DSL.table("nodes"),
                 DSL.field("id"),
                 DSL.field("coordinate"),
@@ -78,7 +83,7 @@ public class OsmElementRepository {
         ).values(
                 osmNode.getId(),
                 geoField,
-                DSL.val(fury.serializeJavaObject(new DbNode(osmNode.getId()))),
+                DSL.val(fury.serializeJavaObject(dbNode)),
                 DSL.field("ST_Area(ST_Envelope({0}::geometry), false)", geoField)
         ).onConflict(DSL.field("id")).doNothing();
     }
@@ -215,6 +220,25 @@ public class OsmElementRepository {
                             case "n" -> fury.deserializeJavaObject(r.component1(), DbNode.class);
                             case "w" -> fury.deserializeJavaObject(r.component1(), DbWay.class);
                             case "r" -> fury.deserializeJavaObject(r.component1(), DbRelation.class);
+                            default -> null;
+                        };
+                    }
+                });
+    }
+
+    public List<OsmElement> getOsmNodes(){
+        return ctx.select(
+                        DSL.field("n.dbObj", byte[].class),
+                        DSL.field("'n' as type", String.class),
+                        DSL.field("n.area", Float.class)
+                )
+                .from(DSL.table("nodes").as("n"))
+                .fetch(new RecordMapper<>() {
+                    @Nullable
+                    @Override
+                    public OsmElement map(Record3<byte[], String, Float> r) {
+                        return switch (r.component2()) {
+                            case "n" -> fury.deserializeJavaObject(r.component1(), DbNode.class);
                             default -> null;
                         };
                     }

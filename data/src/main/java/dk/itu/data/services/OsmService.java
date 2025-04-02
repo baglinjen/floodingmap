@@ -3,6 +3,7 @@ package dk.itu.data.services;
 import dk.itu.common.models.OsmElement;
 import dk.itu.data.dto.OsmParserResult;
 import dk.itu.data.models.db.DbBounds;
+import dk.itu.data.models.db.DbNode;
 import dk.itu.data.parsers.OsmParser;
 import dk.itu.data.repositories.OsmElementRepository;
 
@@ -21,13 +22,20 @@ public class OsmService {
         return osmElementRepository.getOsmElements(limit, minLon, minLat, maxLon, maxLat);
     }
 
+    public List<OsmElement> getOsmNodes(){
+        return osmElementRepository.getOsmNodes();
+    }
+
     public void loadOsmDataInDb(String osmFileName) {
         OsmParserResult osmParserResult = new OsmParserResult();
 
         // Get data from OSM file
         OsmParser.parse(osmFileName, osmParserResult);
 
-        // Filter and sort data
+        //Add nodes to database for routing
+        osmElementRepository.add(osmParserResult.getNodesForRouting());
+
+        // Filter and sort data for visual purposes
         osmParserResult.sanitize();
 
         // Add to Database
