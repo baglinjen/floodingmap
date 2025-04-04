@@ -12,6 +12,7 @@ import java.util.List;
 public class OsmElementRepositoryMemory implements OsmElementRepository {
     private static OsmElementRepositoryMemory instance;
     private RTree rtree = new RTree();
+    private RTree traversable = new RTree();
 
     public static OsmElementRepositoryMemory getInstance() {
         if (instance == null) {
@@ -36,18 +37,29 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     }
 
     @Override
+    public void addTraversable(List<ParserOsmNode> nodes) {
+        nodes.parallelStream().map(OsmNode::mapToOsmNode).toList().forEach(traversable::insert);
+    }
+
+    @Override
     public List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
         return rtree.search(minLon, minLat, maxLon, maxLat).parallelStream().toList();
     }
 
     @Override
-    public List<OsmNode> getOsmNodes() {
-        return rtree.getNodes();
+    public List<OsmNode> getTraversableOsmNodes() {
+        return traversable.getNodes();
+    }
+
+    @Override
+    public OsmNode getNearestTraversableOsmNode(double lon, double lat) {
+        return traversable.nn2(lon, lat);
     }
 
     @Override
     public void clearAll() {
         rtree = new RTree();
+        traversable = new RTree();
     }
 
     @Override

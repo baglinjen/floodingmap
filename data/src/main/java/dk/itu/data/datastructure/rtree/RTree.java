@@ -4,7 +4,7 @@ import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.OsmElement;
 import dk.itu.data.models.db.OsmNode;
 
-import java.awt.*;
+import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -40,26 +40,26 @@ public class RTree {
         }
     }
 
-    public OsmElement nearestNeighbor(RTreeNode node, Point query, OsmElement bestSoFar, double bestDistance) {
+    public OsmNode nn2(double lon, double lat) {
+        var point = new Point2D.Double(lon, lat);
+        if (root == null || root.mbr == null || !root.mbr.contains(point)) {
+            return null;
+        }
+        return getNearestElement(root, point); // TODO: Do second search through neighbouring bounding boxes when R* is implemented
+    }
+
+    private OsmNode getNearestElement(RTreeNode node, Point2D.Double point) {
         if (node.isLeaf()) {
-            for (OsmElement element : node.elements) {
-                BoundingBox bbox = element.getBoundingBox();
-                double distance = bbox.distanceTo(query);
-                if (distance < bestDistance) {
-                    bestSoFar = element;
-                    bestDistance = distance;
-                }
-            }
+            return  (OsmNode) node.elements.parallelStream().sorted(Comparator.comparing(e -> e.getBoundingBox().distanceTo(point))).toList().getFirst();
         } else {
-            node.children.sort(Comparator.comparingDouble(e -> e.mbr.distanceTo(query)));
-            for (RTreeNode child : node.children) {
-                double distance = child.mbr.distanceTo(query);
-                if (distance < bestDistance) {
-                    bestSoFar = nearestNeighbor(child, query, bestSoFar, bestDistance);
-                }
+            var bbContaining = node.children.parallelStream().filter(c -> c.mbr.contains(point)).toList();
+            if (bbContaining.isEmpty()) {
+                var closest = node.children.parallelStream().sorted(Comparator.comparingDouble(e -> e.mbr.distanceTo(point))).toList().getFirst();
+                return getNearestElement(closest, point);
+            } else {
+                return getNearestElement(bbContaining.getFirst(), point);
             }
         }
-        return bestSoFar;
     }
 
     private RTreeNode chooseLeaf(RTreeNode node, BoundingBox bbox) {
@@ -85,6 +85,7 @@ public class RTree {
         }
 
         assert bestChild != null;
+        node.mbr.expand(bbox);
         return chooseLeaf(bestChild, bbox);
     }
 

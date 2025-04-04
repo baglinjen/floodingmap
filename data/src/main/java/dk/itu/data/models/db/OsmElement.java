@@ -13,7 +13,6 @@ public abstract class OsmElement extends Colored {
         this.area = area;
     }
 
-
     public long getId() { return id; }
     public double getArea() { return area; }
     public BoundingBox getBoundingBox() { return boundingBox; }

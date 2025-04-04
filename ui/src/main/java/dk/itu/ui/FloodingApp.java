@@ -13,6 +13,7 @@ import javafx.scene.layout.StackPane;
 import org.apache.logging.log4j.Logger;
 
 import java.awt.*;
+import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,8 +36,9 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-            // services.getGeoJsonService().loadGeoJsonData("tuna.geojson");
+            services.getGeoJsonService().loadGeoJsonData("tuna.geojson");
             services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
+            state.resetWindowBounds();
 
             float registeredWaterLevel = 0.0f;
 
@@ -105,6 +107,24 @@ public class FloodingApp extends GameApplication {
                 var dijkstraRoute = state.getDijkstraConfiguration().getRoute();
                 if(dijkstraRoute != null){
                     dijkstraRoute.draw(g2d, strokeBaseWidth);
+                }
+
+                var startNode = state.getDijkstraConfiguration().getStartNode();
+                if (startNode != null) {
+                    g2d.setColor(Color.GREEN);
+                    g2d.fill(new Ellipse2D.Double(0.56*startNode.getLon() - strokeBaseWidth*8/2, -startNode.getLat() - strokeBaseWidth*8/2, strokeBaseWidth*8, strokeBaseWidth*8));
+                }
+                var endNode = state.getDijkstraConfiguration().getEndNode();
+                if (endNode != null) {
+                    g2d.setColor(Color.RED);
+                    g2d.fill(new Ellipse2D.Double(0.56*endNode.getLon() - strokeBaseWidth*8/2, -endNode.getLat() - strokeBaseWidth*8/2, strokeBaseWidth*8, strokeBaseWidth*8));
+                }
+
+                if (state.getShowNearestNeighbour()) {
+                    var nn = state.getNearestNeighbour();
+                    if (nn != null) {
+                        nn.draw(g2d, strokeBaseWidth);
+                    }
                 }
 
                 g2d.dispose();

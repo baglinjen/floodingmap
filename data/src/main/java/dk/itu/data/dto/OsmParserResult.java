@@ -13,10 +13,14 @@ public class OsmParserResult {
     private final List<ParserOsmNode> nodes = new ArrayList<>();
     private final List<ParserOsmElement> ways = new ArrayList<>();
     private final List<ParserOsmElement> relations = new ArrayList<>();
+    private final List<ParserOsmNode> traversableNodes = new ArrayList<>();
     private List<ParserOsmElement> elementsToBeDrawn;
 
     public List<ParserOsmElement> getElementsToBeDrawn() {
         return elementsToBeDrawn;
+    }
+    public List<ParserOsmNode> getTraversableNodes() {
+        return traversableNodes;
     }
 
     public void sanitize() {
@@ -32,6 +36,9 @@ public class OsmParserResult {
 
     public void addNode(ParserOsmNode node) {
         this.nodes.add(node);
+    }
+    public void addTraversableNode(ParserOsmNode node) {
+        this.traversableNodes.add(node);
     }
     public void addWay(ParserOsmWay way) {
         this.ways.add(way);

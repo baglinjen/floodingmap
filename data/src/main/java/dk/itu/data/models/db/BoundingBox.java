@@ -1,6 +1,7 @@
 package dk.itu.data.models.db;
 
 import java.awt.*;
+import java.awt.geom.Point2D;
 import java.io.Serializable;
 
 public class BoundingBox implements Serializable {
@@ -24,6 +25,9 @@ public class BoundingBox implements Serializable {
         return !(this.minLon > other.maxLon || this.maxLon < other.minLon ||
                 this.minLat > other.maxLat || this.maxLat < other.minLat);
     }
+    public boolean contains(Point2D.Double point) {
+        return point.x >= minLon && point.x <= maxLon && point.y >= minLat && point.y <= maxLat;
+    }
 
     public double area() {
         return (maxLon - minLon) * (maxLat - minLat);
@@ -38,10 +42,10 @@ public class BoundingBox implements Serializable {
         );
     }
 
-    public double distanceTo(Point p) {
-        double dx = Math.max(0, Math.max(minLon - p.x, p.x - maxLon));
-        double dy = Math.max(0, Math.max(minLat - p.y, p.y - maxLat));
-        return Math.sqrt(dx * dx + dy * dy);
+    public double distanceTo(Point2D.Double p) {
+        double bestDx = Math.min(Math.abs(minLon - p.x), Math.abs(maxLon - p.x));
+        double bestDy = Math.min(Math.abs(minLat - p.y), Math.abs(maxLat - p.y));
+        return Math.sqrt(Math.pow(bestDx, 2) + Math.pow(bestDy, 2));
     }
 
     public double getMinLon() {

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 public class RTreeNode {
+    RTreeNode parent;
     BoundingBox mbr;
     List<OsmElement> elements = new ArrayList<>();
     List<RTreeNode> children = new ArrayList<>();
@@ -28,8 +29,13 @@ public class RTreeNode {
         return elements;
     }
 
+    public RTreeNode getParent() {
+        return parent;
+    }
+
     public void addChild(RTreeNode child) {
         children.add(child);
+        child.parent = this;
         updateMBR(child.mbr);
     }
 

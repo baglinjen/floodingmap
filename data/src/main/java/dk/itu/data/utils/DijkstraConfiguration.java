@@ -3,26 +3,26 @@ import dk.itu.data.models.db.OsmElement;
 import dk.itu.data.models.db.OsmNode;
 import dk.itu.data.models.db.OsmWay;
 import dk.itu.data.services.Services;
-import dk.itu.util.PolygonUtils;
 
-import java.awt.*;
 import java.util.*;
 import java.util.List;
 
 public class DijkstraConfiguration {
-    private long startNodeId, endNodeId;
+    private OsmNode startNode, endNode;
     private OsmElement route;
 
-    //Getters and setters for start node
-    public long getStartNodeId(){return startNodeId;}
-    public void setStartNodeId(String startNodeId){
-        this.startNodeId = Long.parseLong(startNodeId);
+    public OsmNode getStartNode() {
+        return startNode;
+    }
+    public void setStartNode(OsmNode startNode){
+        this.startNode = startNode;
     }
 
-    //Getters and setters for end node
-    public long getEndNodeId(){return endNodeId;}
-    public void setEndNodeId(String endNodeId){
-        this.endNodeId = Long.parseLong(endNodeId);
+    public OsmNode getEndNode() {
+        return endNode;
+    }
+    public void setEndNode(OsmNode endNode){
+        this.endNode = endNode;
     }
 
     public OsmElement getRoute(){
@@ -31,16 +31,13 @@ public class DijkstraConfiguration {
 
     public void calculateRoute(boolean isWithDb) {
         Services.withServices(s -> {
-            var nodes = s.getOsmService(isWithDb).getOsmNodes();
+            var nodes = s.getOsmService(isWithDb).getTraversableOsmNodes();
 
-            if (startNodeId == endNodeId) throw new IllegalArgumentException("Start node and end node can not be the same");
-
-            var startNode = nodes.parallelStream().filter(o -> o.getId() == startNodeId).findFirst().orElseThrow(() -> new IllegalArgumentException("No start node found with ID: " + startNodeId));
-            var endNode = nodes.parallelStream().filter(o -> o.getId() == endNodeId).findFirst().orElseThrow(() -> new IllegalArgumentException("No end node found with ID: " + endNodeId));
+            if (startNode.getId() == endNode.getId()) throw new IllegalArgumentException("Start node and end node can not be the same");
 
             var route = createDijkstra(startNode, endNode, nodes);
 
-            if(route == null) throw new RuntimeException("No possible route could be found between: " + startNodeId + ", " + endNodeId);
+            if(route == null) throw new RuntimeException("No possible route could be found between: " + startNode.getId() + ", " + endNode.getId());
 
             this.route = route;
         });

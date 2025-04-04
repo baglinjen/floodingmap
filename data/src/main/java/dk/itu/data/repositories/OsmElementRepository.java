@@ -4,13 +4,16 @@ import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.OsmElement;
 import dk.itu.data.models.db.OsmNode;
 import dk.itu.data.models.parser.ParserOsmElement;
+import dk.itu.data.models.parser.ParserOsmNode;
 
 import java.util.List;
 
 public interface OsmElementRepository {
     void add(List<ParserOsmElement> osmElements);
+    void addTraversable(List<ParserOsmNode> nodes);
     List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat);
-    List<OsmNode> getOsmNodes();
+    List<OsmNode> getTraversableOsmNodes();
+    OsmNode getNearestTraversableOsmNode(double lon, double lat);
     void clearAll();
     BoundingBox getBounds();
 }

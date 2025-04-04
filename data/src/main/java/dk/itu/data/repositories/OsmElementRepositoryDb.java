@@ -48,6 +48,7 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
         ctx = DSL.using(connection, SQLDialect.POSTGRES);
     }
 
+    @Override
     public final void add(List<ParserOsmElement> osmElements) {
         ctx.batch(
                 osmElements
@@ -59,6 +60,16 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
                             default -> null;
                         })
                         .filter(Objects::nonNull)
+                        .collect(Collectors.toList())
+        ).execute();
+    }
+
+    @Override
+    public final void addTraversable(List<ParserOsmNode> osmElements) {
+        ctx.batch(
+                osmElements
+                        .parallelStream()
+                        .map(this::addNodeQuery)
                         .collect(Collectors.toList())
         ).execute();
     }
@@ -178,6 +189,7 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
         };
     }
 
+    @Override
     public List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
         String condWays = String.format("COALESCE(w.line, w.polygon) && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
         String condRelations = String.format("r.shape && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
@@ -221,7 +233,8 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
                 });
     }
 
-    public List<OsmNode> getOsmNodes(){
+    @Override
+    public List<OsmNode> getTraversableOsmNodes(){
         return ctx.select(
                         DSL.field("n.dbObj", byte[].class),
                         DSL.field("'n' as type", String.class),
@@ -242,6 +255,12 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
     }
 
     @Override
+    public OsmNode getNearestTraversableOsmNode(double lon, double lat) {
+        return null;
+//        return rtree.nearestNeighbor(lon, lat);
+    }
+
+    @Override
     public void clearAll() {
         ctx.batch(
                 ctx.truncate("nodes"),
@@ -250,6 +269,7 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
         ).execute();
     }
 
+    @Override
     public BoundingBox getBounds() {
         return ctx.select(
                 DSL.field("MIN(minLon)", double.class),

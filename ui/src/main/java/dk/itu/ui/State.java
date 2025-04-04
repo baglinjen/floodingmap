@@ -1,9 +1,11 @@
 package dk.itu.ui;
 
 import dk.itu.common.configurations.CommonConfiguration;
+import dk.itu.data.models.db.OsmNode;
 import dk.itu.data.models.parser.ParserGeoJsonElement;
 import dk.itu.data.services.Services;
 import dk.itu.data.utils.DijkstraConfiguration;
+import dk.itu.ui.drawables.NearestNeighbour;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
@@ -14,15 +16,17 @@ import static dk.itu.ui.FloodingApp.HEIGHT;
 
 public class State {
     private final List<Consumer<Point2D.Double>> mouseMovedListeners = new ArrayList<>();
-    private boolean shouldDrawGeoJson = true;
+    private boolean shouldDrawGeoJson = false;
     private final DijkstraConfiguration dijkstraConfiguration;
     private double mouseX, mouseY;
     private float waterLevel = 0f;
     private final float minWaterLevel, maxWaterLevel;
     private final SuperAffine superAffine = new SuperAffine();
-    private boolean showSelected = false;
+    private boolean showSelectedHeightCurve = false;
     private ParserGeoJsonElement hcSelected = null;
+    private NearestNeighbour selectedOsmElement = null;
     private boolean withDb = CommonConfiguration.getInstance().getUseDb();
+    private boolean showNearestNeighbour = false;
 
     public State(Services services) {
         this.dijkstraConfiguration = new DijkstraConfiguration();
@@ -31,11 +35,18 @@ public class State {
         this.resetWindowBounds();
     }
 
-    public void setShowSelected(boolean showSelected) {
-        this.showSelected = showSelected;
+    public void setShowSelectedHeightCurve(boolean showSelectedHeightCurve) {
+        this.showSelectedHeightCurve = showSelectedHeightCurve;
     }
-    public boolean getShowSelected() {
-        return showSelected;
+    public boolean getShowSelectedHeightCurve() {
+        return showSelectedHeightCurve;
+    }
+
+    public boolean getShowNearestNeighbour() {
+        return showNearestNeighbour;
+    }
+    public void setShowNearestNeighbour(boolean showNearestNeighbour) {
+        this.showNearestNeighbour = showNearestNeighbour;
     }
 
     public ParserGeoJsonElement getHcSelected() {
@@ -43,6 +54,13 @@ public class State {
     }
     public void setHcSelected(ParserGeoJsonElement hcSelected) {
         this.hcSelected = hcSelected;
+    }
+
+    public NearestNeighbour getNearestNeighbour() {
+        return selectedOsmElement;
+    }
+    public void setSelectedOsmElement(OsmNode selectedOsmElement) {
+        this.selectedOsmElement = selectedOsmElement == null ? null : new NearestNeighbour(selectedOsmElement, getMouseLonLat());
     }
 
     // Getter and setter for drawing GeoJson

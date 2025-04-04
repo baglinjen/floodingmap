@@ -15,10 +15,6 @@ public class ParserOsmNode extends ParserOsmElement {
         this.lon = lon;
     }
 
-    public void setRouting(){
-        setShouldBeDrawn(true);
-    }
-
     public void addConnection(ParserOsmNode connection){
         connections.add(connection);
     }
