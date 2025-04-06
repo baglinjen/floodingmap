@@ -106,7 +106,7 @@ public class FloodingApp extends GameApplication {
                 heightCurves.parallelStream().forEach(e -> e.prepareDrawing(g2d));
                 heightCurves.forEach(hc -> hc.draw(g2d, strokeBaseWidth));
 
-                var dijkstraRoute = state.getDijkstraConfiguration().getRoute();
+                var dijkstraRoute = state.getDijkstraConfiguration().getRoute(state.getWaterLevel());
                 if(dijkstraRoute != null){
                     dijkstraRoute.prepareDrawing(g2d);
                     dijkstraRoute.draw(g2d, strokeBaseWidth);
