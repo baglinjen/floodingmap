@@ -26,14 +26,16 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
 
     @Override
     public void add(List<ParserOsmElement> osmElements) {
-        for (ParserOsmElement osmElement : osmElements) {
-            switch (osmElement) {
-                case ParserOsmNode node -> rtree.insert(OsmNode.mapToOsmNode(node));
-                case ParserOsmWay way -> rtree.insert(OsmWay.mapToOsmWay(way));
-                case ParserOsmRelation relation -> rtree.insert(OsmRelation.mapToOsmRelation(relation));
-                default -> {}
-            }
-        }
+        osmElements.parallelStream().map(this::mapToOsmElement).toList().forEach(rtree::insert);
+    }
+
+    private OsmElement mapToOsmElement(ParserOsmElement osmElement) {
+        return switch (osmElement) {
+            case ParserOsmNode node -> OsmNode.mapToOsmNode(node);
+            case ParserOsmWay way -> OsmWay.mapToOsmWay(way);
+            case ParserOsmRelation relation -> OsmRelation.mapToOsmRelation(relation);
+            default -> null;
+        };
     }
 
     @Override
@@ -53,7 +55,7 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
 
     @Override
     public OsmNode getNearestTraversableOsmNode(double lon, double lat) {
-        return traversable.nn2(lon, lat);
+        return traversable.getNearest(lon, lat);
     }
 
     @Override

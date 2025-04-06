@@ -13,7 +13,6 @@ import org.apache.fury.config.Language;
 import org.jetbrains.annotations.Nullable;
 import org.jooq.*;
 import org.jooq.impl.DSL;
-import org.jooq.meta.derby.sys.Sys;
 
 import java.awt.*;
 import java.awt.geom.Path2D;

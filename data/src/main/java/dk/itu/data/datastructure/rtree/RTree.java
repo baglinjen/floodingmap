@@ -3,6 +3,7 @@ package dk.itu.data.datastructure.rtree;
 import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.OsmElement;
 import dk.itu.data.models.db.OsmNode;
+import org.jooq.meta.derby.sys.Sys;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
@@ -18,15 +19,20 @@ public class RTree {
             return List.of();
         }
 
-        return new ArrayList<>(searchRecursive(root, new BoundingBox(minLon, minLat, maxLon, maxLat))
+        return new ArrayList<>(
+                searchRecursive(root, new BoundingBox(minLon, minLat, maxLon, maxLat))
                 .parallelStream()
                 .map(RTreeNode::getElements)
                 .flatMap(List::stream)
                 .sorted(Comparator.comparingDouble(OsmElement::getArea).reversed())
-                .toList());
+                .toList()
+        );
     }
 
     public void insert(OsmElement element) {
+        long startTime = System.currentTimeMillis();
+        if (element == null) return;
+
         if (root == null) {
             root = new RTreeNode();
         }
@@ -40,7 +46,7 @@ public class RTree {
         }
     }
 
-    public OsmNode nn2(double lon, double lat) {
+    public OsmNode getNearest(double lon, double lat) {
         var point = new Point2D.Double(lon, lat);
         if (root == null || root.mbr == null || !root.mbr.contains(point)) {
             return null;

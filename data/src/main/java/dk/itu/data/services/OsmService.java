@@ -8,13 +8,15 @@ import dk.itu.data.parsers.OsmParser;
 import dk.itu.data.repositories.OsmElementRepository;
 import dk.itu.data.repositories.OsmElementRepositoryDb;
 import dk.itu.data.repositories.OsmElementRepositoryMemory;
+import dk.itu.util.LoggerFactory;
+import org.apache.logging.log4j.Logger;
 
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
 
 public class OsmService {
-
+    private final Logger logger = LoggerFactory.getLogger();
     private final OsmElementRepository osmElementRepository;
 
     public OsmService() {
@@ -46,8 +48,12 @@ public class OsmService {
         osmParserResult.sanitize();
 
         // Add to Database
+        logger.info("Started inserting drawable elements to repository");
         osmElementRepository.add(osmParserResult.getElementsToBeDrawn());
+        logger.info("Finished inserting drawable elements to repository");
+        logger.info("Started inserting traversable elements to repository");
         osmElementRepository.addTraversable(osmParserResult.getTraversableNodes());
+        logger.info("Finished inserting traversable elements to repository");
     }
 
     public BoundingBox getBounds() {
