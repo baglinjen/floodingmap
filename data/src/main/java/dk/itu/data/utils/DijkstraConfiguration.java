@@ -2,19 +2,17 @@ package dk.itu.data.utils;
 import dk.itu.data.models.db.OsmElement;
 import dk.itu.data.models.db.OsmNode;
 import dk.itu.data.models.db.OsmWay;
-import dk.itu.common.models.OsmElement;
 import dk.itu.data.datastructure.curvetree.CurveTree;
-import dk.itu.data.models.db.DbNode;
-import dk.itu.data.models.db.DbWay;
-import dk.itu.data.models.db.OsmNode;
 import dk.itu.data.services.Services;
-import dk.itu.util.PolygonUtils;
+import dk.itu.util.LoggerFactory;
 import kotlin.Pair;
+import org.apache.logging.log4j.Logger;
 
 import java.util.*;
 import java.util.List;
 
 public class DijkstraConfiguration {
+    private static final Logger logger = LoggerFactory.getLogger();
     private OsmNode startNode, endNode;
     private double waterLevel = 0.0;
     private Pair<OsmElement, Double> route;
@@ -35,10 +33,10 @@ public class DijkstraConfiguration {
 
     public void setWaterLevel(double waterLevel){this.waterLevel = waterLevel;}
 
-    public OsmElement getRoute(double currentWaterLevel){
-        if(route == null) return null;
+    public OsmElement getRoute(boolean isWithDb, double currentWaterLevel){
+        if (route == null) return null;
 
-        if(route.getSecond() != currentWaterLevel) calculateRoute();
+        if (route.getSecond() != currentWaterLevel) calculateRoute(isWithDb);
 
         return (route == null ? null : route.getFirst());
     }
@@ -51,7 +49,7 @@ public class DijkstraConfiguration {
 
             var route = createDijkstra(startNode, endNode, nodes, s.getGeoJsonService().getCurveTree());
 
-            if (route == null) throw new RuntimeException("No possible route could be found between: " + startNode.getId() + ", " + endNode.getId());
+            if (route == null) logger.warn("No possible route could be found between: {}, {}", startNode.getId(), endNode.getId());
 
             this.route = new Pair<>(route, waterLevel);
         });
@@ -59,8 +57,7 @@ public class DijkstraConfiguration {
     }
 
     private OsmElement createDijkstra(OsmNode startNode, OsmNode endNode, List<OsmNode> nodes, CurveTree curveTree){
-        nodes.removeIf(e -> e.getId() == startNode.getId());
-        nodes.removeIf(e -> e.getId() == endNode.getId());
+        nodes.removeIf(e -> e.getId() == startNode.getId() || e.getId() == endNode.getId());
         nodes.add(startNode);
         nodes.add(endNode);
 
@@ -69,14 +66,14 @@ public class DijkstraConfiguration {
 
         PriorityQueue<OsmNode> pq = new PriorityQueue<>(Comparator.comparingDouble(n -> distances.getOrDefault(n, Double.MAX_VALUE)));
 
-        for(var node : nodes) distances.put(node, node == startNode ? 0.0 : Double.MAX_VALUE);
+        nodes.forEach(e -> distances.put(e, e == startNode ? 0.0 : Double.MAX_VALUE));
 
         pq.offer(startNode);
 
         while(!pq.isEmpty()){
             OsmNode curNode = pq.poll();
 
-                if(curNode == endNode){
+                if (curNode == endNode) {
                     return createDijkstraPath(previousNodes, startNode, endNode, curveTree);
                 }
 
@@ -90,14 +87,13 @@ public class DijkstraConfiguration {
                         continue;
                     }
 
-                    var casted = (DbNode)nextNode;
-                    var height = curveTree.getHeightCurveForPoint(casted.getLon(), casted.getLat()).getHeight();
-                    if(height < waterLevel) continue;//Road is flooded
+                    var height = curveTree.getHeightCurveForPoint(nextNode.getLon(), nextNode.getLat()).getHeight();
+                    if (height < waterLevel) continue; //Road is flooded
 
                     double connectionDistance = connection.getValue();
                     double newDist = currDistance + connectionDistance;
 
-                    if(newDist < distances.get(nextNode)){
+                    if (newDist < distances.get(nextNode)) {
                         distances.put(nextNode, newDist);
                         previousNodes.put(nextNode, curNode);
                         pq.offer(nextNode);
