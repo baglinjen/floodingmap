@@ -48,38 +48,32 @@ public class OsmParserResult {
     }
 
     public ParserOsmElement findNode(long id) {
-        return findElement(id, 0, this.nodes.size(), new ArrayList<>(this.nodes));
+        return findElement(id, this.nodes);
     }
     public ParserOsmElement findWay(long id) {
-        return findElement(id, 0, this.ways.size(), this.ways);
+        return findElement(id, this.ways);
     }
     public ParserOsmElement findRelation(long id) {
-        return findElement(id, 0, this.relations.size(), this.relations);
+        return findElement(id, this.relations);
     }
 
-    private ParserOsmElement findElement(long id, int leftIndexBoundInclusive, int rightIndexBoundExclusive, List<ParserOsmElement> elements) {
-        if (leftIndexBoundInclusive > rightIndexBoundExclusive-1) {
-            return null;
-        } else if (leftIndexBoundInclusive == rightIndexBoundExclusive-1) {
-            var lastElement = elements.get(leftIndexBoundInclusive);
-            if (lastElement.getId() == id) {
-                return lastElement;
+    public <T extends ParserOsmElement> T findElement(long id, List<T> elements) {
+        int left = 0;
+        int right = elements.size() - 1;
+
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+            T midNode = elements.get(mid);
+
+            if (midNode.getId() == id) {
+                return midNode;
+            } else if (midNode.getId() < id) {
+                left = mid + 1;
             } else {
-                return null;
+                right = mid - 1;
             }
         }
 
-        var halfwayIndex = leftIndexBoundInclusive + ((rightIndexBoundExclusive - leftIndexBoundInclusive) / 2);
-        var halfWayElement = elements.get(halfwayIndex);
-        if (id > halfWayElement.getId()) {
-            // Look at right side
-            return findElement(id, halfwayIndex+1, rightIndexBoundExclusive, elements);
-        } else if (id < halfWayElement.getId()) {
-            // Look at left side
-            return findElement(id, leftIndexBoundInclusive, halfwayIndex, elements);
-        } else {
-            // Hit
-            return halfWayElement;
-        }
+        return null;
     }
 }

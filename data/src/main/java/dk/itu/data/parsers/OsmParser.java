@@ -69,6 +69,8 @@ public class OsmParser {
                 }
             }
 
+            logger.info("Finished parsing file {}", fileName);
+
         } catch (IOException | XMLStreamException e) {
             logger.error("Failed to parse file", e);
             throw new UnsupportedOperationException("Failed to parse file");
