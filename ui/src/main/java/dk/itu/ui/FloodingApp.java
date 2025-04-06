@@ -36,7 +36,7 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-            services.getGeoJsonService().loadGeoJsonData("tuna.geojson");
+//            services.getGeoJsonService().loadGeoJsonData("tuna.geojson");
             services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
             state.resetWindowBounds();
 
@@ -74,6 +74,7 @@ public class FloodingApp extends GameApplication {
                 g2d.clearRect(0, 0, WIDTH, HEIGHT);
                 g2d.setTransform(state.getSuperAffine());
 
+                osmElements.parallelStream().forEach(e -> e.prepareDrawing(g2d));
                 osmElements.forEach(element -> element.draw(g2d, strokeBaseWidth));
 
                 if(state.getWaterLevel() != registeredWaterLevel){
@@ -102,10 +103,12 @@ public class FloodingApp extends GameApplication {
                     registeredWaterLevel = state.getWaterLevel();
                 }
 
+                heightCurves.parallelStream().forEach(e -> e.prepareDrawing(g2d));
                 heightCurves.forEach(hc -> hc.draw(g2d, strokeBaseWidth));
 
                 var dijkstraRoute = state.getDijkstraConfiguration().getRoute();
                 if(dijkstraRoute != null){
+                    dijkstraRoute.prepareDrawing(g2d);
                     dijkstraRoute.draw(g2d, strokeBaseWidth);
                 }
 

@@ -8,13 +8,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static dk.itu.util.PolygonUtils.*;
+import static dk.itu.util.ShapePreparer.prepareComplexPolygon;
 
 public class ParserGeoJsonElement extends ParserDrawable implements GeoJsonElement {
     private final float height;
     private final double[] outerPolygon;
     private final List<double[]> innerPolygons = new ArrayList<>();
+    private Path2D.Double path = null;
     private final double[] bounds = new double[] {Double.MAX_VALUE, Double.MAX_VALUE, Double.MIN_VALUE, Double.MIN_VALUE};
-    private Path2D.Double shape;
     private final double area;
     private boolean belowWater;
     private boolean selected;
@@ -46,10 +47,6 @@ public class ParserGeoJsonElement extends ParserDrawable implements GeoJsonEleme
 
     public void addInnerPolygon(double[] innerPolygon) {
         innerPolygons.add(forceClockwise(innerPolygon));
-    }
-
-    public void calculateShape() {
-        this.shape = pathFromPolygonLists(List.of(outerPolygon), innerPolygons);
     }
 
     public float getHeight() {
@@ -84,16 +81,23 @@ public class ParserGeoJsonElement extends ParserDrawable implements GeoJsonEleme
     }
 
     @Override
+    public void prepareDrawing(Graphics2D g2d) {
+        path = prepareComplexPolygon(g2d, List.of(outerPolygon), innerPolygons, DRAWING_TOLERANCE);
+    }
+
+    @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
+        if (path == null) return;
+
         adjustStyles();
         var rgba = (belowWater || selected) ? getRgbaColor() : Color.BLACK;
 
         if(rgba != null){
             g2d.setColor(rgba);
             if (belowWater || selected) {
-                g2d.fill(shape);
+                g2d.fill(path);
             } else {
-                g2d.draw(shape);
+                g2d.draw(path);
             }
         }
     }

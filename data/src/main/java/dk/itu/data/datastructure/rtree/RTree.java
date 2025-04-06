@@ -45,7 +45,7 @@ public class RTree {
         if (root == null || root.mbr == null || !root.mbr.contains(point)) {
             return null;
         }
-        return getNearestElement(root, point); // TODO: Do second search through neighbouring bounding boxes when R* is implemented
+        return getNearestElement(root, point);
     }
 
     private OsmNode getNearestElement(RTreeNode node, Point2D.Double point) {

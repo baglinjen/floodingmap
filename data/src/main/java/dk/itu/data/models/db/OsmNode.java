@@ -40,5 +40,8 @@ public class OsmNode extends OsmElement {
     }
 
     @Override
+    public void prepareDrawing(Graphics2D g2d) { /* Nothing to prepare */ }
+
+    @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) { /* Nodes are not drawn for now */ }
 }

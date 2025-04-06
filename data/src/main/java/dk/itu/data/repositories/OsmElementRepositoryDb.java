@@ -13,6 +13,7 @@ import org.apache.fury.config.Language;
 import org.jetbrains.annotations.Nullable;
 import org.jooq.*;
 import org.jooq.impl.DSL;
+import org.jooq.meta.derby.sys.Sys;
 
 import java.awt.*;
 import java.awt.geom.Path2D;
@@ -54,7 +55,7 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
                 osmElements
                         .parallelStream()
                         .map(e -> switch (e) {
-                            case ParserOsmNode osmNode -> addNodeQuery(osmNode);
+                            case ParserOsmNode osmNode -> addNodeNormalQuery(osmNode);
                             case ParserOsmWay osmWay -> addWayQuery(osmWay);
                             case ParserOsmRelation osmRelation -> addRelationQuery(osmRelation);
                             default -> null;
@@ -69,16 +70,24 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
         ctx.batch(
                 osmElements
                         .parallelStream()
-                        .map(this::addNodeQuery)
+                        .map(this::addNodeTraversableQuery)
                         .collect(Collectors.toList())
         ).execute();
     }
 
-    private Query addNodeQuery(ParserOsmNode parserOsmNode) {
+    private Query addNodeTraversableQuery(ParserOsmNode osmNode) {
+        return addNodeQuery(osmNode, "nodesTraversable");
+    }
+
+    private Query addNodeNormalQuery(ParserOsmNode osmNode) {
+        return addNodeQuery(osmNode, "nodes");
+    }
+
+    private Query addNodeQuery(ParserOsmNode parserOsmNode, String table) {
         var geoField = DSL.field("ST_GeomFromText({0}, {1})", DSL.val(String.format("POINT(%s %s)", parserOsmNode.getLon(), parserOsmNode.getLat())), DSL.val(4326), Geometry.class);
         var osmNode = OsmNode.mapToOsmNode(parserOsmNode);
 
-        return ctx.insertInto(DSL.table("nodes"),
+        return ctx.insertInto(DSL.table(table),
                 DSL.field("id"),
                 DSL.field("coordinate"),
                 DSL.field("dbObj"),
@@ -240,7 +249,7 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
                         DSL.field("'n' as type", String.class),
                         DSL.field("n.area", Float.class)
                 )
-                .from(DSL.table("nodes").as("n"))
+                .from(DSL.table("nodesTraversable").as("n"))
                 .fetch(new RecordMapper<>() {
                     @Nullable
                     @Override
@@ -256,8 +265,26 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
 
     @Override
     public OsmNode getNearestTraversableOsmNode(double lon, double lat) {
-        return null;
-//        return rtree.nearestNeighbor(lon, lat);
+        var distCond = String.format("n.coordinate <-> 'SRID=4326;POINT(%s %s)'::geometry", lon, lat);
+        return ctx.select(
+                DSL.field("n.dbObj", byte[].class),
+                DSL.field("'n' as type", String.class),
+                DSL.field("n.area", Float.class)
+        )
+                .from(DSL.table("nodesTraversable").as("n"))
+                .orderBy(DSL.condition(distCond))
+                .limit(1)
+                .fetchOne(new RecordMapper<>() {
+                    @Nullable
+                    @Override
+                    public OsmNode map(Record3<byte[], String, Float> r) {
+                        if (r.component2().equals("n")) {
+                            return fury.deserializeJavaObject(r.component1(), OsmNode.class);
+                        } else {
+                            return null;
+                        }
+                    }
+                });
     }
 
     @Override

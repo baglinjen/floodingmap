@@ -10,11 +10,19 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology;
 
 
 DROP TABLE IF EXISTS nodes;
+DROP TABLE IF EXISTS nodesTraversable;
 DROP TABLE IF EXISTS ways;
 DROP TABLE IF EXISTS relations;
 DROP TABLE IF EXISTS geoJson;
 
 CREATE TABLE nodes (
+    id bigint primary key,
+    coordinate geometry(Point) not null,
+    dbObj bytea not null,
+    area float not null
+);
+
+CREATE TABLE nodesTraversable (
     id bigint primary key,
     coordinate geometry(Point) not null,
     dbObj bytea not null,
@@ -44,6 +52,8 @@ CREATE TABLE geoJson (
 
 CREATE INDEX idx_nodes_shape ON nodes USING GIST(coordinate);
 CREATE INDEX idx_nodes_area ON nodes(area);
+CREATE INDEX idx_nodes_traversable_shape ON nodesTraversable USING GIST(coordinate);
+CREATE INDEX idx_nodes_traversable_area ON nodesTraversable(area);
 CREATE INDEX idx_ways_line_shape ON ways USING GIST(line);
 CREATE INDEX idx_ways_polygons_shape ON ways USING GIST(polygon);
 CREATE INDEX idx_ways_area ON ways(area);

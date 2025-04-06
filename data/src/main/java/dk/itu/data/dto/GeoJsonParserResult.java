@@ -34,8 +34,6 @@ public class GeoJsonParserResult {
                 }
             }
         }
-
-        geoJsonElements.parallelStream().forEach(ParserGeoJsonElement::calculateShape);
     }
 
     public void addWorldRoot(){

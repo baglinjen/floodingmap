@@ -4,14 +4,16 @@ import java.awt.*;
 import java.awt.geom.Path2D;
 import java.util.List;
 
+import static dk.itu.util.ShapePreparer.prepareLinePath;
+import static dk.itu.util.ShapePreparer.preparePolygonPath;
 import static dk.itu.util.PolygonUtils.*;
 
 public class ParserOsmWay extends ParserOsmElement {
     private final double[] bounds = new double[4];
     private final double[] coordinates;
+    private Path2D.Double path = null;
 
     private final boolean isLine;
-    private final Path2D.Double shape;
 
     public ParserOsmWay(long id, List<ParserOsmNode> nodes) {
         super(id);
@@ -39,8 +41,6 @@ public class ParserOsmWay extends ParserOsmElement {
         isLine = nodes.getFirst().getId() != nodes.getLast().getId();
 
         coordinates = isLine ? coordinatesRaw : forceCounterClockwise(coordinatesRaw);
-
-        shape = pathFromShape(coordinates, !isLine);
     }
 
     @Override
@@ -53,11 +53,6 @@ public class ParserOsmWay extends ParserOsmElement {
         return bounds;
     }
 
-    @Override
-    public Path2D.Double getShape() {
-        return shape;
-    }
-
     public boolean isLine() {
         return isLine;
     }
@@ -67,13 +62,20 @@ public class ParserOsmWay extends ParserOsmElement {
     }
 
     @Override
+    public void prepareDrawing(Graphics2D g2d) {
+        path = isLine ? prepareLinePath(g2d, coordinates, 1) : preparePolygonPath(g2d, coordinates, 1);
+    }
+
+    @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
+        if (path == null) return;
+
         g2d.setColor(getRgbaColor());
         if (isLine) {
             g2d.setStroke(new BasicStroke(strokeBaseWidth * getStroke()));
-            g2d.draw(shape);
+            g2d.draw(path);
         } else {
-            g2d.fill(shape);
+            g2d.fill(path);
         }
     }
 }

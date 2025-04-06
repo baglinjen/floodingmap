@@ -32,7 +32,7 @@ public class OsmService {
         return osmElementRepository.getOsmElements(limit, minLon, minLat, maxLon, maxLat);
     }
 
-    public List<OsmElement> getTraversableOsmNodes(){
+    public List<OsmNode> getTraversableOsmNodes(){
         return new ArrayList<>(osmElementRepository.getTraversableOsmNodes());
     }
 

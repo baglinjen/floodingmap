@@ -26,16 +26,10 @@ public class DataLoadComponent extends SplitMenuButton {
             }
             Services.withServices(services -> {
                 if (selectedFile.endsWith(".osm")) {
-                    task = new Thread(() -> {
-                        setDisable(true);
-                        setText("Loading OSM file");
-                        services.getOsmService(state.isWithDb()).loadOsmData(selectedFile);
-                        setDisable(false);
-                        setText("Select data file");
-                        selectedFile = null;
-                        task = null;
-                    });
-                    task.start();
+                    setDisable(true);
+                    setText("Loading OSM file");
+                    services.getOsmService(state.isWithDb()).loadOsmData(selectedFile);
+                    setDisable(false);
                 } else if (selectedFile.endsWith(".geojson")) {
 
                     task = new Thread(() -> {

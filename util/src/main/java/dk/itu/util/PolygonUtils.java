@@ -1,8 +1,5 @@
 package dk.itu.util;
 
-import java.awt.geom.Path2D;
-import java.util.List;
-
 public class PolygonUtils {
     /**
      * Calculates the exact area of a polygon from an array of coordinates using the shoelace formula
@@ -45,31 +42,6 @@ public class PolygonUtils {
             area += (currentX * nextY) - (nextX * currentY);
         }
         return area;
-    }
-
-    public static Path2D.Double pathFromShape(double[] coordinates, boolean isPolygon) {
-        Path2D.Double path = new Path2D.Double(Path2D.WIND_NON_ZERO);
-        buildOnPath2D(path, coordinates, isPolygon);
-        return path;
-    }
-
-    @SafeVarargs
-    public static Path2D.Double pathFromPolygonLists(List<double[]>... polygonLists) {
-        Path2D.Double p = new Path2D.Double(Path2D.WIND_EVEN_ODD);
-        for (List<double[]> polygonList : polygonLists) {
-            for (double[] polygon : polygonList) {
-                buildOnPath2D(p, polygon, true);
-            }
-        }
-        return p;
-    }
-
-    public static void buildOnPath2D(Path2D.Double path, double[] coordinates, boolean isPolygon) {
-        path.moveTo(0.56*coordinates[0], -coordinates[1]);
-        for (int i = 2; i < coordinates.length; i+=2) {
-            path.lineTo(0.56*coordinates[i], -coordinates[i+1]);
-        }
-        if (isPolygon) path.closePath();
     }
 
     public static double[] forceClockwise(double[] polygon) {

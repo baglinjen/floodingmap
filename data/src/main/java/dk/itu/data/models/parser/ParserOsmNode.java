@@ -1,7 +1,6 @@
 package dk.itu.data.models.parser;
 
 import java.awt.*;
-import java.awt.geom.Path2D;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,14 +34,12 @@ public class ParserOsmNode extends ParserOsmElement {
     }
 
     @Override
-    public Path2D.Double getShape() {
-        return null;
-    }
-
-    @Override
     public double[] getBounds() {
         return new double[]{lon, lat, lon, lat};
     }
+
+    @Override
+    public void prepareDrawing(Graphics2D g2d) { /* Nothing to prepare */ }
 
     @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) { /* Nodes are not drawn for now */ }

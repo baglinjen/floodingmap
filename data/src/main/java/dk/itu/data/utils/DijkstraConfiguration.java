@@ -37,25 +37,30 @@ public class DijkstraConfiguration {
 
             var route = createDijkstra(startNode, endNode, nodes);
 
-            if(route == null) throw new RuntimeException("No possible route could be found between: " + startNode.getId() + ", " + endNode.getId());
+            if (route == null) throw new RuntimeException("No possible route could be found between: " + startNode.getId() + ", " + endNode.getId());
 
             this.route = route;
         });
 
     }
 
-    private OsmElement createDijkstra(OsmElement startNode, OsmElement endNode, List<OsmElement> nodes){
-        Map<OsmElement, OsmElement> previousNodes = new HashMap<>();
-        Map<OsmElement, Double> distances = new HashMap<>();
+    private OsmElement createDijkstra(OsmNode startNode, OsmNode endNode, List<OsmNode> nodes){
+        nodes.removeIf(e -> e.getId() == startNode.getId());
+        nodes.removeIf(e -> e.getId() == endNode.getId());
+        nodes.add(startNode);
+        nodes.add(endNode);
 
-        PriorityQueue<OsmElement> pq = new PriorityQueue<>(Comparator.comparingDouble(n -> distances.getOrDefault(n, Double.MAX_VALUE)));
+        Map<OsmNode, OsmNode> previousNodes = new HashMap<>();
+        Map<OsmNode, Double> distances = new HashMap<>();
+
+        PriorityQueue<OsmNode> pq = new PriorityQueue<>(Comparator.comparingDouble(n -> distances.getOrDefault(n, Double.MAX_VALUE)));
 
         for(var node : nodes) distances.put(node, node == startNode ? 0.0 : Double.MAX_VALUE);
 
         pq.offer(startNode);
 
         while(!pq.isEmpty()){
-            OsmNode curNode = (OsmNode) pq.poll();
+            OsmNode curNode = pq.poll();
 
                 if(curNode == endNode){
                     return createDijkstraPath(previousNodes, startNode, endNode);
@@ -64,9 +69,9 @@ public class DijkstraConfiguration {
                 double currDistance = distances.get(curNode);
 
                 for(var connection : curNode.getConnectionMap().entrySet()){
-                    OsmElement nextNode;
+                    OsmNode nextNode;
                     try{
-                        nextNode = nodes.parallelStream().filter(o -> o.getId() == connection.getKey()).findFirst().get();
+                        nextNode = nodes.parallelStream().filter(o -> o.getId() == connection.getKey()).findFirst().orElseThrow();
                     } catch(NoSuchElementException e){
                         continue;
                     }
@@ -82,11 +87,11 @@ public class DijkstraConfiguration {
                 }
         }
 
-        return null;//No path found
+        return null; //No path found
     }
 
-    private OsmElement createDijkstraPath(Map<OsmElement, OsmElement> previousNodes, OsmElement startNode, OsmElement endNode){
-        List<OsmElement> path = new ArrayList<>();
+    private OsmElement createDijkstraPath(Map<OsmNode, OsmNode> previousNodes, OsmNode startNode, OsmNode endNode){
+        List<OsmNode> path = new ArrayList<>();
         var curNode = endNode;
 
         while(curNode != startNode){
@@ -99,9 +104,8 @@ public class DijkstraConfiguration {
         var coordinateList = new double[path.size() * 2];
         var count = 0;
         for(var x : path){
-            var dbNodeX = (OsmNode) x;
-            coordinateList[count] = dbNodeX.getLon();
-            coordinateList[count+1] = dbNodeX.getLat();
+            coordinateList[count] = x.getLon();
+            coordinateList[count+1] = x.getLat();
             count = count + 2;
         }
 
