@@ -9,7 +9,7 @@ import java.util.Comparator;
 import java.util.List;
 
 public class RTree {
-    private static final int MAX_ENTRIES = 10; // TODO: Test most efficient max per node before split
+    private static final int MAX_ENTRIES = 500; // TODO: Test most efficient max per node before split
     private RTreeNode root;
 
     public List<OsmElement> search(double minLon, double minLat, double maxLon, double maxLat) {
@@ -17,12 +17,12 @@ public class RTree {
             return List.of();
         }
 
-        return new ArrayList<>(searchRecursive(root, new BoundingBox(minLon, minLat, maxLon, maxLat))
-                .parallelStream()
-                .map(RTreeNode::getElements)
-                .flatMap(List::stream)
-                .sorted(Comparator.comparingDouble(OsmElementMemory::getArea).reversed())
-                .toList());
+        List<OsmElementMemory> elements = new ArrayList<>();
+
+        searchRecursive(root, new BoundingBox(minLon, minLat, maxLon, maxLat), elements);
+
+        return new ArrayList<>(elements.parallelStream()
+                .sorted(Comparator.comparingDouble(OsmElementMemory::getArea).reversed()).toList());
     }
 
     public void insert(OsmElementMemory element) {
@@ -335,25 +335,21 @@ public class RTree {
         }
     }
 
-    private List<RTreeNode> searchRecursive(RTreeNode node, BoundingBox queryBox) {
-        List<RTreeNode> results = new ArrayList<>();
-
+    private void searchRecursive(RTreeNode node, BoundingBox queryBox, List<OsmElementMemory> results) {
         if (!node.mbr.intersects(queryBox)) {
-            return results; // No intersection, skip this branch
+            return; // No intersection, skip this branch
         }
 
         if (node.isLeaf()) { // If it's a leaf, add matching elements
             for (OsmElementMemory element : node.elements) {
                 if (element.getBoundingBox().intersects(queryBox)) {
-                    results.add(node);
+                    results.add(element);
                 }
             }
         } else {
             for (RTreeNode child : node.children) {   // Recurse into children
-                results.addAll(searchRecursive(child, queryBox));
+                searchRecursive(child, queryBox, results);
             }
         }
-
-        return results;
     }
 }
