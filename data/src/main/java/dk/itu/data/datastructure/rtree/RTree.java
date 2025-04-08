@@ -113,49 +113,49 @@ public class RTree {
         return new OsmElementMemory[]{seedA, seedB};
     }
 
-    private RTreeNode chooseSubtree(RTreeNode parent, OsmElementMemory newEntry) {
-        RTreeNode bestNode = null;
-        double minOverlapIncrease = Double.MAX_VALUE;
-        double minAreaIncrease = Double.MAX_VALUE;
+//    private RTreeNode chooseSubtree(RTreeNode parent, OsmElementMemory newEntry) {
+//        RTreeNode bestNode = null;
+//        double minOverlapIncrease = Double.MAX_VALUE;
+//        double minAreaIncrease = Double.MAX_VALUE;
+//
+//        for (RTreeNode child : parent.children) {
+//            double originalOverlap = computeOverlap(parent.children);
+//            double newOverlap = computeOverlapAfterInsertion(parent.children, newEntry, child);
+//
+//            double overlapIncrease = newOverlap - originalOverlap;
+//            double areaIncrease = child.mbr.getExpanded(newEntry.getBoundingBox()).area() - child.mbr.area();
+//
+//            if (overlapIncrease < minOverlapIncrease ||
+//                    (overlapIncrease == minOverlapIncrease && areaIncrease < minAreaIncrease)) {
+//                bestNode = child;
+//                minOverlapIncrease = overlapIncrease;
+//                minAreaIncrease = areaIncrease;
+//            }
+//        }
+//        return bestNode;
+//    }
 
-        for (RTreeNode child : parent.children) {
-            double originalOverlap = computeOverlap(parent.children);
-            double newOverlap = computeOverlapAfterInsertion(parent.children, newEntry, child);
-
-            double overlapIncrease = newOverlap - originalOverlap;
-            double areaIncrease = child.mbr.getExpanded(newEntry.getBoundingBox()).area() - child.mbr.area();
-
-            if (overlapIncrease < minOverlapIncrease ||
-                    (overlapIncrease == minOverlapIncrease && areaIncrease < minAreaIncrease)) {
-                bestNode = child;
-                minOverlapIncrease = overlapIncrease;
-                minAreaIncrease = areaIncrease;
-            }
-        }
-        return bestNode;
-    }
-
-    private double computeOverlap(List<RTreeNode> children) {
-        double overlap = 0;
-        for (int i = 0; i < children.size(); i++) {
-            for (int j = i + 1; j < children.size(); j++) {
-                overlap += children.get(i).mbr.intersectionArea(children.get(j).mbr);
-            }
-        }
-        return overlap;
-    }
-
-    private double computeOverlapAfterInsertion(List<RTreeNode> children, OsmElementMemory newEntry, RTreeNode targetChild) {
-        BoundingBox newMBB = targetChild.mbr.getExpanded(newEntry.getBoundingBox());
-
-        double overlap = 0;
-        for (RTreeNode child : children) {
-            if (child != targetChild) {
-                overlap += newMBB.intersectionArea(child.mbr);
-            }
-        }
-        return overlap;
-    }
+//    private double computeOverlap(List<RTreeNode> children) {
+//        double overlap = 0;
+//        for (int i = 0; i < children.size(); i++) {
+//            for (int j = i + 1; j < children.size(); j++) {
+//                overlap += children.get(i).mbr.intersectionArea(children.get(j).mbr);
+//            }
+//        }
+//        return overlap;
+//    }
+//
+//    private double computeOverlapAfterInsertion(List<RTreeNode> children, OsmElementMemory newEntry, RTreeNode targetChild) {
+//        BoundingBox newMBB = targetChild.mbr.getExpanded(newEntry.getBoundingBox());
+//
+//        double overlap = 0;
+//        for (RTreeNode child : children) {
+//            if (child != targetChild) {
+//                overlap += newMBB.intersectionArea(child.mbr);
+//            }
+//        }
+//        return overlap;
+//    }
 
     private double computeOverlapIncrease(RTreeNode node, BoundingBox newBBox) {
         BoundingBox expanded = node.mbr.getExpanded(newBBox);
@@ -165,24 +165,24 @@ public class RTree {
     private void forcedReinsert(RTreeNode node) {
         if (node.elements.size() <= MAX_ENTRIES) return;
 
-        // Step 1: Sort elements by distance from node's center
+        // Sort elements by distance from node's center
         BoundingBox nodeCenter = node.mbr;
         node.elements.sort(Comparator.comparingDouble(
                 e -> e.getBoundingBox().distanceToBoundingBox(nodeCenter))
         );
 
-        // Step 2: Remove a fraction (e.g., 30%) for reinsertion
+        // Remove a fraction (e.g., 30%) for reinsertion
         int reinsertCount = (int) (node.elements.size() * 0.3);
         List<OsmElementMemory> toReinsert = new ArrayList<>(
                 node.elements.subList(node.elements.size() - reinsertCount, node.elements.size())
         );
 
-        // Step 3: Remove from the node
+        // Remove from the node
         node.elements.removeAll(toReinsert);
 
-        // Step 4: Reinsert removed elements
+        // Reinsert removed elements
         for (OsmElementMemory e : toReinsert) {
-            insert(e); // Assuming you have an insert method
+            insert(e);
         }
     }
 
@@ -206,7 +206,7 @@ public class RTree {
 
         // Distribution of the rest
         while (!elements.isEmpty()) {
-            OsmElementMemory element = elements.remove(0);
+            OsmElementMemory element = elements.removeFirst();
             double overlapA = computeOverlapIncrease(groupA, element.getBoundingBox());
             double overlapB = computeOverlapIncrease(groupB, element.getBoundingBox());
 
@@ -276,7 +276,6 @@ public class RTree {
             newNodeB.addChild(child);
         }
 
-        // Update bounding boxes for the new nodes
         newNodeA.updateBoundingBox();
         newNodeB.updateBoundingBox();
 
