@@ -18,6 +18,10 @@ public abstract class OsmElementMemory extends Colored implements OsmElement {
 
     public BoundingBox getBoundingBox() { return boundingBox; }
 
+    public double distance(OsmElementMemory other) {
+        return this.boundingBox.distanceToBoundingBox(other.boundingBox);
+    }
+
     @Override
     public long getId() { return id; }
 }

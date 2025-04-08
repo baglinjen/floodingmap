@@ -1,6 +1,5 @@
 package dk.itu.data.datastructure.rtree;
 
-import dk.itu.common.models.OsmElement;
 import dk.itu.data.models.memory.BoundingBox;
 import dk.itu.data.models.memory.OsmElementMemory;
 
