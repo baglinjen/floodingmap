@@ -36,8 +36,8 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-            services.getGeoJsonService().loadGeoJsonData("tuna.geojson");
-            services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
+//            services.getGeoJsonService().loadGeoJsonData("tuna.geojson");
+            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
             state.resetWindowBounds();
 
             float registeredWaterLevel = 0.0f;

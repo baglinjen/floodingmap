@@ -1,6 +1,5 @@
 package dk.itu.data.models.db;
 
-import java.awt.*;
 import java.awt.geom.Point2D;
 import java.io.Serializable;
 
@@ -46,6 +45,20 @@ public class BoundingBox implements Serializable {
         double bestDx = Math.min(Math.abs(minLon - p.x), Math.abs(maxLon - p.x));
         double bestDy = Math.min(Math.abs(minLat - p.y), Math.abs(maxLat - p.y));
         return Math.sqrt(Math.pow(bestDx, 2) + Math.pow(bestDy, 2));
+    }
+
+    public double distanceToBoundingBox(BoundingBox other) {
+        double dx = Math.max(0, Math.max(
+                other.getMinLon() - this.getMaxLon(),
+                this.getMinLon() - other.getMaxLon()
+        ));
+
+        double dy = Math.max(0, Math.max(
+                other.getMinLat() - this.getMaxLat(),
+                this.getMinLat() - other.getMaxLat()
+        ));
+
+        return Math.sqrt(dx * dx + dy * dy);
     }
 
     public double getMinLon() {

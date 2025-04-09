@@ -45,7 +45,7 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
 
     @Override
     public List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
-        return rtree.search(minLon, minLat, maxLon, maxLat).parallelStream().toList();
+        return rtree.search(limit, minLon, minLat, maxLon, maxLat);
     }
 
     @Override
