@@ -150,6 +150,9 @@ public class FloodingApp extends GameApplication {
             if (CommonConfiguration.getInstance().shouldForceParseOsm()) {
                 services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
             }
+//            if (CommonConfiguration.getInstance().shouldForceParseOsm()) {
+//                services.getOsmService().loadOsmDataInDb("modified-tuna.osm");
+//            }
             // TODO: Load in DB using GeoJson service
             // if (CommonConfiguration.getInstance().shouldForceParseGeoJson()) {
             //     services.getGeoJsonService().loadGeoJsonData("modified-tuna.geojson");
