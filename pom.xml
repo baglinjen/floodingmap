@@ -13,6 +13,7 @@
         <module>ui</module>
         <module>data</module>
         <module>util</module>
+        <module>testGl</module>
     </modules>
 
     <properties>
