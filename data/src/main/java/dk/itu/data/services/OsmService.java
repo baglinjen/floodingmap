@@ -2,10 +2,11 @@ package dk.itu.data.services;
 
 import dk.itu.common.models.OsmElement;
 import dk.itu.data.dto.OsmParserResult;
-import dk.itu.data.models.db.DbBounds;
-import dk.itu.data.models.db.DbNode;
+import dk.itu.data.models.db.Bounds;
 import dk.itu.data.parsers.OsmParser;
 import dk.itu.data.repositories.OsmElementRepository;
+import dk.itu.data.repositories.OsmElementRepositoryDb;
+import dk.itu.data.repositories.OsmElementRepositoryMemory;
 
 import java.sql.Connection;
 import java.util.List;
@@ -15,7 +16,11 @@ public class OsmService {
     private final OsmElementRepository osmElementRepository;
 
     public OsmService(Connection connection) {
-        osmElementRepository = new OsmElementRepository(connection);
+        osmElementRepository = new OsmElementRepositoryDb(connection);
+    }
+
+    public OsmService() {
+        osmElementRepository = OsmElementRepositoryMemory.getInstance();
     }
 
     public List<OsmElement> getOsmElementsToBeDrawn(int limit, double minLon, double minLat, double maxLon, double maxLat) {
@@ -23,17 +28,18 @@ public class OsmService {
     }
 
     public List<OsmElement> getOsmNodes(){
-        return osmElementRepository.getOsmNodes();
+       // return osmElementRepository.getOsmNodes();
+        return List.of();
     }
 
-    public void loadOsmDataInDb(String osmFileName) {
+    public void loadOsmData(String osmFileName) {
         OsmParserResult osmParserResult = new OsmParserResult();
 
         // Get data from OSM file
         OsmParser.parse(osmFileName, osmParserResult);
 
         //Add nodes to database for routing
-        osmElementRepository.add(osmParserResult.getNodesForRouting());
+        // osmElementRepository.add(osmParserResult.getNodesForRouting());
 
         // Filter and sort data for visual purposes
         osmParserResult.sanitize();
@@ -42,11 +48,11 @@ public class OsmService {
         osmElementRepository.add(osmParserResult.getElementsToBeDrawn());
     }
 
-    public DbBounds getBounds() {
+    public Bounds getBounds() {
         return osmElementRepository.getBounds();
     }
 
     public void clearAll() {
-        osmElementRepository.clearAll();
+        // osmElementRepository.clearAll();
     }
 }

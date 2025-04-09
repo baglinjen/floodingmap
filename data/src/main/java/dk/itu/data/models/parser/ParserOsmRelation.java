@@ -121,15 +121,15 @@ public class ParserOsmRelation extends ParserOsmElement {
             }
 
             double[] elementBounds = element.getBounds();
-            if (elementBounds[0] < minLat) minLat = elementBounds[0];
-            if (elementBounds[1] < minLon) minLon = elementBounds[1];
-            if (elementBounds[2] > maxLat) maxLat = elementBounds[2];
-            if (elementBounds[3] > maxLon) maxLon = elementBounds[3];
+            if (elementBounds[0] < minLon) minLon = elementBounds[0];
+            if (elementBounds[1] < minLat) minLat = elementBounds[1];
+            if (elementBounds[2] > maxLon) maxLon = elementBounds[2];
+            if (elementBounds[3] > maxLat) maxLat = elementBounds[3];
         }
-        bounds[0] = minLat;
-        bounds[1] = minLon;
-        bounds[2] = maxLat;
-        bounds[3] = maxLon;
+        bounds[0] = minLon;
+        bounds[1] = minLat;
+        bounds[2] = maxLon;
+        bounds[3] = maxLat;
 
         for (int i = 0; i < pathsToAdd.size(); i++) {
             var ii = pathsToAdd.get(i);

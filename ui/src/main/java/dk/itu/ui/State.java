@@ -21,6 +21,7 @@ public class State {
     private final SuperAffine superAffine = new SuperAffine();
     private boolean showSelected = false;
     private ParserGeoJsonElement hcSelected = null;
+    private boolean withDb = false; // TODO: Initialize from common config
 
     public State(Services services) {
         this.dijkstraConfiguration = new DijkstraConfiguration();
@@ -124,7 +125,7 @@ public class State {
     }
 
     public void resetWindowBounds(Services services) {
-        var bounds = services.getOsmService().getBounds();
+        var bounds = services.getOsmService(withDb).getBounds();
         double scale = HEIGHT / (bounds.maxLat() - bounds.minLat());
         getSuperAffine()
                 .reset()
@@ -135,5 +136,13 @@ public class State {
                         scale,
                         scale
                 );
+    }
+
+    public boolean isWithDb() {
+        return withDb;
+    }
+
+    public void setWithDb(boolean withDb) {
+        this.withDb = withDb;
     }
 }

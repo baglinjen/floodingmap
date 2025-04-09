@@ -34,10 +34,9 @@ public class FloodingApp extends GameApplication {
 
     private void renderLoop() throws InterruptedException {
         Services.withServices(services -> {
-
-            // Temporary whilst using in-memory
-            services.getGeoJsonService().loadGeoJsonData("tuna-dijkstra.geojson");
-
+            // services.getGeoJsonService().loadGeoJsonData("tuna.geojson");
+            services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
+          
             float registeredWaterLevel = 0.0f;
 
             while (true) {
@@ -45,7 +44,7 @@ public class FloodingApp extends GameApplication {
 
                 var window = state.getWindowBounds();
                 var osmElements = services
-                        .getOsmService()
+                        .getOsmService(state.isWithDb())
                         .getOsmElementsToBeDrawn(
                                 state.getOsmLimit(),
                                 window[0],
@@ -129,8 +128,11 @@ public class FloodingApp extends GameApplication {
                 .createCompatibleImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB_PRE);
         Services.withServices(services -> {
             if (CommonConfiguration.getInstance().shouldForceParseOsm()) {
-                services.getOsmService().loadOsmDataInDb("modified-tuna.osm");
+                services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
             }
+//            if (CommonConfiguration.getInstance().shouldForceParseOsm()) {
+//                services.getOsmService().loadOsmDataInDb("modified-tuna.osm");
+//            }
             // TODO: Load in DB using GeoJson service
             // if (CommonConfiguration.getInstance().shouldForceParseGeoJson()) {
             //     services.getGeoJsonService().loadGeoJsonData("modified-tuna.geojson");
