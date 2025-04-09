@@ -34,11 +34,9 @@ public class FloodingApp extends GameApplication {
 
     private void renderLoop() throws InterruptedException {
         Services.withServices(services -> {
-
-            // Temporary whilst using in-memory
             // services.getGeoJsonService().loadGeoJsonData("tuna.geojson");
             services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
-
+          
             float registeredWaterLevel = 0.0f;
 
             while (true) {
@@ -107,7 +105,7 @@ public class FloodingApp extends GameApplication {
                     hc.draw(g2d, strokeBaseWidth);
                 });
 
-                var dijkstraRoute = state.getDijkstraConfiguration().getRoute();
+                var dijkstraRoute = state.getDijkstraConfiguration().getRoute(state.getWaterLevel());
                 if(dijkstraRoute != null){
                     dijkstraRoute.draw(g2d, strokeBaseWidth * 6);
                 }

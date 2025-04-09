@@ -105,6 +105,7 @@ public class State {
     }
     public void setWaterLevel(float waterLevel) {
         this.waterLevel = waterLevel;
+        this.dijkstraConfiguration.setWaterLevel(waterLevel);
     }
 
     // Getter for Affine

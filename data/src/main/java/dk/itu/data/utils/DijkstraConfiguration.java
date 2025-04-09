@@ -1,9 +1,11 @@
 package dk.itu.data.utils;
 import dk.itu.common.models.OsmElement;
+import dk.itu.data.datastructure.curvetree.CurveTree;
 import dk.itu.data.models.db.DbNode;
 import dk.itu.data.models.db.DbWay;
 import dk.itu.data.services.Services;
 import dk.itu.util.PolygonUtils;
+import kotlin.Pair;
 
 import java.awt.*;
 import java.util.*;
@@ -11,22 +13,27 @@ import java.util.List;
 
 public class DijkstraConfiguration {
     private long startNodeId, endNodeId;
-    private OsmElement route;
+    private double waterLevel = 0.0;
+    private Pair<OsmElement, Double> route;
 
     //Getters and setters for start node
-    public long getStartNodeId(){return startNodeId;}
     public void setStartNodeId(String startNodeId){
         this.startNodeId = Long.parseLong(startNodeId);
     }
 
     //Getters and setters for end node
-    public long getEndNodeId(){return endNodeId;}
     public void setEndNodeId(String endNodeId){
         this.endNodeId = Long.parseLong(endNodeId);
     }
 
-    public OsmElement getRoute(){
-        return route;
+    public void setWaterLevel(double waterLevel){this.waterLevel = waterLevel;}
+
+    public OsmElement getRoute(double currentWaterLevel){
+        if(route == null) return null;
+
+        if(route.getSecond() != currentWaterLevel) calculateRoute();
+
+        return (route == null ? null : route.getFirst());
     }
 
     public void calculateRoute(){
@@ -38,16 +45,16 @@ public class DijkstraConfiguration {
             var startNode = nodes.parallelStream().filter(o -> o.getId() == startNodeId).findFirst().orElseThrow(() -> new IllegalArgumentException("No start node found with ID: " + startNodeId));
             var endNode = nodes.parallelStream().filter(o -> o.getId() == endNodeId).findFirst().orElseThrow(() -> new IllegalArgumentException("No end node found with ID: " + endNodeId));
 
-            var route = createDijkstra(startNode, endNode, nodes);
+            var route = createDijkstra(startNode, endNode, nodes, s.getGeoJsonService().getCurveTree());
 
             if(route == null) throw new RuntimeException("No possible route could be found between: " + startNodeId + ", " + endNodeId);
 
-            this.route = route;
+            this.route = new Pair<>(route, waterLevel);
         });
 
     }
 
-    private OsmElement createDijkstra(OsmElement startNode, OsmElement endNode, List<OsmElement> nodes){
+    private OsmElement createDijkstra(OsmElement startNode, OsmElement endNode, List<OsmElement> nodes, CurveTree curveTree){
         Map<OsmElement, OsmElement> previousNodes = new HashMap<>();
         Map<OsmElement, Double> distances = new HashMap<>();
 
@@ -61,7 +68,7 @@ public class DijkstraConfiguration {
                 DbNode curNode = (DbNode)pq.poll();
 
                 if(curNode == endNode){
-                    return createDijkstraPath(previousNodes, startNode, endNode);
+                    return createDijkstraPath(previousNodes, startNode, endNode, curveTree);
                 }
 
                 double currDistance = distances.get(curNode);
@@ -73,6 +80,10 @@ public class DijkstraConfiguration {
                     } catch(NoSuchElementException e){
                         continue;
                     }
+
+                    var casted = (DbNode)nextNode;
+                    var height = curveTree.getHeightCurveForPoint(casted.getLon(), casted.getLat()).getHeight();
+                    if(height < waterLevel) continue;//Road is flooded
 
                     double connectionDistance = connection.getValue();
                     double newDist = currDistance + connectionDistance;
@@ -88,7 +99,7 @@ public class DijkstraConfiguration {
         return null;//No path found
     }
 
-    private OsmElement createDijkstraPath(Map<OsmElement, OsmElement> previousNodes, OsmElement startNode, OsmElement endNode){
+    private OsmElement createDijkstraPath(Map<OsmElement, OsmElement> previousNodes, OsmElement startNode, OsmElement endNode, CurveTree curveTree){
         List<OsmElement> path = new ArrayList<>();
         var curNode = endNode;
 
