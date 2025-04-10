@@ -19,6 +19,10 @@ public class OsmWay extends OsmElement {
         this.outerCoordinates = outerCoordinates;
     }
 
+    public double[] getOuterCoordinates(){
+        return outerCoordinates;
+    }
+
     public static OsmWay mapToOsmWay(ParserOsmWay parserOsmWay) {
         var bounds = parserOsmWay.getBounds();
 

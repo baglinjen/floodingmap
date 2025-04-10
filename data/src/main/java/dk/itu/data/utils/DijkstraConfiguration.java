@@ -14,6 +14,7 @@ import java.util.List;
 public class DijkstraConfiguration {
     private static final Logger logger = LoggerFactory.getLogger();
     private OsmNode startNode, endNode;
+    private long startNodeId, endNodeId;
     private double waterLevel = 0.0;
     private Pair<OsmElement, Double> route;
 
@@ -22,6 +23,14 @@ public class DijkstraConfiguration {
     }
     public void setStartNode(OsmNode startNode){
         this.startNode = startNode;
+    }
+
+    //Setters for testing purposes
+    public void setStartNodeId(long startNodeId){
+        this.startNodeId = startNodeId;
+    }
+    public void setEndNodeId(long endNodeId){
+        this.endNodeId = endNodeId;
     }
 
     public OsmNode getEndNode() {
@@ -44,6 +53,10 @@ public class DijkstraConfiguration {
     public void calculateRoute(boolean isWithDb) {
         Services.withServices(s -> {
             var nodes = s.getOsmService(isWithDb).getTraversableOsmNodes();
+
+            //If no nodes have been set -> attempt to find nodes by id
+            if(startNode == null) startNode = nodes.stream().filter(c -> c.getId() == startNodeId).findFirst().get();
+            if(endNode == null) endNode = nodes.stream().filter(c -> c.getId() == endNodeId).findFirst().get();
 
             if (startNode.getId() == endNode.getId()) throw new IllegalArgumentException("Start node and end node can not be the same");
 
@@ -74,7 +87,7 @@ public class DijkstraConfiguration {
             OsmNode curNode = pq.poll();
 
                 if (curNode == endNode) {
-                    return createDijkstraPath(previousNodes, startNode, endNode, curveTree);
+                    return createDijkstraPath(previousNodes, startNode, endNode);
                 }
 
                 double currDistance = distances.get(curNode);
@@ -104,7 +117,7 @@ public class DijkstraConfiguration {
         return null; //No path found
     }
 
-    private OsmElement createDijkstraPath(Map<OsmNode, OsmNode> previousNodes, OsmNode startNode, OsmNode endNode, CurveTree curveTree){
+    private OsmElement createDijkstraPath(Map<OsmNode, OsmNode> previousNodes, OsmNode startNode, OsmNode endNode){
         List<OsmNode> path = new ArrayList<>();
         var curNode = endNode;
 
