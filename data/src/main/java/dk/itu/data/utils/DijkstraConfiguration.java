@@ -13,10 +13,12 @@ import java.util.List;
 
 public class DijkstraConfiguration {
     private static final Logger logger = LoggerFactory.getLogger();
+    private boolean shouldVisualize = false;
     private OsmNode startNode, endNode;
     private long startNodeId, endNodeId;
     private double waterLevel = 0.0;
     private Pair<OsmElement, Double> route;
+    private final List<OsmNode> touchedNodes = new ArrayList<>();
 
     public OsmNode getStartNode() {
         return startNode;
@@ -42,12 +44,21 @@ public class DijkstraConfiguration {
 
     public void setWaterLevel(double waterLevel){this.waterLevel = waterLevel;}
 
+    public boolean getShouldVisualize(){return shouldVisualize;}
+    public void toggleShouldVisualize(){
+        shouldVisualize = !shouldVisualize;
+    }
+
     public OsmElement getRoute(boolean isWithDb, double currentWaterLevel){
         if (route == null) return null;
 
         if (route.getSecond() != currentWaterLevel) calculateRoute(isWithDb);
 
         return (route == null ? null : route.getFirst());
+    }
+
+    public List<OsmNode> getTouchedNodes(){
+        return touchedNodes;
     }
 
     public void calculateRoute(boolean isWithDb) {
@@ -59,6 +70,8 @@ public class DijkstraConfiguration {
             if(endNode == null) endNode = nodes.stream().filter(c -> c.getId() == endNodeId).findFirst().get();
 
             if (startNode.getId() == endNode.getId()) throw new IllegalArgumentException("Start node and end node can not be the same");
+
+            touchedNodes.clear();
 
             var route = createDijkstra(startNode, endNode, nodes, s.getGeoJsonService().getCurveTree());
 
@@ -85,6 +98,7 @@ public class DijkstraConfiguration {
 
         while(!pq.isEmpty()){
             OsmNode curNode = pq.poll();
+            touchedNodes.add(curNode);
 
                 if (curNode == endNode) {
                     return createDijkstraPath(previousNodes, startNode, endNode);
