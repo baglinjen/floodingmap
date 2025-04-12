@@ -29,8 +29,7 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
     private HeightCurveRepositoryMemory() {}
 
     @Override
-    public void add(List<ParserHeightCurveElement> elements) {
-        System.out.println();
+    public synchronized void add(List<ParserHeightCurveElement> elements) {
         for (ParserHeightCurveElement element : elements) {
             var elementGmlIds = element.getGmlIds();
             if (parsedIds.containsAll(elementGmlIds)) {
@@ -40,49 +39,48 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
                 heightCurveTree.put(element);
             }
         }
-        System.out.println();
     }
 
     @Override
-    public List<ParserHeightCurveElement> getUnconnectedElements() {
+    public synchronized List<ParserHeightCurveElement> getUnconnectedElements() {
         return unconnectedElements;
     }
 
     @Override
-    public void setUnconnectedElements(List<ParserHeightCurveElement> elements) {
-        System.out.println();
+    public synchronized void setUnconnectedElements(List<ParserHeightCurveElement> elements) {
         unconnectedElements.clear();
         unconnectedElements.addAll(elements);
-        System.out.println();
     }
 
     @Override
-    public List<HeightCurveElement> getElements() {
-        return heightCurveTree.getElements();
+    public synchronized List<HeightCurveElement> getElements() {
+        synchronized (heightCurveTree) {
+            return heightCurveTree.getElements();
+        }
     }
 
     @Override
-    public List<List<HeightCurveElement>> getFloodingSteps(float waterLevel) {
+    public synchronized List<List<HeightCurveElement>> getFloodingSteps(float waterLevel) {
         return heightCurveTree.getFloodingStepsConcurrent(waterLevel);
     }
 
     @Override
-    public HeightCurveElement getHeightCurveForPoint(double lon, double lat) {
+    public synchronized HeightCurveElement getHeightCurveForPoint(double lon, double lat) {
         return heightCurveTree.getHeightCurveForPoint(lon, lat);
     }
 
     @Override
-    public float getMinWaterLevel() {
+    public synchronized float getMinWaterLevel() {
         return heightCurveTree.getMinWaterLevel();
     }
 
     @Override
-    public float getMaxWaterLevel() {
+    public synchronized float getMaxWaterLevel() {
         return heightCurveTree.getMaxWaterLevel();
     }
 
     @Override
-    public void clear() {
+    public synchronized void clear() {
         unconnectedElements.clear();
         heightCurveTree.clear();
     }

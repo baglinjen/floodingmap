@@ -16,52 +16,65 @@ public class HeightCurveService {
     }
 
     public List<HeightCurveElement> getElements() {
-        return this.repository.getElements();
+        synchronized (this.repository) {
+            return this.repository.getElements();
+        }
     }
 
     public List<List<HeightCurveElement>> getFloodingSteps(float waterLevel) {
-        return this.repository.getFloodingSteps(waterLevel);
+        synchronized (this.repository) {
+            return this.repository.getFloodingSteps(waterLevel);
+        }
     }
 
     public HeightCurveElement getHeightCurveForPoint(double lon, double lat) {
-        return this.repository.getHeightCurveForPoint(lon, lat);
+        synchronized (this.repository) {
+            return this.repository.getHeightCurveForPoint(lon, lat);
+        }
     }
 
     public float getMinWaterLevel() {
-        return this.repository.getMinWaterLevel();
+        synchronized (this.repository) {
+            return this.repository.getMinWaterLevel();
+        }
     }
     public float getMaxWaterLevel() {
-        return this.repository.getMaxWaterLevel();
+        synchronized (this.repository) {
+            return this.repository.getMaxWaterLevel();
+        }
     }
 
     public void loadGmlFileData(String gmlFile) {
-        HeightCurveParserResult heightCurveParserResult = new HeightCurveParserResult();
+        synchronized (this.repository) {
+            HeightCurveParserResult heightCurveParserResult = new HeightCurveParserResult();
 
-        // Get data from OSM file
-        GmlParser.parse(gmlFile, heightCurveParserResult);
+            // Get data from OSM file
+            GmlParser.parse(gmlFile, heightCurveParserResult);
 
-        // Add previously unconnected elements
-        heightCurveParserResult.addElements(repository.getUnconnectedElements());
+            // Add previously unconnected elements
+            heightCurveParserResult.addElements(repository.getUnconnectedElements());
 
-        heightCurveParserResult.sanitize();
+            heightCurveParserResult.sanitize();
 
-        repository.add(heightCurveParserResult.getElements());
-        repository.setUnconnectedElements(heightCurveParserResult.getUnconnectedElements());
+            repository.add(heightCurveParserResult.getElements());
+            repository.setUnconnectedElements(heightCurveParserResult.getUnconnectedElements());
+        }
     }
 
     public void loadGmlData(double minLon, double minLat, double maxLon, double maxLat) {
-        HeightCurveParserResult heightCurveParserResult = new HeightCurveParserResult();
+        synchronized (this.repository) {
+            HeightCurveParserResult heightCurveParserResult = new HeightCurveParserResult();
 
-        // Get data from OSM file
-        GmlParser.parse(minLon, minLat, maxLon, maxLat, heightCurveParserResult);
+            // Get data from OSM file
+            GmlParser.parse(minLon, minLat, maxLon, maxLat, heightCurveParserResult);
 
-        // Add previously unconnected elements
-        heightCurveParserResult.addElements(repository.getUnconnectedElements());
+            // Add previously unconnected elements
+            heightCurveParserResult.addElements(repository.getUnconnectedElements());
 
-        heightCurveParserResult.sanitize();
+            heightCurveParserResult.sanitize();
 
-        repository.add(heightCurveParserResult.getElements());
-        repository.setUnconnectedElements(heightCurveParserResult.getUnconnectedElements());
-
+            repository.add(heightCurveParserResult.getElements());
+            repository.setUnconnectedElements(heightCurveParserResult.getUnconnectedElements());
+        }
     }
 }
