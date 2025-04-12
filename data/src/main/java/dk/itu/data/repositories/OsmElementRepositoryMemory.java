@@ -2,6 +2,10 @@ package dk.itu.data.repositories;
 
 import dk.itu.data.datastructure.rtree.RTree;
 import dk.itu.data.models.db.*;
+import dk.itu.data.models.db.osm.OsmElement;
+import dk.itu.data.models.db.osm.OsmNode;
+import dk.itu.data.models.db.osm.OsmRelation;
+import dk.itu.data.models.db.osm.OsmWay;
 import dk.itu.data.models.parser.ParserOsmElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.models.parser.ParserOsmRelation;
@@ -11,8 +15,6 @@ import java.util.List;
 
 public class OsmElementRepositoryMemory implements OsmElementRepository {
     private static OsmElementRepositoryMemory instance;
-    private RTree rtree = new RTree();
-    private RTree traversable = new RTree();
 
     public static OsmElementRepositoryMemory getInstance() {
         if (instance == null) {
@@ -23,6 +25,9 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     }
 
     private OsmElementRepositoryMemory() {}
+
+    private RTree rtree = new RTree();
+    private RTree traversable = new RTree();
 
     @Override
     public void add(List<ParserOsmElement> osmElements) {

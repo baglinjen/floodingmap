@@ -115,8 +115,41 @@ public class PolygonUtils {
         return result;
     }
 
+    // p1 contains p2
+    public static boolean contains(double[] p1, double[] p2) {
+        // All p2 points should be in p1
+        var isInside = true;
+        var i = 0;
+        while (isInside && i < p2.length) {
+            // Test if p2 is in
+            isInside = isPointInPolygon(p1, p2[i], p2[i+1]);
+            i+=2;
+        }
+        return isInside;
+    }
+
+    private static final double TOLERANCE = 0.000001;
+
+    public static boolean isClosedWithTolerance(double[] coords) {
+        return Math.abs(coords[0] - coords[coords.length - 2]) < TOLERANCE && Math.abs(coords[1] - coords[coords.length - 1]) < TOLERANCE;
+    }
+
     public static boolean isClosed(double[] coords) {
         return coords[0] == coords[coords.length - 2] && coords[1] == coords[coords.length - 1];
+    }
+
+    public static OpenPolygonMatchType findOpenPolygonMatchTypeWithTolerance(double[] polygon1, double[] polygon2) {
+        if (Math.abs(polygon1[0] - polygon2[0]) < TOLERANCE && Math.abs(polygon1[1] - polygon2[1]) < TOLERANCE) {
+            return OpenPolygonMatchType.FIRST_FIRST;
+        } else if (Math.abs(polygon1[0] - polygon2[polygon2.length - 2]) < TOLERANCE && Math.abs(polygon1[1] - polygon2[polygon2.length - 1]) < TOLERANCE) {
+            return OpenPolygonMatchType.FIRST_LAST;
+        } else if (Math.abs(polygon1[polygon1.length - 2] - polygon2[0]) < TOLERANCE && Math.abs(polygon1[polygon1.length - 1] - polygon2[1]) < TOLERANCE) {
+            return OpenPolygonMatchType.LAST_FIRST;
+        } else if (Math.abs(polygon1[polygon1.length - 2] - polygon2[polygon2.length - 2]) < TOLERANCE && Math.abs(polygon1[polygon1.length - 1] - polygon2[polygon2.length - 1]) < TOLERANCE) {
+            return OpenPolygonMatchType.LAST_LAST;
+        } else {
+            return OpenPolygonMatchType.NONE;
+        }
     }
 
     public static OpenPolygonMatchType findOpenPolygonMatchType(double[] polygon1, double[] polygon2) {

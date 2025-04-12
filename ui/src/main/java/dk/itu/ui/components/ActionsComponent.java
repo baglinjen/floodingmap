@@ -14,7 +14,8 @@ public class ActionsComponent extends HBox {
 //                new DijkstraToggle(state),
                 new CalculateRouteButton(state),
                 new DataResetComponent(state),
-                new DataLoadComponent(state)
+                new DataLoadComponent(state),
+                new LoadHeightCurvesComponent(state)
         );
     }
 }

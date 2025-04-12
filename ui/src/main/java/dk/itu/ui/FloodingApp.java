@@ -4,6 +4,7 @@ import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
 import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.common.models.GeoJsonElement;
+import dk.itu.data.models.db.heightcurve.HeightCurveElement;
 import dk.itu.data.models.parser.ParserGeoJsonElement;
 import dk.itu.data.services.Services;
 import dk.itu.ui.components.MouseEventOverlayComponent;
@@ -32,13 +33,18 @@ public class FloodingApp extends GameApplication {
     private BufferedImage image;
     private final ImageView view = new ImageView();
 
+    // Simulation thread
+    private Thread simulationThread;
+
     private void renderLoop() throws InterruptedException {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
 //            services.getGeoJsonService().loadGeoJsonData("tuna.geojson");
-            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
-            state.resetWindowBounds();
+//            services.getHeightCurveService().loadGmlFileData("tuna.gml");
+//            services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
+//            state.resetWindowBounds();
+//            state.updateMinMaxWaterLevels(services);
 
             float registeredWaterLevel = 0.0f;
 
@@ -46,20 +52,6 @@ public class FloodingApp extends GameApplication {
                 long start = System.nanoTime();
 
                 var window = state.getWindowBounds();
-                var osmElements = services
-                        .getOsmService(state.isWithDb())
-                        .getOsmElementsToBeDrawn(
-                                state.getOsmLimit(),
-                                window[0],
-                                window[1],
-                                window[2],
-                                window[3]
-                        );
-                List<GeoJsonElement> heightCurves =
-                        state.shouldDrawGeoJson() ?
-                                services.getGeoJsonService().getGeoJsonElements()
-                                : new ArrayList<>();
-
                 float strokeBaseWidth = state.getSuperAffine().getStrokeBaseWidth();
 
                 image.flush();
@@ -74,27 +66,41 @@ public class FloodingApp extends GameApplication {
                 g2d.clearRect(0, 0, WIDTH, HEIGHT);
                 g2d.setTransform(state.getSuperAffine());
 
-                osmElements.parallelStream().forEach(e -> e.prepareDrawing(g2d));
-                osmElements.forEach(element -> element.draw(g2d, strokeBaseWidth));
+                var osmElements = services
+                        .getOsmService(state.isWithDb())
+                        .getOsmElementsToBeDrawn(
+                                state.getOsmLimit(),
+                                window[0],
+                                window[1],
+                                window[2],
+                                window[3]
+                        );
+                List<HeightCurveElement> heightCurves =
+                        state.shouldDrawGeoJson() ?
+                                services.getHeightCurveService().getElements()
+                                : new ArrayList<>();
 
-                if(state.getWaterLevel() != registeredWaterLevel){
-                    simulationRunning = false;
+                if(state.getWaterLevel() != registeredWaterLevel) {
+                    if (simulationThread != null && simulationThread.isAlive()) {
+                        simulationThread.interrupt();
+                    }
 
-                    heightCurves.forEach(hc -> hc.setBelowWater(false));
+                    heightCurves.parallelStream().forEach(HeightCurveElement::setAboveWater);
 
-                    simulationRunning = true;
+                    simulationThread = new Thread(() -> {
+                        try {
+                            var floodingSteps = services.getHeightCurveService().getFloodingSteps(state.getWaterLevel());
 
-                    Thread simulationThread = new Thread(() -> {
-                        try{
-                            var x = services.getGeoJsonService().getCurveTree().TraverseFromRoot(state.getWaterLevel());
-
-                            for(List<ParserGeoJsonElement> list : x){
-                                if(!simulationRunning) return;
+                            for (List<HeightCurveElement> floodingStep : floodingSteps) {
                                 Thread.sleep(500);
-                                list.forEach(hc -> hc.setBelowWater(state.getWaterLevel() > hc.getHeight()));
+                                floodingStep.parallelStream().forEach(HeightCurveElement::setBelowWater);
                             }
+
+                            simulationRunning = false;
+
                         } catch (Exception ex){
                             Thread.currentThread().interrupt();
+                            simulationRunning = false;
                         }
                     });
 
@@ -103,15 +109,19 @@ public class FloodingApp extends GameApplication {
                     registeredWaterLevel = state.getWaterLevel();
                 }
 
+                // Prepare drawable elements
+                osmElements.parallelStream().forEach(e -> e.prepareDrawing(g2d));
                 heightCurves.parallelStream().forEach(e -> e.prepareDrawing(g2d));
+                // Draw elements
+                osmElements.forEach(element -> element.draw(g2d, strokeBaseWidth));
                 heightCurves.forEach(hc -> hc.draw(g2d, strokeBaseWidth));
 
+                // Draw dijkstra route if there is one
                 var dijkstraRoute = state.getDijkstraConfiguration().getRoute(state.isWithDb(), state.getWaterLevel());
-                if(dijkstraRoute != null){
+                if (dijkstraRoute != null){
                     dijkstraRoute.prepareDrawing(g2d);
                     dijkstraRoute.draw(g2d, strokeBaseWidth);
                 }
-
                 var startNode = state.getDijkstraConfiguration().getStartNode();
                 if (startNode != null) {
                     g2d.setColor(Color.GREEN);
@@ -123,6 +133,7 @@ public class FloodingApp extends GameApplication {
                     g2d.fill(new Ellipse2D.Double(0.56*endNode.getLon() - strokeBaseWidth*8/2, -endNode.getLat() - strokeBaseWidth*8/2, strokeBaseWidth*8, strokeBaseWidth*8));
                 }
 
+                // Draw nearest neighbour if there is one
                 if (state.getShowNearestNeighbour()) {
                     var nn = state.getNearestNeighbour();
                     if (nn != null) {
@@ -134,7 +145,7 @@ public class FloodingApp extends GameApplication {
 
                 view.setImage(bufferedImageToWritableImage(image));
 
-                logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
+//                logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
             }
         });
     }

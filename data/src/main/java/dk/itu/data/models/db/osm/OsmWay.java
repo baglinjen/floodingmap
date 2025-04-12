@@ -1,5 +1,6 @@
-package dk.itu.data.models.db;
+package dk.itu.data.models.db.osm;
 
+import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.parser.ParserOsmWay;
 
 import java.awt.*;

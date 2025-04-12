@@ -1,7 +1,7 @@
 package dk.itu.data.datastructure.rtree;
 
 import dk.itu.data.models.db.BoundingBox;
-import dk.itu.data.models.db.OsmElement;
+import dk.itu.data.models.db.osm.OsmElement;
 
 import java.util.List;
 import java.util.ArrayList;

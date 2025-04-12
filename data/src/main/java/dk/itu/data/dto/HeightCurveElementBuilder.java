@@ -1,5 +1,6 @@
 package dk.itu.data.dto;
 
+import dk.itu.data.models.parser.ParserHeightCurveElement;
 import dk.itu.util.LoggerFactory;
 import org.apache.logging.log4j.Logger;
 
@@ -8,44 +9,49 @@ import java.util.List;
 
 import static dk.itu.util.CoordinateConverter.convertUTMToLatLon;
 
-public class GmlElementBuilder {
+public class HeightCurveElementBuilder {
     // Logger
     private final Logger logger = LoggerFactory.getLogger();
     // Parsed so far
-    private final GmlParserResult result;
+    private final HeightCurveParserResult result;
     // Fields
-    private String currentId = null;
+    private Long gmlId = null;
     private double[] coordinates = null;
     private Float height = null;
     // Status
     private boolean valid = true;
 
-    public GmlElementBuilder(GmlParserResult result) {
+    public HeightCurveElementBuilder(HeightCurveParserResult result) {
         this.result = result;
     }
 
     public void buildAndAddElement() {
-        if (!valid) {
+        if (!valid || height == null || gmlId == null) {
             logger.warn("Invalid GML Element");
         } else {
-            result.addElement(height, currentId, coordinates);
+            result.addElement(
+                    new ParserHeightCurveElement(
+                            gmlId,
+                            coordinates,
+                            height
+                    )
+            );
         }
-        currentId = null;
+        gmlId = null;
         coordinates = null;
         height = null;
         valid = true;
     }
 
-    public void withId(String currentId) {
-        this.currentId = currentId;
+    public void withGmlId(long gmlId) {
+        this.gmlId = gmlId;
     }
-    public void withCoords(String coords) {
+    public void withEPSG25832Coords(String coords) {
         var coordsList = coords.split(" ");
         if (coordsList.length < 5) {
             valid = false;
             return;
         }
-//        this.currentId += "-" + coordsList[0] + "-" + coordsList[1] + "-" + coordsList[3] + "-" + coordsList[4] + "-" + coordsList[coordsList.length-3] + "-" + coordsList[coordsList.length-2];
         this.height = Float.parseFloat(coordsList[2]);
         List<Double> coordinates = new ArrayList<>((coordsList.length/3)*2);
         for (int i = 0; i < coordsList.length; i+=3) {
