@@ -10,10 +10,7 @@ import dk.itu.data.services.Services;
 import dk.itu.data.utils.DijkstraConfiguration;
 import dk.itu.util.LoggerFactory;
 import org.apache.logging.log4j.Logger;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -26,13 +23,12 @@ public class DijkstraTest {
     private static final Logger logger = LoggerFactory.getLogger();
     private static DijkstraConfiguration testConfiguration;
     private static List<OsmNode> nodes;
-    private static boolean useMockData;
 
-    @BeforeAll
-    static void setupSuite(){
+    @BeforeEach
+    void setupSuite(){
         Services.withServices(services -> {
             services.getOsmService(false).loadOsmData("tuna.osm");
-            services.getGeoJsonService().loadGeoJsonData("tuna.geojson");
+            services.getGeoJsonService().loadGeoJsonData("tuna-dijkstra.geojson");
             nodes = services.getOsmService(false).getTraversableOsmNodes();
         });
 
@@ -43,18 +39,13 @@ public class DijkstraTest {
     @ParameterizedTest
     @CsvSource({
             "9342037677, 4289093536, '9342037677-4289093536-route.json'"
+            //TODO: Add more cases
     })
-    //Will Dijkstra actually find the shortest path between known nodes
     void DijkstraCanFindShortestPath(long startNodeId, long endNodeId, String filename){
         //Arrange
         testConfiguration.setStartNodeId(startNodeId);
         testConfiguration.setEndNodeId(endNodeId);
-
-        var expectedRouteNodes = new ArrayList<OsmNode>();
-        for(var id : loadRouteData(filename)){
-            expectedRouteNodes.add(nodes.stream().filter(o -> o.getId() == id).findFirst().get());
-        }
-        var expectedRouteCoordinates = extractCoordinates(expectedRouteNodes);
+        var expectedRouteCoordinates = extractCoordinates(filename);
 
         //Act
         testConfiguration.calculateRoute(false);
@@ -67,18 +58,35 @@ public class DijkstraTest {
         assertThat(routeCoordinates).isEqualTo(expectedRouteCoordinates);
     }
 
-    @Test
-    //When the water level has risen, Dijkstra should make alternative routes
-    void DijkstraWillAccountForWater(){
-        //TODO: Implement
-        assertThat("").isNull();
+    @ParameterizedTest
+    @CsvSource({
+            "1078669419, 4545580716, 0.0, '1078669419-4545580716-route.json'",
+            "1078669419, 4545580716, 4.0, '1078669419-4545580716-route-flooded.json'"
+            //TODO: Add more cases
+    })
+    void DijkstraWillAccountForRisingWater(long startNodeId, long endNodeId, float waterLevel, String filename){
+        //Arrange
+        testConfiguration.setStartNodeId(startNodeId);
+        testConfiguration.setEndNodeId(endNodeId);
+        testConfiguration.setWaterLevel(waterLevel);
+        var expectedCoords = extractCoordinates(filename);
+
+        //Act
+        testConfiguration.calculateRoute(false);
+        var route = testConfiguration.getRoute(false, waterLevel);
+        var routeCoordinates = ((OsmWay)route).getOuterCoordinates();
+
+        //Assert
+        assertThat(route).isNotNull();
+        assertThat(routeCoordinates).isNotNull();
+        assertThat(routeCoordinates).isEqualTo(expectedCoords);
     }
 
+
+    @Disabled("Not implemented yet")
     @Test
-    //When routing algorithms have found the target node, can the path be reconstructed?
     public void PathCanBeConstructedFromNodes(){
         //TODO: Implement
-        assertThat("").isNull();
     }
 
     //Load test data with list of id's
@@ -111,5 +119,15 @@ public class DijkstraTest {
         }
 
         return resArray;
+    }
+
+    private double[] extractCoordinates(String filename){
+        var returnNodes = new ArrayList<OsmNode>();
+
+        for(var id : loadRouteData(filename)){
+            returnNodes.add(nodes.stream().filter(o -> o.getId() == id).findFirst().get());
+        }
+
+        return extractCoordinates(returnNodes);
     }
 }
