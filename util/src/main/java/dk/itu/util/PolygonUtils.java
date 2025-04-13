@@ -10,12 +10,8 @@ public class PolygonUtils {
      */
     public static double calculatePolygonArea(double[] coordinates) {
         // Validate input
-        if (coordinates.length % 2 != 0) {
-            throw new IllegalArgumentException("Coordinates array must contain an even number of elements");
-        }
-
-        if (coordinates.length < 6) {
-            throw new IllegalArgumentException("A polygon must have at least 3 vertices (6 coordinates)");
+        if (coordinates.length % 2 != 0 || coordinates.length < 6) {
+            return 0;
         }
 
         // Apply Shoelace formula directly on the array

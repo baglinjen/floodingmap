@@ -53,7 +53,7 @@ public class OsmWay extends OsmElement {
         if (path == null) return;
 
         g2d.setColor(getRgbaColor());
-        if (isLine) {
+        if (isLine && getStroke() != null) {
             g2d.setStroke(new BasicStroke(strokeBaseWidth * getStroke()));
             g2d.draw(path);
         } else {

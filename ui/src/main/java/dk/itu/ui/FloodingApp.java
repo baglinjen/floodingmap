@@ -42,7 +42,7 @@ public class FloodingApp extends GameApplication {
             // Temporary whilst using in-memory
 //            services.getGeoJsonService().loadGeoJsonData("tuna.geojson");
 //            services.getHeightCurveService().loadGmlFileData("tuna.gml");
-            services.getOsmService(state.isWithDb()).loadOsmData("samso.osm");
+            services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
             state.resetWindowBounds();
 //            state.updateMinMaxWaterLevels(services);
 

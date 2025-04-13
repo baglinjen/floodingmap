@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static dk.itu.util.DrawingUtils.toARGB;
+import static dk.itu.util.PolygonUtils.forceCounterClockwise;
 import static dk.itu.util.ShapePreparer.prepareComplexPolygon;
 
 public class HeightCurveElement extends Colored {
@@ -30,7 +31,7 @@ public class HeightCurveElement extends Colored {
 
     public static HeightCurveElement mapToHeightCurveElement(ParserHeightCurveElement parserHeightCurveElement) {
         return new HeightCurveElement(
-                parserHeightCurveElement.getCoordinates(),
+                forceCounterClockwise(parserHeightCurveElement.getCoordinates()),
                 parserHeightCurveElement.getHeight(),
                 parserHeightCurveElement.calculateArea()
         );
