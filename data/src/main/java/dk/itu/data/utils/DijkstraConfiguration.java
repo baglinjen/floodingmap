@@ -95,10 +95,14 @@ public class DijkstraConfiguration {
 
         Map<OsmNode, OsmNode> previousNodes = new HashMap<>();
         Map<OsmNode, Double> distances = new HashMap<>();
+        Map<OsmNode, Double> heuristicDistances = new HashMap<>();
 
-        PriorityQueue<OsmNode> pq = new PriorityQueue<>(Comparator.comparingDouble(n -> distances.getOrDefault(n, Double.MAX_VALUE)));
+        PriorityQueue<OsmNode> pq = new PriorityQueue<>(Comparator.comparingDouble(n -> heuristicDistances.getOrDefault(n, Double.MAX_VALUE)));
 
-        nodes.forEach(e -> distances.put(e, e == startNode ? 0.0 : Double.MAX_VALUE));
+        nodes.forEach(e -> {
+            distances.put(e, e == startNode ? 0.0 : Double.MAX_VALUE);
+            heuristicDistances.put(e, e == endNode ? 0.0 : Double.MAX_VALUE);
+        });
 
         pq.offer(startNode);
 
@@ -124,12 +128,12 @@ public class DijkstraConfiguration {
                     if (height < waterLevel) continue; //Road is flooded
 
                     double connectionDistance = connection.getValue();
-                    double newDist = currDistance + connectionDistance;
-                    if(isAStar) newDist = newDist + DijkstraUtils.distanceMeters(curNode.getLat(), curNode.getLon(), endNode.getLat(), endNode.getLon());
-
-                    if (newDist < distances.get(nextNode)) {
-                        distances.put(nextNode, newDist);
+                    double distance = connectionDistance + currDistance;
+                    if(distance < distances.get(nextNode)){
+                        //A new shorter way has been found
+                        distances.put(nextNode, distance);
                         previousNodes.put(nextNode, curNode);
+                        heuristicDistances.put(nextNode, distance + (isAStar ? DijkstraUtils.distanceMeters(nextNode.getLat(), nextNode.getLon(), endNode.getLat(), endNode.getLon()) : 0.0));
                         pq.offer(nextNode);
                     }
                 }
