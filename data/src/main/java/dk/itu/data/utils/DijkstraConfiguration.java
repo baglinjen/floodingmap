@@ -64,7 +64,7 @@ public class DijkstraConfiguration {
     }
 
     public List<OsmNode> getTouchedNodes(){
-        return touchedNodes;
+        return List.copyOf(touchedNodes);
     }
 
     public void calculateRoute(boolean isWithDb) {

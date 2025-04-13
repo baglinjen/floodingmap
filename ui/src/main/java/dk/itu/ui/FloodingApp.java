@@ -36,7 +36,7 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-            services.getGeoJsonService().loadGeoJsonData("tuna-dijkstra.geojson");
+            services.getGeoJsonService().loadGeoJsonData("tuna.geojson");
             services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
             state.resetWindowBounds();
 
