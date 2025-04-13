@@ -21,15 +21,25 @@ public class MapMenu extends ContextMenu {
                 state.getDijkstraConfiguration().setEndNode(state.getNearestNeighbour().getSelectedOsmElement());
             }
         });
-        MenuItem calculateRoute = new MenuItem("Calculate Route");
+        MenuItem calculateRoute = new MenuItem("Calculate Dijkstra");
         calculateRoute.setOnAction(_ -> {
             if (state.getDijkstraConfiguration().getStartNode() == null || state.getDijkstraConfiguration().getEndNode() == null) {
                 displayAlert("Both start and end for route must be selected");
             } else {
+                state.getDijkstraConfiguration().setIsAStar(false);
                 state.getDijkstraConfiguration().calculateRoute(state.isWithDb());
             }
         });
-        getItems().addAll(routeStart, routeEnd, calculateRoute);
+        MenuItem calculateAStar = new MenuItem("Calculate AStar");
+        calculateAStar.setOnAction(_ -> {
+            if (state.getDijkstraConfiguration().getStartNode() == null || state.getDijkstraConfiguration().getEndNode() == null){
+                displayAlert("Both start and end for route must be selected");
+            } else{
+                state.getDijkstraConfiguration().setIsAStar(true);
+                state.getDijkstraConfiguration().calculateRoute(state.isWithDb());
+            }
+        });
+        getItems().addAll(routeStart, routeEnd, calculateRoute, calculateAStar);
     }
 
     private void displayAlert(String errorMessage){

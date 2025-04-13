@@ -39,7 +39,7 @@ public class OsmWay extends OsmElement {
         return osmWay;
     }
 
-    public static OsmWay createWayForDijkstra(double[] coordinates) {
+    public static OsmWay createWayForRouting(double[] coordinates) {
         var way = new OsmWay(0, true, null, 0, coordinates);
         way.setStyle(Color.yellow, 6);
         return way;

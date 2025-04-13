@@ -18,7 +18,7 @@ public class DijkstraUtils {
         return result;
     }
 
-    private static Double distanceMeters(double lat1, double lon1, double lat2, double lon2){
+    public static Double distanceMeters(double lat1, double lon1, double lat2, double lon2){
         double lat1Rad = Math.toRadians(lat1);
         double lon1Rad = Math.toRadians(lon1);
         double lat2Rad = Math.toRadians(lat2);
@@ -33,4 +33,6 @@ public class DijkstraUtils {
 
         return EARTH_RADIUS_KM * c * 1000;
     }
+
+
 }

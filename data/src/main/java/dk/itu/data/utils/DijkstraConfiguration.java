@@ -13,9 +13,11 @@ import java.util.List;
 
 public class DijkstraConfiguration {
     private static final Logger logger = LoggerFactory.getLogger();
-    private boolean shouldVisualize = false;
+    private boolean shouldVisualize, isAStar;
+
     private OsmNode startNode, endNode;
     private long startNodeId, endNodeId;
+
     private double waterLevel = 0.0;
     private Pair<OsmElement, Double> route;
     private final List<OsmNode> touchedNodes = new ArrayList<>();
@@ -49,6 +51,10 @@ public class DijkstraConfiguration {
         shouldVisualize = !shouldVisualize;
     }
 
+    public void setIsAStar(boolean isAStar){
+        this.isAStar = isAStar;
+    }
+
     public OsmElement getRoute(boolean isWithDb, double currentWaterLevel){
         if (route == null) return null;
 
@@ -73,7 +79,7 @@ public class DijkstraConfiguration {
 
             touchedNodes.clear();
 
-            var route = createDijkstra(startNode, endNode, nodes, s.getGeoJsonService().getCurveTree());
+            var route = createRoute(startNode, endNode, nodes, s.getGeoJsonService().getCurveTree());
 
             if (route == null) logger.warn("No possible route could be found between: {}, {}", startNode.getId(), endNode.getId());
 
@@ -82,7 +88,7 @@ public class DijkstraConfiguration {
 
     }
 
-    private OsmElement createDijkstra(OsmNode startNode, OsmNode endNode, List<OsmNode> nodes, CurveTree curveTree){
+    private OsmElement createRoute(OsmNode startNode, OsmNode endNode, List<OsmNode> nodes, CurveTree curveTree){
         nodes.removeIf(e -> e.getId() == startNode.getId() || e.getId() == endNode.getId());
         nodes.add(startNode);
         nodes.add(endNode);
@@ -101,7 +107,7 @@ public class DijkstraConfiguration {
             touchedNodes.add(curNode);
 
                 if (curNode == endNode) {
-                    return createDijkstraPath(previousNodes, startNode, endNode);
+                    return createPath(previousNodes, startNode, endNode);
                 }
 
                 double currDistance = distances.get(curNode);
@@ -119,6 +125,7 @@ public class DijkstraConfiguration {
 
                     double connectionDistance = connection.getValue();
                     double newDist = currDistance + connectionDistance;
+                    if(isAStar) newDist = newDist + DijkstraUtils.distanceMeters(curNode.getLat(), curNode.getLon(), endNode.getLat(), endNode.getLon());
 
                     if (newDist < distances.get(nextNode)) {
                         distances.put(nextNode, newDist);
@@ -131,7 +138,7 @@ public class DijkstraConfiguration {
         return null; //No path found
     }
 
-    private OsmElement createDijkstraPath(Map<OsmNode, OsmNode> previousNodes, OsmNode startNode, OsmNode endNode){
+    private OsmElement createPath(Map<OsmNode, OsmNode> previousNodes, OsmNode startNode, OsmNode endNode){
         List<OsmNode> path = new ArrayList<>();
         var curNode = endNode;
 
@@ -150,6 +157,6 @@ public class DijkstraConfiguration {
             count = count + 2;
         }
 
-        return OsmWay.createWayForDijkstra(coordinateList);
+        return OsmWay.createWayForRouting(coordinateList);
     }
 }
