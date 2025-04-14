@@ -7,34 +7,47 @@ import com.huskerdev.openglfx.canvas.events.GLRenderEvent;
 import com.huskerdev.openglfx.lwjgl.LWJGLExecutor;
 import dk.itu.gl.*;
 import dk.itu.shaders.Poly;
-import glm_.mat4x4.Mat4;
+import dk.itu.util.LoggerFactory;
+import kotlin.Pair;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.logging.log4j.Logger;
 
-import static glm_.Java.glm;
+import java.util.Arrays;
+
 import static org.lwjgl.opengl.GL46.*;
 
 public class MapComponent extends GLCanvas {
-    private State state;
-    private int indexCount;
+    private final Logger logger = LoggerFactory.getLogger();
+    private final State state;
+    private final int polygonIndexCount, lineIndexCount;
 
-    public MapComponent(State state, float[] vertices, int[] indices) {
+    public MapComponent(State state, ShapeProcessor.VertexAndIndexData vertexAndIndexData) {
         super(LWJGLExecutor.LWJGL_MODULE);
         this.state = state;
-        this.indexCount = indices.length;
-        addOnInitEvent(e -> this.init(e, vertices, indices));
+        this.polygonIndexCount = vertexAndIndexData.getPolygonIndices().length;
+        this.lineIndexCount = vertexAndIndexData.getLineIndices().length;
+
+        // Events
+        addOnInitEvent(e -> this.init(e, vertexAndIndexData));
         addOnRenderEvent(this::render);
         addOnDisposeEvent(this::dispose);
+        // Mouse Events
+        setupMouseHandlers();
     }
 
-    private final float sqrt3 = (float) Math.sqrt(3);
+    private void setupMouseHandlers() {
+        this.setOnScroll(state::handleScroll);
+        this.setOnMousePressed(state::handleMousePressed);
+        this.setOnMouseDragged(state::handleMouseDragged);
+        this.setOnMouseReleased(state::handleMouseReleased);
+    }
 
     private Shader shader;
     private VertexArrayObject vao;
     private VertexBufferObject vbo;
     private EntityBufferObject ebo;
 
-    private void init(GLInitializeEvent event, float[] vertices, int[] indices) {
-        glViewport(0, 0, 800, 800);
-
+    private void init(GLInitializeEvent event, ShapeProcessor.VertexAndIndexData vertexAndIndexData) {
         shader = new Shader(Poly.vertexShader, Poly.fragmentShader);
         VertexLayout layout = new VertexLayout();
         layout
@@ -46,12 +59,12 @@ public class MapComponent extends GLCanvas {
                 );
 
         // Create vao and bind to modify it
-        vao = new VertexArrayObject(vertices);
+        vao = new VertexArrayObject(vertexAndIndexData.getVertices());
         vao.bind();
 
         // Link vbo to vao (bind vbo - define layout - unbind vbo)
-        vbo = new VertexBufferObject(vertices);
-        ebo = new EntityBufferObject(indices);
+        vbo = new VertexBufferObject(vertexAndIndexData.getVertices());
+        ebo = new EntityBufferObject(ArrayUtils.addAll(vertexAndIndexData.getPolygonIndices(), vertexAndIndexData.getLineIndices()));
 
         vao.linkVbo(vbo, layout);
 
@@ -62,30 +75,24 @@ public class MapComponent extends GLCanvas {
     }
 
     private void render(GLRenderEvent event) {
+//        long start = System.nanoTime();
         // CLEAR
-        glClearColor(1, 1, 1, 1);
+        glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // PREPARE VAO
         shader.activate();
         vao.bind();
 
-        // Model
-        var model = new Mat4(1.0f);
-        // View
-        var view = new Mat4(1.0f)
-                .translate(-10.40289f, -55.959747f, 0.0f)
-                .translate(0.0f, 0.0f, -0.1f);
-//                .translate(-10.4f, -55.9f, -10.0f); // Initial
-//                .translate(state.getTranslateX(), state.getTranslateY(), state.getZoom());
-        // Projection
-        var perspective = glm.perspective(glm.radians(45.0f), 800.0f/600.0f, 0.0f, 100.0f);
+        glUniformMatrix4fv(glGetUniformLocation(shader.program, "model"), false, state.getCamera().getModelMatrixFloatArray());
+        glUniformMatrix4fv(glGetUniformLocation(shader.program, "view"), false, state.getCamera().getViewMatrixFloatArray());
+        glUniformMatrix4fv(glGetUniformLocation(shader.program, "projection"), false, state.getCamera().getProjectionMatrixFloatArray());
 
-        glUniformMatrix4fv(glGetUniformLocation(shader.program, "model"), false, model.toFloatArray());
-        glUniformMatrix4fv(glGetUniformLocation(shader.program, "view"), false, view.toFloatArray());
-        glUniformMatrix4fv(glGetUniformLocation(shader.program, "projection"), false, perspective.toFloatArray());
-
-        glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, ebo.id);
+//        glDrawRangeElements(GL_TRIANGLES, 0, polygonIndexCount, polygonIndexCount, GL_UNSIGNED_INT, 0);
+//        glDrawRangeElements(GL_LINE, polygonIndexCount, polygonIndexCount+lineIndexCount, lineIndexCount, GL_UNSIGNED_INT, 0);
+//        glDrawElements(GL_LINES_ADJACENCY, lineIndexCount, GL_UNSIGNED_INT, 0);
+//        glDrawElementsBaseVertex(GL_LINE_LOOP, lineIndexCount, GL_UNSIGNED_INT, 0, polygonIndexCount-1);
+//        logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
     }
 
     private void dispose(GLDisposeEvent glDisposeEvent) {

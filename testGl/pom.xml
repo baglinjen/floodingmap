@@ -42,6 +42,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.17.0</version>
+        </dependency>
+        <dependency>
             <groupId>com.huskerdev</groupId>
             <artifactId>openglfx-lwjgl</artifactId>
             <version>4.1.20</version>
