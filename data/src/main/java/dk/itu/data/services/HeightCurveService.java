@@ -46,13 +46,13 @@ public class HeightCurveService {
 
     public void loadGmlFileData(String gmlFile) {
         synchronized (this.repository) {
-            HeightCurveParserResult heightCurveParserResult = new HeightCurveParserResult();
+            HeightCurveParserResult heightCurveParserResult = new HeightCurveParserResult(this.repository.getParsedIds());
 
             // Get data from OSM file
             GmlParser.parse(gmlFile, heightCurveParserResult);
 
             // Add previously unconnected elements
-            heightCurveParserResult.addElements(repository.getUnconnectedElements());
+            heightCurveParserResult.addUnconnectedElements(repository.getUnconnectedElements());
 
             heightCurveParserResult.sanitize();
 
@@ -63,13 +63,13 @@ public class HeightCurveService {
 
     public void loadGmlData(double minLon, double minLat, double maxLon, double maxLat) {
         synchronized (this.repository) {
-            HeightCurveParserResult heightCurveParserResult = new HeightCurveParserResult();
+            HeightCurveParserResult heightCurveParserResult = new HeightCurveParserResult(this.repository.getParsedIds());
 
             // Get data from OSM file
             GmlParser.parse(minLon, minLat, maxLon, maxLat, heightCurveParserResult);
 
             // Add previously unconnected elements
-            heightCurveParserResult.addElements(repository.getUnconnectedElements());
+            heightCurveParserResult.addUnconnectedElements(repository.getUnconnectedElements());
 
             heightCurveParserResult.sanitize();
 

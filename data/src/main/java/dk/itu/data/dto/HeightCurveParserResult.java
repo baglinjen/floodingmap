@@ -1,6 +1,5 @@
 package dk.itu.data.dto;
 
-import dk.itu.data.models.db.heightcurve.HeightCurveElement;
 import dk.itu.data.models.parser.ParserHeightCurveElement;
 
 import java.util.*;
@@ -12,6 +11,11 @@ public class HeightCurveParserResult {
     private final Map<Float, List<ParserHeightCurveElement>> elementsByHeight = new HashMap<>();
     private final List<ParserHeightCurveElement> elements = new ArrayList<>();
     private final List<ParserHeightCurveElement> unconnectedElements = new ArrayList<>();
+    private final Set<Long> parsedIds;
+
+    public HeightCurveParserResult(Set<Long> parsedIds) {
+        this.parsedIds = parsedIds;
+    }
 
     public List<ParserHeightCurveElement> getElements() {
         return elements;
@@ -31,6 +35,7 @@ public class HeightCurveParserResult {
                         .toList()
         );
         elementsByHeight.clear();
+        elements.removeAll(unconnectedElements);
     }
 
     private void closeHeightCurvesForHeight(List<ParserHeightCurveElement> elements) {
@@ -84,13 +89,19 @@ public class HeightCurveParserResult {
         );
     }
 
-    public void addElements(List<ParserHeightCurveElement> elements) {
+    public void addUnconnectedElements(List<ParserHeightCurveElement> elements) {
         for (ParserHeightCurveElement element : elements) {
             addElement(element);
         }
     }
 
-    public void addElement(ParserHeightCurveElement element) {
+    public void addParsedElement(ParserHeightCurveElement element) {
+        if (!this.parsedIds.contains(element.getGmlIds().getFirst())) {
+            addElement(element);
+        }
+    }
+
+    private void addElement(ParserHeightCurveElement element) {
         var height = element.getHeight();
         elementsByHeight.putIfAbsent(height, new ArrayList<>());
         elementsByHeight.get(height).add(element);

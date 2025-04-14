@@ -29,7 +29,7 @@ public class HeightCurveElementBuilder {
         if (!valid || height == null || gmlId == null) {
             logger.warn("Invalid GML Element");
         } else {
-            result.addElement(
+            result.addParsedElement(
                     new ParserHeightCurveElement(
                             gmlId,
                             coordinates,

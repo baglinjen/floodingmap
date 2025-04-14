@@ -4,12 +4,11 @@ import dk.itu.data.datastructure.heightcurvetree.HeightCurveTree;
 import dk.itu.data.models.db.heightcurve.HeightCurveElement;
 import dk.itu.data.models.parser.ParserHeightCurveElement;
 import dk.itu.util.LoggerFactory;
+import org.apache.fury.shaded.org.codehaus.commons.compiler.java8.java.util.stream.Stream;
 import org.apache.logging.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class HeightCurveRepositoryMemory implements HeightCurveRepository {
     private final Logger logger = LoggerFactory.getLogger();
@@ -29,15 +28,25 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
     private HeightCurveRepositoryMemory() {}
 
     @Override
+    public synchronized Set<Long> getParsedIds() {
+        return parsedIds;
+    }
+
+    @Override
     public synchronized void add(List<ParserHeightCurveElement> elements) {
         for (ParserHeightCurveElement element : elements) {
-            var elementGmlIds = element.getGmlIds();
-            if (parsedIds.containsAll(elementGmlIds)) {
-                logger.warn("Duplicate height curve element: {}", elementGmlIds);
-            } else {
-                parsedIds.addAll(elementGmlIds);
-                heightCurveTree.put(element);
+//            var elementGmlIds = element.getGmlIds();
+//            if (parsedIds.containsAll(elementGmlIds)) {
+//                logger.warn("Duplicate height curve element: {}", elementGmlIds);
+//            } else {
+//                parsedIds.addAll(elementGmlIds);
+//                heightCurveTree.put(element);
+//            }
+            if (element.getGmlIds().parallelStream().anyMatch(parsedIds::contains)) {
+                logger.warn("Duplicate id: {}", element.getGmlIds());
             }
+            parsedIds.addAll(element.getGmlIds());
+            heightCurveTree.put(element);
         }
     }
 
@@ -50,6 +59,7 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
     public synchronized void setUnconnectedElements(List<ParserHeightCurveElement> elements) {
         unconnectedElements.clear();
         unconnectedElements.addAll(elements);
+        parsedIds.addAll(elements.parallelStream().map(ParserHeightCurveElement::getGmlIds).flatMap(Collection::stream).toList());
     }
 
     @Override

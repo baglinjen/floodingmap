@@ -63,7 +63,7 @@ public class HeightCurveElement extends Colored {
         setStyle(STYLE_SELECTED);
     }
     public void setUnselected(float waterLevel) {
-        setStyle(height <= waterLevel ? STYLE_BELOW_WATER : STYLE_ABOVE_WATER);
+        setStyle(height >= waterLevel ? STYLE_ABOVE_WATER : STYLE_BELOW_WATER);
     }
 
     @Override
