@@ -1,338 +1,642 @@
 package dk.itu.data.datastructure.rtree;
-
 import dk.itu.common.models.OsmElement;
 import dk.itu.data.models.memory.*;
+import javafx.util.Pair;
 
-import java.awt.*;
-import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.*;
 import java.util.List;
 
 public class RTree {
-    private static final int MAX_ENTRIES = 500; // TODO: Test most efficient max per node before split
+    private static final int MAX_ENTRIES = 8;  // Maximum entries in a node
+    private static final int MIN_ENTRIES = MAX_ENTRIES / 2;  // Minimum entries (40-50% of max is typical)
+    private static final double REINSERT_PERCENTAGE = 0.3;  // Percentage of entries to reinsert (30% is typical)
+    private static final int REINSERT_LEVELS = 5;  // Max levels for forced reinsert to prevent recursion issues
+
+    // Track levels for forced reinsert to prevent excessive reinsertion
+    private final Set<Integer> reinsertLevels = new HashSet<>();
+
     private RTreeNode root;
 
-    public List<OsmElement> search(double minLon, double minLat, double maxLon, double maxLat) {
-        if (root == null) {
-            return List.of();
-        }
-
-        List<OsmElementMemory> elements = new ArrayList<>();
-
-        searchRecursive(root, new BoundingBox(minLon, minLat, maxLon, maxLat), elements);
-
-        return new ArrayList<>(elements.parallelStream()
-                .sorted(Comparator.comparingDouble(OsmElementMemory::getArea).reversed()).toList());
-    }
-
-    public void insert(OsmElementMemory element) {
-        if (root == null) {
-            root = new RTreeNode();
-        }
-
-        RTreeNode leaf = chooseLeaf(root, element.getBoundingBox());
-        leaf.addEntry(element);
-        System.out.println("Amount of children: " + leaf.getElements().size());
-
-        if (leaf.isLeaf()) {
-            if (leaf.elements.size() >= MAX_ENTRIES) {
-                RTreeNode newLeaf = splitLeaf(leaf);
-                adjustTree(leaf, newLeaf);
-            }
-        } else {
-            forcedReinsert(leaf);
-            if (leaf.elements.size() >= MAX_ENTRIES) {
-                RTreeNode newInternal = splitInternal(leaf);
-                adjustTree(leaf, newInternal);
-            }
-        }
-    }
-
-    public OsmElementMemory nearestNeighbor(RTreeNode node, Point query, OsmElementMemory bestSoFar, double bestDistance) {
+    /**
+     * Find the leaf node where the element should be inserted
+     */
+    private RTreeNode chooseLeaf(RTreeNode node, BoundingBox elementBox) {
         if (node.isLeaf()) {
-            for (OsmElementMemory element : node.elements) {
-                BoundingBox bbox = element.getBoundingBox();
-                double distance = bbox.distanceFromPoint(query);
-                if (distance < bestDistance) {
-                    bestSoFar = element;
-                    bestDistance = distance;
-                }
-            }
-        } else {
-            node.children.sort(Comparator.comparingDouble(e -> e.mbr.distanceFromPoint(query)));
-            for (RTreeNode child : node.children) {
-                double distance = child.mbr.distanceFromPoint(query);
-                if (distance < bestDistance) {
-                    bestSoFar = nearestNeighbor(child, query, bestSoFar, bestDistance);
-                }
-            }
+            return node;
         }
-        return bestSoFar;
-    }
-
-    private RTreeNode chooseLeaf(RTreeNode node, BoundingBox bbox) {
-        if (node.isLeaf()) return node;
 
         RTreeNode bestChild = null;
-        double minExpansion = Double.MAX_VALUE;
+        double minEnlargement = Double.POSITIVE_INFINITY;
+        double minArea = Double.POSITIVE_INFINITY;
 
         for (RTreeNode child : node.children) {
-            double originalArea = child.mbr.area();
-            BoundingBox expandedMBR = new BoundingBox(
-                    Math.min(child.mbr.getMinX(), bbox.getMinX()),
-                    Math.min(child.mbr.getMinY(), bbox.getMinY()),
-                    Math.max(child.mbr.getMaxX(), bbox.getMaxX()),
-                    Math.max(child.mbr.getMaxY(), bbox.getMaxY())
-            );
-            double expansion = expandedMBR.area() - originalArea;
+            // Calculate how much the child's MBR would need to be enlarged
+            double enlargement = child.mbr.getExpanded(elementBox).area() - child.mbr.area();
+            double area = child.mbr.area();
 
-            if (expansion < minExpansion) {
-                minExpansion = expansion;
+            // Choose the child that requires the least enlargement
+            if (enlargement < minEnlargement ||
+                    (Math.abs(enlargement - minEnlargement) < 1e-10 && area < minArea)) {
+                minEnlargement = enlargement;
+                minArea = area;
                 bestChild = child;
             }
         }
 
         assert bestChild != null;
-        return chooseLeaf(bestChild, bbox);
+        return chooseLeaf(bestChild, elementBox);
     }
 
-    private OsmElementMemory[] pickSeeds(List<OsmElementMemory> elements) {
-        OsmElementMemory seedA = null, seedB = null;
-        double maxDistance = -1;
-
-        for (int i = 0; i < elements.size(); i++) {
-            for (int j = i + 1; j < elements.size(); j++) {
-                double distance = elements.get(i).getBoundingBox().distanceToBoundingBox(elements.get(j).getBoundingBox());
-                if (distance > maxDistance) {
-                    maxDistance = distance;
-                    seedA = elements.get(i);
-                    seedB = elements.get(j);
-                }
-            }
-        }
-        return new OsmElementMemory[]{seedA, seedB};
-    }
-
-//    private RTreeNode chooseSubtree(RTreeNode parent, OsmElementMemory newEntry) {
-//        RTreeNode bestNode = null;
-//        double minOverlapIncrease = Double.MAX_VALUE;
-//        double minAreaIncrease = Double.MAX_VALUE;
-//
-//        for (RTreeNode child : parent.children) {
-//            double originalOverlap = computeOverlap(parent.children);
-//            double newOverlap = computeOverlapAfterInsertion(parent.children, newEntry, child);
-//
-//            double overlapIncrease = newOverlap - originalOverlap;
-//            double areaIncrease = child.mbr.getExpanded(newEntry.getBoundingBox()).area() - child.mbr.area();
-//
-//            if (overlapIncrease < minOverlapIncrease ||
-//                    (overlapIncrease == minOverlapIncrease && areaIncrease < minAreaIncrease)) {
-//                bestNode = child;
-//                minOverlapIncrease = overlapIncrease;
-//                minAreaIncrease = areaIncrease;
-//            }
-//        }
-//        return bestNode;
-//    }
-
-//    private double computeOverlap(List<RTreeNode> children) {
-//        double overlap = 0;
-//        for (int i = 0; i < children.size(); i++) {
-//            for (int j = i + 1; j < children.size(); j++) {
-//                overlap += children.get(i).mbr.intersectionArea(children.get(j).mbr);
-//            }
-//        }
-//        return overlap;
-//    }
-//
-//    private double computeOverlapAfterInsertion(List<RTreeNode> children, OsmElementMemory newEntry, RTreeNode targetChild) {
-//        BoundingBox newMBB = targetChild.mbr.getExpanded(newEntry.getBoundingBox());
-//
-//        double overlap = 0;
-//        for (RTreeNode child : children) {
-//            if (child != targetChild) {
-//                overlap += newMBB.intersectionArea(child.mbr);
-//            }
-//        }
-//        return overlap;
-//    }
-
-    private double computeOverlapIncrease(RTreeNode node, BoundingBox newBBox) {
-        BoundingBox expanded = node.mbr.getExpanded(newBBox);
-        return expanded.area() - node.mbr.area();
-    }
-
-    private void forcedReinsert(RTreeNode node) {
-        if (node.elements.size() <= MAX_ENTRIES) return;
-
-        // Sort elements by distance from node's center
-        BoundingBox nodeCenter = node.mbr;
-        node.elements.sort(Comparator.comparingDouble(
-                e -> e.getBoundingBox().distanceToBoundingBox(nodeCenter))
-        );
-
-        // Remove a fraction (e.g., 30%) for reinsertion
-        int reinsertCount = (int) (node.elements.size() * 0.3);
-        List<OsmElementMemory> toReinsert = new ArrayList<>(
-                node.elements.subList(node.elements.size() - reinsertCount, node.elements.size())
-        );
-
-        // Remove from the node
-        node.elements.removeAll(toReinsert);
-
-        // Reinsert removed elements
-        for (OsmElementMemory e : toReinsert) {
-            insert(e);
-        }
-    }
-
+    /**
+     * Split a leaf node according to R*-tree algorithm
+     */
     private RTreeNode splitLeaf(RTreeNode leaf) {
-        List<OsmElementMemory> elements = new ArrayList<>(leaf.elements);
-        leaf.elements.clear();
+        // Calculate the level of this node to track reinsertions
+        int level = calculateLevel(leaf);
 
-        // Pick two seeds that are geographically far apart
-        OsmElementMemory[] seeds = pickSeeds(elements);
-        OsmElementMemory entryA = seeds[0];
-        OsmElementMemory entryB = seeds[1];
-        elements.remove(entryA);
-        elements.remove(entryB);
-
-        // Create two new leaf nodes
-        RTreeNode groupA = new RTreeNode();
-        RTreeNode groupB = new RTreeNode();
-
-        groupA.addEntry(entryA);
-        groupB.addEntry(entryB);
-
-        // Distribution of the rest
-        while (!elements.isEmpty()) {
-            OsmElementMemory element = elements.removeFirst();
-            double overlapA = computeOverlapIncrease(groupA, element.getBoundingBox());
-            double overlapB = computeOverlapIncrease(groupB, element.getBoundingBox());
-
-            if (overlapA < overlapB) {
-                groupA.addEntry(element);
-            } else if (overlapB < overlapA) {
-                groupB.addEntry(element);
-            } else {
-                // Choose the one with smaller area
-                double areaA = groupA.mbr.area();
-                double areaB = groupB.mbr.area();
-                if (areaA < areaB) {
-                    groupA.addEntry(element);
-                } else {
-                    groupB.addEntry(element);
-                }
+        // Check if we should do a forced reinsert instead of splitting
+        if (!reinsertLevels.contains(level) && level <= REINSERT_LEVELS) {
+            boolean didReinsert = forcedReinsert(leaf, level);
+            if (didReinsert && leaf.elements.size() < MAX_ENTRIES) {
+                return null; // No split needed after reinsert
             }
         }
 
-        // GroupA is copied back to the original node
-        leaf.elements.addAll(groupA.elements);
-        leaf.updateBoundingBox();
-
-        return groupB; // New sibling node
+        // If we still need to split after reinsertion or reinsert isn't applicable
+        return splitNodeR(leaf);
     }
 
-    private RTreeNode findParent(RTreeNode current, RTreeNode child) {
-        // If the current node contains the child node, return current as the parent
-        for (RTreeNode childNode : current.children) {
-            if (childNode == child) {
+    /**
+     * Split an internal node according to R*-tree algorithm
+     */
+    private RTreeNode splitInternal(RTreeNode node) {
+        return splitNodeR(node);
+    }
+
+    /**
+     * Choose the split axis that minimizes the sum of perimeters for internal nodes
+     */
+    private int chooseSplitAxisForInternal(List<RTreeNode> children) {
+        double minPerimeterSum = Double.POSITIVE_INFINITY;
+        int bestAxis = 0;
+
+        // Check both X and Y axes
+        for (int axis = 0; axis < 2; axis++) {
+            // Sort children by their center along this axis
+            sortChildrenByAxis(children, axis);
+
+            // Compute S, the sum of all perimeter-values of the different distributions
+            double perimeterSum = computeDistributionPerimeterSumForInternal(children);
+
+            if (perimeterSum < minPerimeterSum) {
+                minPerimeterSum = perimeterSum;
+                bestAxis = axis;
+            }
+        }
+
+        return bestAxis;
+    }
+
+    /**
+     * Choose the distribution with minimum overlap for internal nodes
+     */
+    private int[] chooseSplitIndexForInternal(List<RTreeNode> children, int axis) {
+        // Sort by the chosen axis
+        sortChildrenByAxis(children, axis);
+
+        double minOverlap = Double.POSITIVE_INFINITY;
+        double minArea = Double.POSITIVE_INFINITY;
+        int splitIndex = MIN_ENTRIES;
+
+        // Try distributions and pick the one with minimum overlap
+        for (int i = MIN_ENTRIES; i <= children.size() - MIN_ENTRIES; i++) {
+            // Create two groups
+            BoundingBox mbr1 = computeMBRForChildren(children.subList(0, i));
+            BoundingBox mbr2 = computeMBRForChildren(children.subList(i, children.size()));
+
+            // Calculate overlap
+            double overlap = mbr1.intersectionArea(mbr2);
+            double area = mbr1.area() + mbr2.area();
+
+            // Choose distribution with minimum overlap, breaking ties with minimum area
+            if (overlap < minOverlap || (Math.abs(overlap - minOverlap) < 1e-10 && area < minArea)) {
+                minOverlap = overlap;
+                minArea = area;
+                splitIndex = i;
+            }
+        }
+
+        return new int[]{splitIndex, children.size() - splitIndex};
+    }
+
+    /**
+     * Sort children nodes by their center along the specified axis
+     */
+    private void sortChildrenByAxis(List<RTreeNode> children, int axis) {
+        children.sort((c1, c2) -> {
+            double center1 = (axis == 0) ?
+                    (c1.mbr.getMinX() + c1.mbr.getMaxX()) / 2 :
+                    (c1.mbr.getMinY() + c1.mbr.getMaxY()) / 2;
+
+            double center2 = (axis == 0) ?
+                    (c2.mbr.getMinX() + c2.mbr.getMaxX()) / 2 :
+                    (c2.mbr.getMinY() + c2.mbr.getMaxY()) / 2;
+
+            return Double.compare(center1, center2);
+        });
+    }
+
+    /**
+     * Compute the sum of perimeters for all possible distributions of internal nodes
+     */
+    private double computeDistributionPerimeterSumForInternal(List<RTreeNode> children) {
+        double sum = 0;
+
+        for (int i = MIN_ENTRIES; i <= children.size() - MIN_ENTRIES; i++) {
+            BoundingBox mbr1 = computeMBRForChildren(children.subList(0, i));
+            BoundingBox mbr2 = computeMBRForChildren(children.subList(i, children.size()));
+
+            // Sum the perimeters (perimeter = 2 * (width + height))
+            sum += 2 * ((mbr1.getMaxX() - mbr1.getMinX()) + (mbr1.getMaxY() - mbr1.getMinY()));
+            sum += 2 * ((mbr2.getMaxX() - mbr2.getMinX()) + (mbr2.getMaxY() - mbr2.getMinY()));
+        }
+
+        return sum;
+    }
+
+    /**
+     * Compute the MBR for a list of child nodes
+     */
+    private BoundingBox computeMBRForChildren(List<RTreeNode> children) {
+        if (children.isEmpty()) {
+            return new BoundingBox(0, 0, 0, 0);
+        }
+
+        RTreeNode first = children.getFirst();
+        BoundingBox mbr = new BoundingBox(
+                first.mbr.getMinX(),
+                first.mbr.getMinY(),
+                first.mbr.getMaxX(),
+                first.mbr.getMaxY()
+        );
+
+        for (int i = 1; i < children.size(); i++) {
+            mbr.expand(children.get(i).mbr);
+        }
+
+        return mbr;
+    }
+
+    /**
+     * Choose the split axis that minimizes the sum of perimeters for leaf nodes
+     */
+    private int chooseSplitAxisForLeaf(List<OsmElementMemory> elements) {
+        double minPerimeterSum = Double.POSITIVE_INFINITY;
+        int bestAxis = 0;
+
+        // Check both X and Y axes
+        for (int axis = 0; axis < 2; axis++) {
+            // Sort elements by their center along this axis
+            sortElementsByAxis(elements, axis);
+
+            // Compute S, the sum of all perimeter-values of the different distributions
+            double perimeterSum = computeDistributionPerimeterSumForLeaf(elements);
+
+            if (perimeterSum < minPerimeterSum) {
+                minPerimeterSum = perimeterSum;
+                bestAxis = axis;
+            }
+        }
+
+        return bestAxis;
+    }
+
+    /**
+     * Choose the distribution with minimum overlap for leaf nodes
+     */
+    private int[] chooseSplitIndexForLeaf(List<OsmElementMemory> elements, int axis) {
+        // Sort by the chosen axis
+        sortElementsByAxis(elements, axis);
+
+        double minOverlap = Double.POSITIVE_INFINITY;
+        double minArea = Double.POSITIVE_INFINITY;
+        int splitIndex = MIN_ENTRIES;
+
+        // Try distributions and pick the one with minimum overlap
+        for (int i = MIN_ENTRIES; i <= elements.size() - MIN_ENTRIES; i++) {
+            // Create two groups
+            BoundingBox mbr1 = computeMBRForElements(elements.subList(0, i));
+            BoundingBox mbr2 = computeMBRForElements(elements.subList(i, elements.size()));
+
+            // Calculate overlap
+            double overlap = mbr1.intersectionArea(mbr2);
+            double area = mbr1.area() + mbr2.area();
+
+            // Choose distribution with minimum overlap, breaking ties with minimum area
+            if (overlap < minOverlap || (Math.abs(overlap - minOverlap) < 1e-10 && area < minArea)) {
+                minOverlap = overlap;
+                minArea = area;
+                splitIndex = i;
+            }
+        }
+
+        return new int[]{splitIndex, elements.size() - splitIndex};
+    }
+
+    /**
+     * Sort elements by their center along the specified axis
+     */
+    private void sortElementsByAxis(List<OsmElementMemory> elements, int axis) {
+        elements.sort((e1, e2) -> {
+            BoundingBox b1 = e1.getBoundingBox();
+            BoundingBox b2 = e2.getBoundingBox();
+
+            double center1 = (axis == 0) ?
+                    (b1.getMinX() + b1.getMaxX()) / 2 :
+                    (b1.getMinY() + b1.getMaxY()) / 2;
+
+            double center2 = (axis == 0) ?
+                    (b2.getMinX() + b2.getMaxX()) / 2 :
+                    (b2.getMinY() + b2.getMaxY()) / 2;
+
+            return Double.compare(center1, center2);
+        });
+    }
+
+    /**
+     * Compute the sum of perimeters for all possible distributions of leaf elements
+     */
+    private double computeDistributionPerimeterSumForLeaf(List<OsmElementMemory> elements) {
+        double sum = 0;
+
+        for (int i = MIN_ENTRIES; i <= elements.size() - MIN_ENTRIES; i++) {
+            BoundingBox mbr1 = computeMBRForElements(elements.subList(0, i));
+            BoundingBox mbr2 = computeMBRForElements(elements.subList(i, elements.size()));
+
+            // Sum the perimeters
+            sum += 2 * ((mbr1.getMaxX() - mbr1.getMinX()) + (mbr1.getMaxY() - mbr1.getMinY()));
+            sum += 2 * ((mbr2.getMaxX() - mbr2.getMinX()) + (mbr2.getMaxY() - mbr2.getMinY()));
+        }
+
+        return sum;
+    }
+
+    /**
+     * Compute the MBR for a list of elements
+     */
+    private BoundingBox computeMBRForElements(List<OsmElementMemory> elements) {
+        if (elements.isEmpty()) {
+            return new BoundingBox(0, 0, 0, 0);
+        }
+
+        OsmElementMemory first = elements.getFirst();
+        BoundingBox firstBox = first.getBoundingBox();
+        BoundingBox mbr = new BoundingBox(
+                firstBox.getMinX(),
+                firstBox.getMinY(),
+                firstBox.getMaxX(),
+                firstBox.getMaxY()
+        );
+
+        for (int i = 1; i < elements.size(); i++) {
+            mbr.expand(elements.get(i).getBoundingBox());
+        }
+
+        return mbr;
+    }
+
+    /**
+     * Split RTree nodes method
+     */
+    private RTreeNode splitNodeR(RTreeNode node) {
+        RTreeNode newNode = new RTreeNode();
+
+        if (node.isLeaf()) {
+            // Handle leaf node split
+            List<OsmElementMemory> elements = new ArrayList<>(node.elements);
+
+            // Choose split axis and distribution
+            int bestAxis = chooseSplitAxisForLeaf(elements);
+            int[] distribution = chooseSplitIndexForLeaf(elements, bestAxis);
+
+            // Sort elements by the chosen axis
+            sortElementsByAxis(elements, bestAxis);
+
+            // Distribute elements
+            List<OsmElementMemory> group1 = new ArrayList<>(
+                    elements.subList(0, distribution[0]));
+            List<OsmElementMemory> group2 = new ArrayList<>(
+                    elements.subList(distribution[0], elements.size()));
+
+            // Update nodes
+            node.elements = group1;
+            newNode.elements = group2;
+        } else {
+            // Handle internal node split
+            List<RTreeNode> children = new ArrayList<>(node.children);
+
+            // Choose split axis and distribution
+            int bestAxis = chooseSplitAxisForInternal(children);
+            int[] distribution = chooseSplitIndexForInternal(children, bestAxis);
+
+            // Sort children by the chosen axis
+            sortChildrenByAxis(children, bestAxis);
+
+            // Distribute children
+            List<RTreeNode> group1 = new ArrayList<>(
+                    children.subList(0, distribution[0]));
+            List<RTreeNode> group2 = new ArrayList<>(
+                    children.subList(distribution[0], children.size()));
+
+            // Update nodes
+            node.children = group1;
+            newNode.children = group2;
+        }
+
+        // Update MBRs
+        node.updateBoundingBox();
+        newNode.updateBoundingBox();
+
+        // Debug check to ensure MBR was created
+        if (newNode.mbr == null) {
+            forceCreateMBR(newNode);
+        }
+
+        return newNode;
+    }
+
+    /**
+     * Helper method to force MBR creation
+     **/
+    private void forceCreateMBR(RTreeNode node) {
+        if (node.isLeaf() && !node.elements.isEmpty()) {
+            // Get first element's bounding box
+            BoundingBox first = node.elements.getFirst().getBoundingBox();
+            node.mbr = new BoundingBox(first.getMinX(), first.getMinY(),
+                    first.getMaxX(), first.getMaxY());
+
+            // Expand for remaining elements
+            for (int i = 1; i < node.elements.size(); i++) {
+                node.mbr.expand(node.elements.get(i).getBoundingBox());
+            }
+        } else if (!node.isLeaf() && !node.children.isEmpty()) {
+            // Get first child's bounding box
+            BoundingBox first = node.children.getFirst().mbr;
+            node.mbr = new BoundingBox(first.getMinX(), first.getMinY(),
+                    first.getMaxX(), first.getMaxY());
+
+            // Expand for remaining children
+            for (int i = 1; i < node.children.size(); i++) {
+                if (node.children.get(i).mbr != null) {
+                    node.mbr.expand(node.children.get(i).mbr);
+                }
+            }
+        } else {
+            // Create a default minimal bounding box if node is empty
+            node.mbr = new BoundingBox(0, 0, 0, 0);
+        }
+    }
+
+    /**
+     * Forced reinsert procedure for R*-tree
+     */
+    private boolean forcedReinsert(RTreeNode node, int level) {
+        // Check if reinsert is needed
+        boolean isFull = node.isLeaf() ?
+                node.elements.size() > MAX_ENTRIES :
+                node.children.size() > MAX_ENTRIES;
+
+        if (!isFull) {
+            return false;
+        }
+
+        // Mark this level as having done a reinsert
+        reinsertLevels.add(level);
+
+        // Number of entries to reinsert
+        int p = (int) Math.ceil(REINSERT_PERCENTAGE * MAX_ENTRIES);
+        Pair<Double, Double> center = getCenter(node.mbr);
+
+        if (node.isLeaf()) {
+            // Handle leaf node - work directly with elements list
+            List<OsmElementMemory> elements = new ArrayList<>(node.elements);
+
+            // Sort by distance from center
+            elements.sort((e1, e2) -> {
+                double dist1 = getDistance(e1.getBoundingBox(), center);
+                double dist2 = getDistance(e2.getBoundingBox(), center);
+                return Double.compare(dist2, dist1); // Descending order
+            });
+
+            // Select entries to reinsert (farthest p entries)
+            int reinsertCount = Math.min(p, elements.size());
+            List<OsmElementMemory> entriesToReinsert =
+                    new ArrayList<>(elements.subList(0, reinsertCount));
+
+            // Keep the rest
+            node.elements = new ArrayList<>(elements.subList(reinsertCount, elements.size()));
+            node.updateBoundingBox();
+
+            // Reinsert entries
+            for (OsmElementMemory element : entriesToReinsert) {
+                insert(element);
+            }
+        } else {
+            // Handle internal node - work directly with children list
+            List<RTreeNode> children = new ArrayList<>(node.children);
+
+            // Sort by distance from center
+            children.sort((c1, c2) -> {
+                double dist1 = getDistance(c1.mbr, center);
+                double dist2 = getDistance(c2.mbr, center);
+                return Double.compare(dist2, dist1); // Descending order
+            });
+
+            // Select entries to reinsert (farthest p entries)
+            int reinsertCount = Math.min(p, children.size());
+            List<RTreeNode> childrenToReinsert =
+                    new ArrayList<>(children.subList(0, reinsertCount));
+
+            // Keep the rest
+            node.children = new ArrayList<>(children.subList(reinsertCount, children.size()));
+            node.updateBoundingBox();
+
+            // Reinsert children
+            for (RTreeNode child : childrenToReinsert) {
+                insertInternal(child, level);
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Insert internal node after forced reinsert
+     */
+    private void insertInternal(RTreeNode nodeToInsert, int level) {
+        // Start from root and traverse down to the appropriate level
+        RTreeNode targetNode = findTargetNodeAtLevel(root, nodeToInsert.mbr, level - 1);
+
+        // Add child to the target node (should not be a leaf)
+        if (targetNode.isLeaf()) {
+            throw new IllegalStateException("Target node at level " + (level-1) + " should not be a leaf");
+        }
+
+        targetNode.addChild(nodeToInsert);
+
+        // Find parent for adjustment
+        RTreeNode parent = findParent(root, targetNode);
+
+        // Check if we need to split
+        RTreeNode newNode = null;
+        if (targetNode.children.size() > MAX_ENTRIES) {
+            newNode = splitInternal(targetNode);
+        }
+
+        // Adjust tree upward
+        adjustTree(targetNode, newNode, parent);
+    }
+
+    /**
+     * Find a node at the specified level for insertion
+     */
+    private RTreeNode findTargetNodeAtLevel(RTreeNode node, BoundingBox mbr, int targetLevel) {
+        if (targetLevel == 0 || node.isLeaf()) {
+            return node;
+        }
+
+        // Choose best child based on minimum enlargement
+        RTreeNode bestChild = null;
+        double minEnlargement = Double.POSITIVE_INFINITY;
+
+        for (RTreeNode child : node.children) {
+            double enlargement = child.mbr.getExpanded(mbr).area() - child.mbr.area();
+            if (bestChild == null || enlargement < minEnlargement) {
+                minEnlargement = enlargement;
+                bestChild = child;
+            }
+        }
+
+        if (bestChild == null) {
+            return node; // No children, return current node
+        }
+
+        return findTargetNodeAtLevel(bestChild, mbr, targetLevel - 1);
+    }
+
+    /**
+     * Adjust the tree after an insertion or split
+     * @param node The node that was modified
+     * @param newNode The new node if there was a split, or null
+     * @param parent The parent of the modified node
+     **/
+    private void adjustTree(RTreeNode node, RTreeNode newNode, RTreeNode parent) {
+        // Update the MBR of the node
+        node.updateBoundingBox();
+
+        if (parent == null) {
+            // We've reached the root
+            if (newNode != null) {
+                // Need to create a new root
+                RTreeNode newRoot = new RTreeNode();
+                newRoot.addChild(node);
+                newRoot.addChild(newNode);
+                newRoot.updateBoundingBox();
+                root = newRoot;
+            }
+            return;
+        }
+
+        // If we have a new node after splitting, add it to the parent
+        if (newNode != null) {
+            parent.addChild(newNode);
+        }
+
+        // Check if parent needs splitting
+        RTreeNode splitParent = null;
+        if (parent.children.size() > MAX_ENTRIES) {
+            splitParent = splitInternal(parent);
+        }
+
+        // Calculate grandparent
+        RTreeNode grandparent = findParent(root, parent);
+
+        // Continue adjusting up the tree
+        adjustTree(parent, splitParent, grandparent);
+    }
+
+    private double getDistance(BoundingBox box, Pair<Double, Double> center) {
+        Pair<Double, Double> boxCenter = getCenter(box);
+        double dx = boxCenter.getKey() - center.getKey();
+        double dy = boxCenter.getValue() - center.getValue();
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    private Pair<Double, Double> getCenter(BoundingBox box) {
+        double x = (box.getMinX() + box.getMaxX()) / 2;
+        double y = (box.getMinY() + box.getMaxY()) / 2;
+        return new Pair<>(x, y);
+    }
+
+
+    private int calculateLevel(RTreeNode node) {
+        if (node == root) return 0;
+
+        RTreeNode current = root;
+        int level = 0;
+
+        while (!current.isLeaf()) {
+            level++;
+            boolean found = false;
+
+            for (RTreeNode child : current.children) {
+                if (containsNode(child, node)) {
+                    current = child;
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) return -1; // Node not found
+        }
+
+        return level;
+    }
+
+    private boolean containsNode(RTreeNode parent, RTreeNode target) {
+        if (parent == target) return true;
+
+        for (RTreeNode child : parent.children) {
+            if (containsNode(child, target)) return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Find the parent of a node in the tree
+     */
+    private RTreeNode findParent(RTreeNode current, RTreeNode target) {
+        if (current == null || current == target) {
+            return null;
+        }
+
+        // Check if any children are the target
+        for (RTreeNode child : current.children) {
+            if (child == target) {
                 return current;
             }
         }
 
-        // Search for the parent
-        for (RTreeNode childNode : current.children) {
-            RTreeNode parent = findParent(childNode, child);
-            if (parent != null) {
-                return parent;
+        // Recursively check in each child
+        for (RTreeNode child : current.children) {
+            RTreeNode result = findParent(child, target);
+            if (result != null) {
+                return result;
             }
         }
 
-        // No parent found
         return null;
-    }
-
-    private RTreeNode splitInternal(RTreeNode node) {
-        // Choose the axis to split
-        int axis = chooseSplitAxis(node);
-
-        // Sort the entries along that axis
-        List<RTreeNode> sortedEntries = sortEntries(node, axis);
-
-        // Split the entries into two groups
-        int splitIndex = sortedEntries.size() / 2; // Simple split at the midpoint
-        List<RTreeNode> groupA = sortedEntries.subList(0, splitIndex);
-        List<RTreeNode> groupB = sortedEntries.subList(splitIndex, sortedEntries.size());
-
-        // Create new child nodes for each group
-        RTreeNode newNodeA = new RTreeNode();
-        RTreeNode newNodeB = new RTreeNode();
-
-        for (RTreeNode child : groupA) {
-            newNodeA.addChild(child);
-        }
-        for (RTreeNode child : groupB) {
-            newNodeB.addChild(child);
-        }
-
-        newNodeA.updateBoundingBox();
-        newNodeB.updateBoundingBox();
-
-        // Create a new parent node if necessary
-        RTreeNode newParent = new RTreeNode();
-        newParent.addChild(newNodeA);
-        newParent.addChild(newNodeB);
-
-        // Return the new parent
-        return newParent;
-    }
-
-    private int chooseSplitAxis(RTreeNode node) {
-        double width = node.mbr.getMaxX() - node.mbr.getMinX();
-        double height = node.mbr.getMaxY() - node.mbr.getMinY();
-
-        return width > height ? 0 : 1; // 0 for X-axis, 1 for Y-axis
-    }
-
-    private List<RTreeNode> sortEntries(RTreeNode node, int axis) {
-        List<RTreeNode> sortedEntries = new ArrayList<>(node.children);
-
-        sortedEntries.sort((a, b) -> {
-            double aCoord = axis == 0 ? a.mbr.getMinX() : a.mbr.getMinY();
-            double bCoord = axis == 0 ? b.mbr.getMinX() : b.mbr.getMinY();
-            return Double.compare(aCoord, bCoord);
-        });
-
-        return sortedEntries;
-    }
-
-    private void adjustTree(RTreeNode node, RTreeNode newNode) {
-        if (node == root) {
-            // If we split the root, we need a new root
-            RTreeNode newRoot = new RTreeNode();
-            newRoot.addChild(node);
-            newRoot.addChild(newNode);
-            root = newRoot;
-            return;
-        }
-
-        // Find the parent of the current node
-        RTreeNode parent = findParent(root, node);
-
-        if (parent == null) {
-            throw new IllegalStateException("Parent node not found for adjustment!");
-        }
-
-        // Add the new node as a sibling
-        parent.addChild(newNode);
-        parent.updateBoundingBox();
-
-        // If parent overflows, split it recursively
-        if (parent.children.size() > MAX_ENTRIES) {
-            RTreeNode splitParent = splitInternal(parent);
-            adjustTree(parent, splitParent);
-        }
     }
 
     private void searchRecursive(RTreeNode node, BoundingBox queryBox, List<OsmElementMemory> results) {
@@ -351,5 +655,60 @@ public class RTree {
                 searchRecursive(child, queryBox, results);
             }
         }
+    }
+
+//    private RTreeNode[] handleOverflow(RTreeNode node) {
+//        if (node.elements.size() <= MAX_ENTRIES) {
+//            return null;
+//        }
+//
+//        // Try forced reinsert first if appropriate
+//        int level = calculateLevel(node);
+//        if (!reinsertLevels.contains(level) && level <= REINSERT_LEVELS) {
+//            boolean didReinsert = forcedReinsert(node, level);
+//            if (didReinsert && node.elements.size() <= MAX_ENTRIES) {
+//                return null; // No split needed
+//            }
+//        }
+//
+//        // Split the node if necessary
+//        RTreeNode newNode = node.isLeaf() ? splitLeaf(node) : splitInternal(node);
+//        return new RTreeNode[] {node, newNode};
+//    }
+
+    public void insert(OsmElementMemory element) {
+        // Create root if it doesn't exist
+        if (root == null) {
+            root = new RTreeNode();
+            root.addEntry(element);
+            return;
+        }
+
+        // Find the appropriate leaf node
+        RTreeNode leaf = chooseLeaf(root, element.getBoundingBox());
+        leaf.addEntry(element);
+
+        // Adjust the tree (handles splits if necessary)
+        RTreeNode newNode = null;
+        if (leaf.elements.size() > MAX_ENTRIES) {
+            newNode = splitLeaf(leaf);
+        }
+
+        // Find parent and propagate changes upward
+        RTreeNode parent = findParent(root, leaf);
+        adjustTree(leaf, newNode, parent);
+    }
+
+    public List<OsmElement> search(double minLon, double minLat, double maxLon, double maxLat) {
+        if (root == null) {
+            return List.of();
+        }
+
+        List<OsmElementMemory> elements = new ArrayList<>();
+
+        searchRecursive(root, new BoundingBox(minLon, minLat, maxLon, maxLat), elements);
+
+        return new ArrayList<>(elements.parallelStream()
+                .sorted(Comparator.comparingDouble(OsmElementMemory::getArea).reversed()).toList());
     }
 }

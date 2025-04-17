@@ -8,10 +8,10 @@ import java.util.ArrayList;
 
 public class RTreeNode {
     BoundingBox mbr;
-    List<OsmElementMemory> elements = new ArrayList<>();
-    List<RTreeNode> children = new ArrayList<>();
+    List<OsmElementMemory> elements = new ArrayList<>();    // For leaf nodes
+    List<RTreeNode> children = new ArrayList<>();           // For internal nodes
 
-    public RTreeNode() {
+    public RTreeNode()  {
         this.mbr = null;
     }
 
