@@ -24,7 +24,7 @@ import static dk.itu.util.DrawingUtils.bufferedImageToWritableImage;
 
 public class FloodingApp extends GameApplication {
     public static final int WIDTH = 1920, HEIGHT = 920;
-    private final Logger logger = LoggerFactory.getLogger();
+    private static final Logger logger = LoggerFactory.getLogger();
 
     private volatile State state;
     private volatile boolean simulationRunning;
@@ -43,6 +43,7 @@ public class FloodingApp extends GameApplication {
 //            services.getGeoJsonService().loadGeoJsonData("tuna.geojson");
 //            services.getHeightCurveService().loadGmlFileData("tuna.gml");
             services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
+            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
             state.resetWindowBounds();
 //            state.updateMinMaxWaterLevels(services);
 
@@ -161,13 +162,6 @@ public class FloodingApp extends GameApplication {
             if (CommonConfiguration.getInstance().shouldForceParseOsm()) {
                 services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
             }
-//            if (CommonConfiguration.getInstance().shouldForceParseOsm()) {
-//                services.getOsmService().loadOsmDataInDb("modified-tuna.osm");
-//            }
-            // TODO: Load in DB using GeoJson service
-            // if (CommonConfiguration.getInstance().shouldForceParseGeoJson()) {
-            //     services.getGeoJsonService().loadGeoJsonData("modified-tuna.geojson");
-            // }
 
             // Set State
             this.state = new State(services);

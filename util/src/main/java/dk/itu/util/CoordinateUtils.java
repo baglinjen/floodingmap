@@ -1,6 +1,6 @@
 package dk.itu.util;
 
-public class CoordinateConverter {
+public class CoordinateUtils {
     // Constants for WGS84 ellipsoid
     private static final double SEMI_MAJOR_AXIS = 6378137.0;
     private static final double FLATTENING = 1.0 / 298.257223563;
@@ -107,5 +107,38 @@ public class CoordinateConverter {
                         (61 - 58 * t + t * t + 600 * c - 330 * ECCENTRICITY_SQUARED) * Math.pow(a, 6) / 720));
 
         return new double[]{easting, northing};
+    }
+
+    public static double[] convertEPSG432ToETRS89Bounds(double[] bounds) {
+        double minLon = bounds[0];
+        double minLat = bounds[1];
+        double maxLon = bounds[2];
+        double maxLat = bounds[3];
+
+        return bounds;
+    }
+
+    /**
+     * Calculate the haversine distance between two lon/lat points.
+     *
+     * @return distance in kilometers
+     */
+    public static double haversineDistance(double lon1, double lat1, double lon2, double lat2) {
+
+        // Convert latitude and longitude from degrees to radians
+        double latRad1 = Math.toRadians(lat1);
+        double lonRad1 = Math.toRadians(lon1);
+        double latRad2 = Math.toRadians(lat2);
+        double lonRad2 = Math.toRadians(lon2);
+
+        // Haversine formula
+        double dLat = latRad2 - latRad1;
+        double dLon = lonRad2 - lonRad1;
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(latRad1) * Math.cos(latRad2) *
+                        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return 6371.0 * c;
     }
 }

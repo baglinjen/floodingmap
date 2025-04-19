@@ -6,12 +6,14 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
-import static dk.itu.util.CoordinateConverter.convertUTMToLatLon;
+import static dk.itu.util.CoordinateUtils.convertUTMToLatLon;
+import static dk.itu.util.PolygonUtils.forceCounterClockwise;
 
 public class HeightCurveElementBuilder {
     // Logger
-    private final Logger logger = LoggerFactory.getLogger();
+    private static final Logger logger = LoggerFactory.getLogger();
     // Parsed so far
     private final HeightCurveParserResult result;
     // Fields
@@ -29,13 +31,15 @@ public class HeightCurveElementBuilder {
         if (!valid || height == null || gmlId == null) {
             logger.warn("Invalid GML Element");
         } else {
-            result.addParsedElement(
-                    new ParserHeightCurveElement(
-                            gmlId,
-                            coordinates,
-                            height
-                    )
-            );
+            synchronized (result) {
+                result.addParsedElementSync(
+                        new ParserHeightCurveElement(
+                                gmlId,
+                                coordinates,
+                                height
+                        )
+                );
+            }
         }
         gmlId = null;
         coordinates = null;
@@ -44,9 +48,12 @@ public class HeightCurveElementBuilder {
     }
 
     public void withGmlId(long gmlId) {
+        if (!valid) return;
         this.gmlId = gmlId;
     }
+
     public void withEPSG25832Coords(String coords) {
+        if (!valid) return;
         var coordsList = coords.split(" ");
         if (coordsList.length < 5) {
             valid = false;
@@ -59,6 +66,6 @@ public class HeightCurveElementBuilder {
             coordinates.add(latLon[1]);
             coordinates.add(latLon[0]);
         }
-        this.coordinates = coordinates.parallelStream().mapToDouble(Double::doubleValue).toArray();
+        this.coordinates = forceCounterClockwise(coordinates.parallelStream().mapToDouble(Double::doubleValue).toArray());
     }
 }

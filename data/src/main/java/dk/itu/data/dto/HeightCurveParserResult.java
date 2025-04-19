@@ -1,6 +1,9 @@
 package dk.itu.data.dto;
 
 import dk.itu.data.models.parser.ParserHeightCurveElement;
+import dk.itu.data.repositories.HeightCurveRepository;
+import dk.itu.util.LoggerFactory;
+import org.apache.logging.log4j.Logger;
 
 import java.util.*;
 
@@ -8,13 +11,15 @@ import static dk.itu.util.ArrayUtils.appendExcludingN;
 import static dk.itu.util.PolygonUtils.*;
 
 public class HeightCurveParserResult {
+    private static final Logger logger = LoggerFactory.getLogger();
     private final Map<Float, List<ParserHeightCurveElement>> elementsByHeight = new HashMap<>();
-    private final List<ParserHeightCurveElement> elements = new ArrayList<>();
+    private List<ParserHeightCurveElement> elements = new ArrayList<>();
     private final List<ParserHeightCurveElement> unconnectedElements = new ArrayList<>();
-    private final Set<Long> parsedIds;
 
-    public HeightCurveParserResult(Set<Long> parsedIds) {
-        this.parsedIds = parsedIds;
+    private final HeightCurveRepository repository;
+
+    public HeightCurveParserResult(HeightCurveRepository repository) {
+        this.repository = repository;
     }
 
     public List<ParserHeightCurveElement> getElements() {
@@ -26,19 +31,15 @@ public class HeightCurveParserResult {
     }
 
     public void sanitize() {
-        elementsByHeight.values().parallelStream().forEach(this::closeHeightCurvesForHeight);
-        elements.addAll(
-                elementsByHeight
-                        .values()
-                        .parallelStream()
-                        .flatMap(Collection::stream)
-                        .toList()
-        );
+        logger.info("Starting to sanitize height curve elements");
+        elementsByHeight.values().forEach(list -> closeHeightCurvesForHeight(list, elements, unconnectedElements));
         elementsByHeight.clear();
-        elements.removeAll(unconnectedElements);
+        logger.info("Split in {} elements and {} unconnected elements - sorting by area", elements.size(), unconnectedElements.size());
+        elements = elements.parallelStream().sorted(Comparator.comparing(ParserHeightCurveElement::calculateArea).reversed()).toList();
+        logger.info("Finished sanitizing");
     }
 
-    private void closeHeightCurvesForHeight(List<ParserHeightCurveElement> elements) {
+    private void closeHeightCurvesForHeight(List<ParserHeightCurveElement> elements, List<ParserHeightCurveElement> closedElements, List<ParserHeightCurveElement> unclosedElements) {
         for (int i = 0; i < elements.size(); i++) {
             var elementI = elements.get(i);
             var coordsI = elementI.getCoordinates();
@@ -54,25 +55,25 @@ public class HeightCurveParserResult {
 
                 switch (findOpenPolygonMatchTypeWithTolerance(coordsI, coordsJ)) {
                     case FIRST_FIRST -> {
-                        elementJ.setCoordinates(appendExcludingN(reversePairs(coordsJ), coordsI, 2));
+                        elementJ.setCoordinates(forceCounterClockwise(appendExcludingN(reversePairs(coordsJ), coordsI, 2)));
                         elementJ.addGmlIds(elementI.getGmlIds());
                         elements.remove(i);
                         i = -1;
                     }
                     case FIRST_LAST -> {
-                        elementJ.setCoordinates(appendExcludingN(coordsJ, coordsI, 2));
+                        elementJ.setCoordinates(forceCounterClockwise(appendExcludingN(coordsJ, coordsI, 2)));
                         elementJ.addGmlIds(elementI.getGmlIds());
                         elements.remove(i);
                         i = -1;
                     }
                     case LAST_FIRST -> {
-                        elementJ.setCoordinates(appendExcludingN(coordsI, coordsJ, 2));
+                        elementJ.setCoordinates(forceCounterClockwise(appendExcludingN(coordsI, coordsJ, 2)));
                         elementJ.addGmlIds(elementI.getGmlIds());
                         elements.remove(i);
                         i = -1;
                     }
                     case LAST_LAST -> {
-                        elementJ.setCoordinates(appendExcludingN(coordsI, reversePairs(coordsJ), 2));
+                        elementJ.setCoordinates(forceCounterClockwise(appendExcludingN(coordsI, reversePairs(coordsJ), 2)));
                         elementJ.addGmlIds(elementI.getGmlIds());
                         elements.remove(i);
                         i = -1;
@@ -81,12 +82,13 @@ public class HeightCurveParserResult {
             }
         }
 
-        unconnectedElements.addAll(
-                elements
-                        .parallelStream()
-                        .filter(e -> !isClosedWithTolerance(e.getCoordinates()))
-                        .toList()
-        );
+        for (ParserHeightCurveElement element : elements) {
+            if (isClosedWithTolerance(element.getCoordinates())) {
+                closedElements.add(element);
+            } else {
+                unclosedElements.add(element);
+            }
+        }
     }
 
     public void addUnconnectedElements(List<ParserHeightCurveElement> elements) {
@@ -95,9 +97,12 @@ public class HeightCurveParserResult {
         }
     }
 
-    public void addParsedElement(ParserHeightCurveElement element) {
-        if (!this.parsedIds.contains(element.getGmlIds().getFirst())) {
-            addElement(element);
+    public synchronized void addParsedElementSync(ParserHeightCurveElement element) {
+        if (!this.repository.hasIdsBeenParsed(element.getGmlIds().getFirst())) {
+            this.repository.addParsedId(element.getGmlIds().getFirst());
+            var height = element.getHeight();
+            elementsByHeight.putIfAbsent(height, new ArrayList<>());
+            elementsByHeight.get(height).add(element);
         }
     }
 

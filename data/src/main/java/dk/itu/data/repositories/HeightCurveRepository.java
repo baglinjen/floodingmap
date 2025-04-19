@@ -8,7 +8,8 @@ import java.util.Set;
 
 public interface HeightCurveRepository {
     void add(List<ParserHeightCurveElement> elements);
-    Set<Long> getParsedIds();
+    void addParsedId(long id);
+    boolean hasIdsBeenParsed(long id);
     List<ParserHeightCurveElement> getUnconnectedElements();
     void setUnconnectedElements(List<ParserHeightCurveElement> elements);
     List<HeightCurveElement> getElements();

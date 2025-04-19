@@ -8,10 +8,11 @@ import org.apache.fury.shaded.org.codehaus.commons.compiler.java8.java.util.stre
 import org.apache.logging.log4j.Logger;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 
 public class HeightCurveRepositoryMemory implements HeightCurveRepository {
-    private final Logger logger = LoggerFactory.getLogger();
+    private static final Logger logger = LoggerFactory.getLogger();
     private static HeightCurveRepositoryMemory instance;
 
     public static HeightCurveRepositoryMemory getInstance() {
@@ -21,33 +22,32 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
         return instance;
     }
 
-    private final Set<Long> parsedIds = new HashSet<>();
+    private final Set<Long> parsedIds = new ConcurrentSkipListSet<>();
     private final HeightCurveTree heightCurveTree = new HeightCurveTree();
     private final List<ParserHeightCurveElement> unconnectedElements = new ArrayList<>();
 
     private HeightCurveRepositoryMemory() {}
 
     @Override
-    public synchronized Set<Long> getParsedIds() {
-        return parsedIds;
+    public void addParsedId(long id) {
+        parsedIds.add(id);
+    }
+
+    @Override
+    public boolean hasIdsBeenParsed(long id) {
+        return parsedIds.contains(id);
     }
 
     @Override
     public synchronized void add(List<ParserHeightCurveElement> elements) {
+        logger.info("Adding {} height curve elements", elements.size());
         for (ParserHeightCurveElement element : elements) {
-//            var elementGmlIds = element.getGmlIds();
-//            if (parsedIds.containsAll(elementGmlIds)) {
-//                logger.warn("Duplicate height curve element: {}", elementGmlIds);
-//            } else {
-//                parsedIds.addAll(elementGmlIds);
-//                heightCurveTree.put(element);
-//            }
-            if (element.getGmlIds().parallelStream().anyMatch(parsedIds::contains)) {
-                logger.warn("Duplicate id: {}", element.getGmlIds());
+            if (!element.getGmlIds().parallelStream().allMatch(parsedIds::contains)) {
+                logger.error("Found height curve element where not all gml ids have yet been added : {}", element.getGmlIds());
             }
-            parsedIds.addAll(element.getGmlIds());
             heightCurveTree.put(element);
         }
+        logger.info("Finished adding {} height curve elements", elements.size());
     }
 
     @Override
@@ -57,9 +57,11 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
 
     @Override
     public synchronized void setUnconnectedElements(List<ParserHeightCurveElement> elements) {
+        logger.info("Updating unconnected elements for {} elements", elements.size());
         unconnectedElements.clear();
         unconnectedElements.addAll(elements);
         parsedIds.addAll(elements.parallelStream().map(ParserHeightCurveElement::getGmlIds).flatMap(Collection::stream).toList());
+        logger.info("Finished updating unconnected elements for {} elements", elements.size());
     }
 
     @Override

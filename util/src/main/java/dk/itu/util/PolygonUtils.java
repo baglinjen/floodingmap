@@ -124,10 +124,10 @@ public class PolygonUtils {
         return isInside;
     }
 
-    private static final double TOLERANCE = 0.000001;
+    private static final double TOLERANCE = 0;
 
     public static boolean isClosedWithTolerance(double[] coords) {
-        return Math.abs(coords[0] - coords[coords.length - 2]) < TOLERANCE && Math.abs(coords[1] - coords[coords.length - 1]) < TOLERANCE;
+        return Math.abs(coords[0] - coords[coords.length - 2]) <= TOLERANCE && Math.abs(coords[1] - coords[coords.length - 1]) <= TOLERANCE;
     }
 
     public static boolean isClosed(double[] coords) {
@@ -135,13 +135,13 @@ public class PolygonUtils {
     }
 
     public static OpenPolygonMatchType findOpenPolygonMatchTypeWithTolerance(double[] polygon1, double[] polygon2) {
-        if (Math.abs(polygon1[0] - polygon2[0]) < TOLERANCE && Math.abs(polygon1[1] - polygon2[1]) < TOLERANCE) {
+        if (Math.abs(polygon1[0] - polygon2[0]) <= TOLERANCE && Math.abs(polygon1[1] - polygon2[1]) <= TOLERANCE) {
             return OpenPolygonMatchType.FIRST_FIRST;
-        } else if (Math.abs(polygon1[0] - polygon2[polygon2.length - 2]) < TOLERANCE && Math.abs(polygon1[1] - polygon2[polygon2.length - 1]) < TOLERANCE) {
+        } else if (Math.abs(polygon1[0] - polygon2[polygon2.length - 2]) <= TOLERANCE && Math.abs(polygon1[1] - polygon2[polygon2.length - 1]) <= TOLERANCE) {
             return OpenPolygonMatchType.FIRST_LAST;
-        } else if (Math.abs(polygon1[polygon1.length - 2] - polygon2[0]) < TOLERANCE && Math.abs(polygon1[polygon1.length - 1] - polygon2[1]) < TOLERANCE) {
+        } else if (Math.abs(polygon1[polygon1.length - 2] - polygon2[0]) <= TOLERANCE && Math.abs(polygon1[polygon1.length - 1] - polygon2[1]) <= TOLERANCE) {
             return OpenPolygonMatchType.LAST_FIRST;
-        } else if (Math.abs(polygon1[polygon1.length - 2] - polygon2[polygon2.length - 2]) < TOLERANCE && Math.abs(polygon1[polygon1.length - 1] - polygon2[polygon2.length - 1]) < TOLERANCE) {
+        } else if (Math.abs(polygon1[polygon1.length - 2] - polygon2[polygon2.length - 2]) <= TOLERANCE && Math.abs(polygon1[polygon1.length - 1] - polygon2[polygon2.length - 1]) <= TOLERANCE) {
             return OpenPolygonMatchType.LAST_LAST;
         } else {
             return OpenPolygonMatchType.NONE;

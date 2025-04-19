@@ -9,6 +9,7 @@ public class ParserHeightCurveElement {
     private final List<Long> gmlIds = new ArrayList<>();
     private double[] coordinates;
     private final float height;
+    private Double area = null;
 
     public ParserHeightCurveElement(
             long gmlId,
@@ -38,6 +39,9 @@ public class ParserHeightCurveElement {
     }
 
     public double calculateArea() {
-        return calculatePolygonArea(this.coordinates);
+        if (area == null) {
+            area = calculatePolygonArea(this.coordinates);
+        }
+        return area;
     }
 }

@@ -64,7 +64,7 @@ public class CommonConfiguration {
                                     new File(
                                             CommonConfiguration.class
                                                     .getClassLoader()
-                                                    .getResources("geojson")
+                                                    .getResources("gml")
                                                     .nextElement()
                                                     .toURI()
                                     ).listFiles()

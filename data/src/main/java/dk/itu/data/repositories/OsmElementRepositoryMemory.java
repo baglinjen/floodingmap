@@ -30,7 +30,7 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     private RTree traversable = new RTree();
 
     @Override
-    public void add(List<ParserOsmElement> osmElements) {
+    public synchronized void add(List<ParserOsmElement> osmElements) {
         osmElements.parallelStream().map(this::mapToOsmElement).toList().forEach(rtree::insert);
     }
 
@@ -44,33 +44,33 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     }
 
     @Override
-    public void addTraversable(List<ParserOsmNode> nodes) {
+    public synchronized void addTraversable(List<ParserOsmNode> nodes) {
         nodes.parallelStream().map(OsmNode::mapToOsmNode).toList().forEach(traversable::insert);
     }
 
     @Override
-    public List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
+    public synchronized List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
         return rtree.search(limit, minLon, minLat, maxLon, maxLat);
     }
 
     @Override
-    public List<OsmNode> getTraversableOsmNodes() {
+    public synchronized List<OsmNode> getTraversableOsmNodes() {
         return traversable.getNodes();
     }
 
     @Override
-    public OsmNode getNearestTraversableOsmNode(double lon, double lat) {
+    public synchronized OsmNode getNearestTraversableOsmNode(double lon, double lat) {
         return traversable.getNearest(lon, lat);
     }
 
     @Override
-    public void clearAll() {
+    public synchronized void clearAll() {
         rtree = new RTree();
         traversable = new RTree();
     }
 
     @Override
-    public BoundingBox getBounds() {
+    public synchronized BoundingBox getBounds() {
         if (rtree.getBoundingBox() == null) {
             return new BoundingBox(-180, -90, 180, 90);
         } else {

@@ -14,7 +14,8 @@ import static dk.itu.util.PolygonUtils.contains;
 import static dk.itu.util.PolygonUtils.isPointInPolygon;
 
 public class HeightCurveTree {
-    private final Logger logger = LoggerFactory.getLogger();
+    private static final Logger logger = LoggerFactory.getLogger();
+    private int elementCount = 0;
     private final HeightCurveTreeNode root = new HeightCurveTreeNode(
             HeightCurveElement.mapToHeightCurveElement(
                     new ParserHeightCurveElement(
@@ -100,6 +101,8 @@ public class HeightCurveTree {
         minWaterLevel = Math.min(minWaterLevel, heightCurveElement.getHeight());
         maxWaterLevel = Math.max(maxWaterLevel, heightCurveElement.getHeight());
         put(root, HeightCurveElement.mapToHeightCurveElement(heightCurveElement));
+        elementCount++;
+        logger.info("Height curve tree now has {} elements", elementCount);
     }
     private void put(HeightCurveTreeNode node, HeightCurveElement heightCurveElement) {
         if (node.children.isEmpty()) {

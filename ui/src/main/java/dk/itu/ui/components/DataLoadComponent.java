@@ -8,7 +8,6 @@ import javafx.scene.control.SplitMenuButton;
 
 public class DataLoadComponent extends SplitMenuButton {
     private String selectedFile = null;
-    private Thread task = null;
     public DataLoadComponent(State state) {
         super();
         setText("Select data file");
@@ -21,7 +20,7 @@ public class DataLoadComponent extends SplitMenuButton {
                         .toList()
         );
         setOnAction(_ -> {
-            if (task != null || selectedFile == null || (!selectedFile.endsWith(".osm") && !selectedFile.endsWith(".geojson"))) {
+            if (selectedFile == null || (!selectedFile.endsWith(".osm") && !selectedFile.endsWith(".gml"))) {
                 return;
             }
             Services.withServices(services -> {
@@ -30,17 +29,13 @@ public class DataLoadComponent extends SplitMenuButton {
                     setText("Loading OSM file");
                     services.getOsmService(state.isWithDb()).loadOsmData(selectedFile);
                     setDisable(false);
+                    setText(selectedFile);
                 } else if (selectedFile.endsWith(".gml")) {
-                    task = new Thread(() -> {
-                        setDisable(true);
-                        setText("Loading GML file");
-                        services.getHeightCurveService().loadGmlFileData(selectedFile);
-                        setDisable(false);
-                        setText("Select data file");
-                        selectedFile = null;
-                        task = null;
-                    });
-                    task.start();
+                    setDisable(true);
+                    setText("Loading GML file");
+                    services.getHeightCurveService().loadGmlFileData(selectedFile);
+                    setDisable(false);
+                    setText(selectedFile);
                 }
             });
         });
