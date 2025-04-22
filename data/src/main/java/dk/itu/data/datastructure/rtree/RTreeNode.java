@@ -15,6 +15,14 @@ public class RTreeNode {
         this.mbr = null;
     }
 
+    public List<RTreeNode> getChildren() {
+        return children;
+    }
+
+    public BoundingBox getMBR() {
+        return mbr;
+    }
+
     public boolean isLeaf() {
         return children.isEmpty();
     }
@@ -57,5 +65,9 @@ public class RTreeNode {
         } else {
             mbr.expand(bbox);
         }
+    }
+
+    public void setMBR(BoundingBox bbox) {
+        this.mbr = bbox;
     }
 }

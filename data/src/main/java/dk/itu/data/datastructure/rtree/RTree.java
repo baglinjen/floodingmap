@@ -7,7 +7,7 @@ import java.util.*;
 import java.util.List;
 
 public class RTree {
-    private static final int MAX_ENTRIES = 8;  // Maximum entries in a node
+    private static final int MAX_ENTRIES = 500;  // Maximum entries in a node
     private static final int MIN_ENTRIES = MAX_ENTRIES / 2;  // Minimum entries (40-50% of max is typical)
     private static final double REINSERT_PERCENTAGE = 0.3;  // Percentage of entries to reinsert (30% is typical)
     private static final int REINSERT_LEVELS = 5;  // Max levels for forced reinsert to prevent recursion issues
@@ -16,6 +16,13 @@ public class RTree {
     private final Set<Integer> reinsertLevels = new HashSet<>();
 
     private RTreeNode root;
+
+    /*
+    * The root of the R tree
+    * */
+    public RTreeNode getRoot() {
+        return root;
+    }
 
     /**
      * Find the leaf node where the element should be inserted
