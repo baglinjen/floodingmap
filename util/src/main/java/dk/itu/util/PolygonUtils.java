@@ -20,7 +20,6 @@ public class PolygonUtils {
         // Take the absolute value and divide by 2
         return Math.abs(area) / 2.0;
     }
-
     private static double getArea(double[] coordinates) {
         double area = 0.0;
         int numPoints = coordinates.length / 2;
@@ -47,8 +46,6 @@ public class PolygonUtils {
             return reversePairs(polygon);
         }
     }
-
-
     public static double[] forceCounterClockwise(double[] polygon) {
         if (isClockwise(polygon)) {
             return reversePairs(polygon);
@@ -56,7 +53,6 @@ public class PolygonUtils {
             return polygon;
         }
     }
-
     private static boolean isClockwise(double[] coordinates) {
         // Ensure we have at least a triangle (6 values: 3 points with x,y each)
         if (coordinates.length < 6 || coordinates.length % 2 != 0) {
@@ -111,7 +107,6 @@ public class PolygonUtils {
         return result;
     }
 
-    // p1 contains p2
     public static boolean contains(double[] p1, double[] p2) {
         // All p2 points should be in p1
         var isInside = true;
@@ -124,28 +119,8 @@ public class PolygonUtils {
         return isInside;
     }
 
-    private static final double TOLERANCE = 0;
-
-    public static boolean isClosedWithTolerance(double[] coords) {
-        return Math.abs(coords[0] - coords[coords.length - 2]) <= TOLERANCE && Math.abs(coords[1] - coords[coords.length - 1]) <= TOLERANCE;
-    }
-
     public static boolean isClosed(double[] coords) {
         return coords[0] == coords[coords.length - 2] && coords[1] == coords[coords.length - 1];
-    }
-
-    public static OpenPolygonMatchType findOpenPolygonMatchTypeWithTolerance(double[] polygon1, double[] polygon2) {
-        if (Math.abs(polygon1[0] - polygon2[0]) <= TOLERANCE && Math.abs(polygon1[1] - polygon2[1]) <= TOLERANCE) {
-            return OpenPolygonMatchType.FIRST_FIRST;
-        } else if (Math.abs(polygon1[0] - polygon2[polygon2.length - 2]) <= TOLERANCE && Math.abs(polygon1[1] - polygon2[polygon2.length - 1]) <= TOLERANCE) {
-            return OpenPolygonMatchType.FIRST_LAST;
-        } else if (Math.abs(polygon1[polygon1.length - 2] - polygon2[0]) <= TOLERANCE && Math.abs(polygon1[polygon1.length - 1] - polygon2[1]) <= TOLERANCE) {
-            return OpenPolygonMatchType.LAST_FIRST;
-        } else if (Math.abs(polygon1[polygon1.length - 2] - polygon2[polygon2.length - 2]) <= TOLERANCE && Math.abs(polygon1[polygon1.length - 1] - polygon2[polygon2.length - 1]) <= TOLERANCE) {
-            return OpenPolygonMatchType.LAST_LAST;
-        } else {
-            return OpenPolygonMatchType.NONE;
-        }
     }
 
     public static OpenPolygonMatchType findOpenPolygonMatchType(double[] polygon1, double[] polygon2) {
@@ -285,7 +260,8 @@ public class PolygonUtils {
      */
     private static boolean isVertexIntersection(
             double x1, double y1, double x2, double y2,
-            double x3, double y3, double x4, double y4) {
+            double x3, double y3, double x4, double y4
+    ) {
         // Check if any endpoint of one segment coincides with any endpoint of the other
         return (isPointEqual(x1, y1, x3, y3) || isPointEqual(x1, y1, x4, y4) ||
                 isPointEqual(x2, y2, x3, y3) || isPointEqual(x2, y2, x4, y4));
@@ -300,7 +276,6 @@ public class PolygonUtils {
     }
 
     /**
-     *
      * @param x Longitude
      * @param y Latitude
      * @param bounds [minX, minY, maxX, maxY]

@@ -2,14 +2,13 @@ package dk.itu.data.dto;
 
 import dk.itu.data.models.parser.ParserHeightCurveElement;
 import dk.itu.util.LoggerFactory;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.logging.log4j.Logger;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import java.util.stream.DoubleStream;
 
-import static dk.itu.util.CoordinateUtils.convertUTMToLatLon;
-import static dk.itu.util.PolygonUtils.forceCounterClockwise;
+import static dk.itu.util.CoordinateUtils.utmToWgs;
 
 public class HeightCurveElementBuilder {
     // Logger
@@ -54,18 +53,22 @@ public class HeightCurveElementBuilder {
 
     public void withEPSG25832Coords(String coords) {
         if (!valid) return;
+
         var coordsList = coords.split(" ");
-        if (coordsList.length < 5) {
+        if (coordsList.length < 5 || coordsList.length % 3 != 0) {
             valid = false;
             return;
         }
+
         this.height = Float.parseFloat(coordsList[2]);
-        List<Double> coordinates = new ArrayList<>((coordsList.length/3)*2);
-        for (int i = 0; i < coordsList.length; i+=3) {
-            var latLon = convertUTMToLatLon(Double.parseDouble(coordsList[i]), Double.parseDouble(coordsList[i+1]));
-            coordinates.add(latLon[1]);
-            coordinates.add(latLon[0]);
-        }
-        this.coordinates = forceCounterClockwise(coordinates.parallelStream().mapToDouble(Double::doubleValue).toArray());
+
+        this.coordinates = ListUtils
+                .partition(List.of(coordsList), 3)
+                .parallelStream()
+                .flatMapToDouble(set -> {
+                    var lonLat = utmToWgs(Double.parseDouble(set.getFirst()), Double.parseDouble(set.get(1)));
+                    return DoubleStream.of(lonLat[0], lonLat[1]);
+                })
+                .toArray();
     }
 }

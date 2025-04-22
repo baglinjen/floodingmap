@@ -45,6 +45,7 @@ public class ShapePreparer {
         return pathsAppended > 0 ? finalPath : null;
     }
 
+    // Pair with path2D and number of vertices
     private static Pair<Path2D.Double, Integer> calculateShape(Graphics2D g2d, double[] shape, double tolerance) {
         var path = new Path2D.Double();
         var transform = g2d.getTransform();

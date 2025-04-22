@@ -44,7 +44,7 @@ public class HeightCurveParserResult {
             var elementI = elements.get(i);
             var coordsI = elementI.getCoordinates();
 
-            if (isClosedWithTolerance(coordsI)) {
+            if (isClosed(coordsI)) {
                 continue;
             }
 
@@ -53,27 +53,27 @@ public class HeightCurveParserResult {
                 var elementJ = elements.get(j);
                 var coordsJ = elementJ.getCoordinates();
 
-                switch (findOpenPolygonMatchTypeWithTolerance(coordsI, coordsJ)) {
+                switch (findOpenPolygonMatchType(coordsI, coordsJ)) {
                     case FIRST_FIRST -> {
-                        elementJ.setCoordinates(forceCounterClockwise(appendExcludingN(reversePairs(coordsJ), coordsI, 2)));
+                        elementJ.setCoordinates(appendExcludingN(reversePairs(coordsJ), coordsI, 2));
                         elementJ.addGmlIds(elementI.getGmlIds());
                         elements.remove(i);
                         i = -1;
                     }
                     case FIRST_LAST -> {
-                        elementJ.setCoordinates(forceCounterClockwise(appendExcludingN(coordsJ, coordsI, 2)));
+                        elementJ.setCoordinates(appendExcludingN(coordsJ, coordsI, 2));
                         elementJ.addGmlIds(elementI.getGmlIds());
                         elements.remove(i);
                         i = -1;
                     }
                     case LAST_FIRST -> {
-                        elementJ.setCoordinates(forceCounterClockwise(appendExcludingN(coordsI, coordsJ, 2)));
+                        elementJ.setCoordinates(appendExcludingN(coordsI, coordsJ, 2));
                         elementJ.addGmlIds(elementI.getGmlIds());
                         elements.remove(i);
                         i = -1;
                     }
                     case LAST_LAST -> {
-                        elementJ.setCoordinates(forceCounterClockwise(appendExcludingN(coordsI, reversePairs(coordsJ), 2)));
+                        elementJ.setCoordinates(appendExcludingN(coordsI, reversePairs(coordsJ), 2));
                         elementJ.addGmlIds(elementI.getGmlIds());
                         elements.remove(i);
                         i = -1;
@@ -83,7 +83,7 @@ public class HeightCurveParserResult {
         }
 
         for (ParserHeightCurveElement element : elements) {
-            if (isClosedWithTolerance(element.getCoordinates())) {
+            if (isClosed(element.getCoordinates())) {
                 closedElements.add(element);
             } else {
                 unclosedElements.add(element);

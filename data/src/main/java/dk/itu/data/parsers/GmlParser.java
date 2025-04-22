@@ -1,6 +1,5 @@
 package dk.itu.data.parsers;
 
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.data.dto.HeightCurveElementBuilder;
 import dk.itu.data.dto.HeightCurveParserResult;
@@ -10,7 +9,6 @@ import org.apache.logging.log4j.Logger;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
 import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
@@ -24,12 +22,12 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
 
-import static dk.itu.util.CoordinateUtils.convertLatLonToUTM;
+import static dk.itu.util.CoordinateUtils.wgsToUtm;
 import static org.apache.commons.collections4.ListUtils.partition;
 
 public class GmlParser {
     private static final Logger logger = LoggerFactory.getLogger();
-    private static final int TIMEOUT_SECONDS = 30, THREADS_POOL_SIZE = 64;
+    private static final int TIMEOUT_SECONDS = 30, THREADS_POOL_SIZE = 64, MAX_RETRIES = 3;
     private static final HttpClient httpClient = HttpClient
             .newBuilder()
             .connectTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
@@ -50,16 +48,13 @@ public class GmlParser {
                                 }
 
                                 // Converting EPSG4326 lat/lon bounds to UTM
-                                var bl = convertLatLonToUTM(quadrant[1], quadrant[0]);
-                                var br = convertLatLonToUTM(quadrant[1], quadrant[2]);
-                                var tl = convertLatLonToUTM(quadrant[3], quadrant[0]);
-                                var tr = convertLatLonToUTM(quadrant[3], quadrant[2]);
+                                var bl = wgsToUtm(quadrant[0], quadrant[1]);
+                                var br = wgsToUtm(quadrant[2], quadrant[1]);
+                                var tl = wgsToUtm(quadrant[0], quadrant[3]);
+                                var tr = wgsToUtm(quadrant[2], quadrant[3]);
 
-
-                                var minBoundsOld = convertLatLonToUTM(quadrant[1], quadrant[0]);
-                                var maxBoundsOld = convertLatLonToUTM(quadrant[3], quadrant[2]);
                                 var minBounds = new double[]{Math.min(bl[0], tl[0]), Math.min(bl[1], br[1])};
-                                var maxBounds = new double[]{Math.min(br[0], tr[0]), Math.min(tl[1], tr[1])};
+                                var maxBounds = new double[]{Math.max(br[0], tr[0]), Math.max(tl[1], tr[1])};
 
                                 // Building request
                                 HttpRequest request = HttpRequest.newBuilder()
@@ -79,15 +74,20 @@ public class GmlParser {
                                         .GET()
                                         .build();
 
-                                var boundsId = Arrays.hashCode(quadrant);
-
                                 return (Supplier<CompletableFuture<Void>>) () -> CompletableFuture
                                         .runAsync(() -> {
-                                            try {
-                                                processCompletableFutureInputStream(httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream()).body(), result);
-                                            } catch (IOException | InterruptedException e) {
-                                                logger.warn("Error occurred sending request for bounds with ID #{}", boundsId, e);
+                                            int count = 0;
+
+                                            while (count < MAX_RETRIES) {
+                                                try {
+                                                    processCompletableFutureInputStream(httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream()).body(), result);
+                                                    return;
+                                                } catch (IOException | InterruptedException | XMLStreamException e) {
+                                                    logger.warn("Error occurred sending request at attempt {} for bounds {} {}", count, minBounds, maxBounds);
+                                                    count++;
+                                                }
                                             }
+                                            logger.error("Failed sending request after {} attempts for bounds {} {}", count, minBounds, maxBounds);
                                         });
                             } catch (Exception e) {
                                 logger.error("Encountered some error trying to connect to dataforsyningen", e);
@@ -102,24 +102,25 @@ public class GmlParser {
 
         logger.info("Split {} futures in {} batches of futures", futures.size(), batches.size());
 
-        for (int i = 0; i < batches.size(); i++) {
-//            logger.debug("Starting batch {}", i);
-//            long start = System.nanoTime();
+        for (List<Supplier<CompletableFuture<Void>>> batch : batches) {
             CompletableFuture
-                    .allOf(batches.get(i).parallelStream().map(Supplier::get).toArray(CompletableFuture[]::new))
-                    .orTimeout(TIMEOUT_SECONDS*3, TimeUnit.SECONDS)
+                    .allOf(batch.parallelStream().map(Supplier::get).toArray(CompletableFuture[]::new))
+                    .orTimeout(TIMEOUT_SECONDS * 3, TimeUnit.SECONDS)
                     .join();
-//            logger.debug("Finished batch {} in {}ms", i, String.format("%.3f", (System.nanoTime() - start) / 1000000f));
         }
 
         logger.info("Finished futures in {}ms", String.format("%.3f", (System.nanoTime() - startTime) / 1000000f));
     }
 
     public static void parse(String gmlFileName, HeightCurveParserResult result) {
-        processCompletableFutureInputStream(CommonConfiguration.class.getClassLoader().getResourceAsStream("gml/" + gmlFileName), result);
+        try {
+            processCompletableFutureInputStream(CommonConfiguration.class.getClassLoader().getResourceAsStream("gml/" + gmlFileName), result);
+        } catch (IOException | XMLStreamException e) {
+            logger.error("Error occurred parsing gml file {}", gmlFileName, e);
+        }
     }
 
-    private static void processCompletableFutureInputStream(InputStream inputStream, HeightCurveParserResult result) {
+    private static void processCompletableFutureInputStream(InputStream inputStream, HeightCurveParserResult result) throws IOException, XMLStreamException {
         XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
         HeightCurveElementBuilder elementBuilder = new HeightCurveElementBuilder(result);
 
@@ -155,10 +156,10 @@ public class GmlParser {
                     }
                 }
             }
-
-        } catch (IOException | XMLStreamException e) {
-            logger.error("Error occurred processing input stream", e);
-            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new IOException(e);
+        } catch (XMLStreamException e) {
+            throw new XMLStreamException(e);
         }
     }
 }

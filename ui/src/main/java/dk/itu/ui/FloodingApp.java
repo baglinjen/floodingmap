@@ -3,9 +3,7 @@ package dk.itu.ui;
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
 import dk.itu.common.configurations.CommonConfiguration;
-import dk.itu.common.models.GeoJsonElement;
 import dk.itu.data.models.db.heightcurve.HeightCurveElement;
-import dk.itu.data.models.parser.ParserGeoJsonElement;
 import dk.itu.data.services.Services;
 import dk.itu.ui.components.MouseEventOverlayComponent;
 import dk.itu.util.LoggerFactory;
@@ -27,7 +25,6 @@ public class FloodingApp extends GameApplication {
     private static final Logger logger = LoggerFactory.getLogger();
 
     private volatile State state;
-    private volatile boolean simulationRunning;
 
     // Drawing related
     private BufferedImage image;
@@ -40,12 +37,9 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-//            services.getGeoJsonService().loadGeoJsonData("tuna.geojson");
-//            services.getHeightCurveService().loadGmlFileData("tuna.gml");
             services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
-            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
+            services.getOsmService(state.isWithDb()).loadOsmData("samso.osm");
             state.resetWindowBounds();
-//            state.updateMinMaxWaterLevels(services);
 
             float registeredWaterLevel = 0.0f;
 
@@ -96,12 +90,8 @@ public class FloodingApp extends GameApplication {
                                 Thread.sleep(500);
                                 floodingStep.parallelStream().forEach(HeightCurveElement::setBelowWater);
                             }
-
-                            simulationRunning = false;
-
                         } catch (Exception ex){
                             Thread.currentThread().interrupt();
-                            simulationRunning = false;
                         }
                     });
 

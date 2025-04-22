@@ -2,32 +2,25 @@ package dk.itu.data.datastructure.heightcurvetree;
 
 import dk.itu.data.models.db.heightcurve.HeightCurveElement;
 import dk.itu.data.models.parser.ParserHeightCurveElement;
-import dk.itu.util.LoggerFactory;
-import org.apache.logging.log4j.Logger;
+import dk.itu.util.PolygonUtils;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.IntStream;
 
-import static dk.itu.util.PolygonUtils.contains;
-import static dk.itu.util.PolygonUtils.isPointInPolygon;
-
 public class HeightCurveTree {
-    private static final Logger logger = LoggerFactory.getLogger();
-    private int elementCount = 0;
     private final HeightCurveTreeNode root = new HeightCurveTreeNode(
-            HeightCurveElement.mapToHeightCurveElement(
-                    new ParserHeightCurveElement(
-                            0,
-                            new double[] {
-                                    -180, -90, // BL SW
-                                    -180, 90, // TL NW
-                                    180, 90, // TR NE
-                                    180, -90  // BR SE
-                            },
-                            0
-                    )
+            new HeightCurveElement(
+                    new double[] {
+                            -180, -90, // BL SW
+                            -180, 90, // TL NW
+                            180, 90, // TR NE
+                            180, -90  // BR SE
+                    },
+                    0,
+                    Double.MAX_VALUE,
+                    new double[] {-180, -90, 180, 90}
             )
     );
     private float minWaterLevel = 0, maxWaterLevel = 1;
@@ -78,6 +71,7 @@ public class HeightCurveTree {
 
     public HeightCurveElement getHeightCurveForPoint(double lon, double lat) {
         return getHeightCurveForPoint(root, lon, lat);
+
     }
     private HeightCurveElement getHeightCurveForPoint(HeightCurveTreeNode node, double lon, double lat) {
         if (node.children.isEmpty()) {
@@ -86,7 +80,7 @@ public class HeightCurveTree {
             var childContaining = node
                     .children
                     .parallelStream()
-                    .filter(e -> isPointInPolygon(e.heightCurveElement.getCoordinates(), lon, lat))
+                    .filter(e -> e.contains(lon, lat))
                     .findFirst();
 
             if (childContaining.isPresent()) {
@@ -101,42 +95,62 @@ public class HeightCurveTree {
         minWaterLevel = Math.min(minWaterLevel, heightCurveElement.getHeight());
         maxWaterLevel = Math.max(maxWaterLevel, heightCurveElement.getHeight());
         put(root, HeightCurveElement.mapToHeightCurveElement(heightCurveElement));
-        elementCount++;
-        logger.info("Height curve tree now has {} elements", elementCount);
     }
     private void put(HeightCurveTreeNode node, HeightCurveElement heightCurveElement) {
         if (node.children.isEmpty()) {
-            // Root has no children => add element
+            // Node has no children => add element
             node.children.add(new HeightCurveTreeNode(heightCurveElement));
             node.heightCurveElement.addInnerPolygon(heightCurveElement.getCoordinates());
         } else {
             // Try to find first node which contains element
+            // Candidates are children which are bigger than element => might contain so sort by biggest first
             var candidateNodes = node.children
                     .parallelStream()
-                    .filter(e -> e.heightCurveElement.getArea() > heightCurveElement.getArea() && contains(e.heightCurveElement.getCoordinates(), heightCurveElement.getCoordinates()))
+                    .filter(e -> e.getArea() > heightCurveElement.getArea())
+                    .sorted(Comparator.comparing(HeightCurveTreeNode::getArea).reversed())
                     .toList();
 
             if (candidateNodes.isEmpty()) {
-                // No child contains element => try to find children which element contains
+                // No child contains element => try to find children which the element contains
                 var newNode = new HeightCurveTreeNode(heightCurveElement);
 
-                node.children
+                var childrenPossiblyContained = node.children
                         .parallelStream()
-                        .filter(e -> e.heightCurveElement.getArea() < heightCurveElement.getArea() && contains(heightCurveElement.getCoordinates(), e.heightCurveElement.getCoordinates()))
-                        .toList()
-                        .forEach(child -> {
-                            node.children.remove(child);
-                            node.heightCurveElement.removeInnerPolygon(child.heightCurveElement.getCoordinates());
-                            newNode.children.add(child);
-                            newNode.heightCurveElement.addInnerPolygon(child.heightCurveElement.getCoordinates());
-                        });
+                        .filter(e -> e.getArea() < heightCurveElement.getArea())
+                        .toList();
+
+                if (!childrenPossiblyContained.isEmpty()) {
+                    // Some node children have a smaller area than element => add contained elements to the new node
+                    childrenPossiblyContained
+                            .parallelStream()
+                            .filter(e -> newNode.contains(e.heightCurveElement))
+                            .toList()
+                            .forEach(child -> {
+                                node.children.remove(child);
+                                node.heightCurveElement.removeInnerPolygon(child.heightCurveElement.getCoordinates());
+                                newNode.children.add(child);
+                                newNode.heightCurveElement.addInnerPolygon(child.heightCurveElement.getCoordinates());
+                            });
+                }
 
                 node.children.add(newNode);
                 node.heightCurveElement.addInnerPolygon(newNode.heightCurveElement.getCoordinates());
             } else {
-                // Found parent for element
-                if (candidateNodes.size() > 1) { logger.error("Found more than one candidate node for height curve tree"); }
-                put(candidateNodes.getFirst(), heightCurveElement);
+                // Get the biggest child which contains element
+                boolean inserted = false;
+                for (var e : candidateNodes) {
+                    if (inserted) continue;
+                    if (e.contains(heightCurveElement)) {
+                        put(e, heightCurveElement);
+                        inserted = true;
+                    }
+                }
+
+                // No child found which contains the element => add it to node
+                if (!inserted) {
+                    node.children.add(new HeightCurveTreeNode(heightCurveElement));
+                    node.heightCurveElement.addInnerPolygon(heightCurveElement.getCoordinates());
+                }
             }
         }
     }
@@ -152,6 +166,38 @@ public class HeightCurveTree {
         private HeightCurveTreeNode(HeightCurveElement heightCurveElement) {
             this.heightCurveElement = heightCurveElement;
             this.children = new ArrayList<>();
+        }
+
+        public double getArea() {
+            return heightCurveElement.getArea();
+        }
+
+        public boolean contains(HeightCurveElement element) {
+            var containsBbox =
+                    element.getBounds()[0] >= heightCurveElement.getBounds()[0] &&
+                    element.getBounds()[1] >= heightCurveElement.getBounds()[1] &&
+                    element.getBounds()[2] <= heightCurveElement.getBounds()[2] &&
+                    element.getBounds()[3] <= heightCurveElement.getBounds()[3];
+
+            if (containsBbox) {
+                return PolygonUtils.contains(this.heightCurveElement.getCoordinates(), element.getCoordinates());
+            } else {
+                return false;
+            }
+        }
+
+        public boolean contains(double lon, double lat) {
+            var containsBbox =
+                    lon >= heightCurveElement.getBounds()[0] &&
+                    lat >= heightCurveElement.getBounds()[1] &&
+                    lon <= heightCurveElement.getBounds()[2] &&
+                    lat <= heightCurveElement.getBounds()[3];
+
+            if (containsBbox) {
+                return PolygonUtils.isPointInPolygon(this.heightCurveElement.getCoordinates(), lon, lat);
+            } else {
+                return false;
+            }
         }
     }
 }

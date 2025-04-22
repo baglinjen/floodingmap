@@ -17,26 +17,31 @@ public class HeightCurveElement extends Colored {
     private static final DrawingConfiguration.Style STYLE_ABOVE_WATER = new DrawingConfiguration.Style(Color.BLACK, 1);
     private static final DrawingConfiguration.Style STYLE_BELOW_WATER = new DrawingConfiguration.Style(new Color(toARGB(javafx.scene.paint.Color.web("#40739e80")), true), null);
     private static final DrawingConfiguration.Style STYLE_SELECTED = new DrawingConfiguration.Style(new Color(toARGB(javafx.scene.paint.Color.web("#00FF0080")), true), null);
-    private final double[] outerPolygon;
+    private final double[] outerPolygon, bounds;
     private final List<double[]> innerPolygons = new ArrayList<>();
     private final float height;
     private final double area;
     private Path2D.Double path;
 
-    public HeightCurveElement(double[] outerPolygon, float height, double area) {
+    public HeightCurveElement(double[] outerPolygon, float height, double area, double[] bounds) {
         this.outerPolygon = outerPolygon;
         this.height = height;
         this.area = area;
+        this.bounds = bounds;
     }
 
     public static HeightCurveElement mapToHeightCurveElement(ParserHeightCurveElement parserHeightCurveElement) {
         return new HeightCurveElement(
                 forceCounterClockwise(parserHeightCurveElement.getCoordinates()),
                 parserHeightCurveElement.getHeight(),
-                parserHeightCurveElement.calculateArea()
+                parserHeightCurveElement.calculateArea(),
+                parserHeightCurveElement.calculateBounds()
         );
     }
 
+    public double[] getBounds() {
+        return bounds;
+    }
     public double[] getCoordinates() {
         return outerPolygon;
     }
