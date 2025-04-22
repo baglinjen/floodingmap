@@ -2,6 +2,10 @@ package dk.itu.data.repositories;
 
 import dk.itu.data.datastructure.rtree.RTree;
 import dk.itu.data.models.db.*;
+import dk.itu.data.models.db.osm.OsmElement;
+import dk.itu.data.models.db.osm.OsmNode;
+import dk.itu.data.models.db.osm.OsmRelation;
+import dk.itu.data.models.db.osm.OsmWay;
 import dk.itu.data.models.parser.ParserOsmElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.models.parser.ParserOsmRelation;
@@ -11,8 +15,6 @@ import java.util.List;
 
 public class OsmElementRepositoryMemory implements OsmElementRepository {
     private static OsmElementRepositoryMemory instance;
-    private RTree rtree = new RTree();
-    private RTree traversable = new RTree();
 
     public static OsmElementRepositoryMemory getInstance() {
         if (instance == null) {
@@ -24,8 +26,11 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
 
     private OsmElementRepositoryMemory() {}
 
+    private RTree rtree = new RTree();
+    private RTree traversable = new RTree();
+
     @Override
-    public void add(List<ParserOsmElement> osmElements) {
+    public synchronized void add(List<ParserOsmElement> osmElements) {
         osmElements.parallelStream().map(this::mapToOsmElement).toList().forEach(rtree::insert);
     }
 
@@ -39,33 +44,33 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     }
 
     @Override
-    public void addTraversable(List<ParserOsmNode> nodes) {
+    public synchronized void addTraversable(List<ParserOsmNode> nodes) {
         nodes.parallelStream().map(OsmNode::mapToOsmNode).toList().forEach(traversable::insert);
     }
 
     @Override
-    public List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
-        return rtree.search(minLon, minLat, maxLon, maxLat).parallelStream().toList();
+    public synchronized List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
+        return rtree.search(limit, minLon, minLat, maxLon, maxLat);
     }
 
     @Override
-    public List<OsmNode> getTraversableOsmNodes() {
+    public synchronized List<OsmNode> getTraversableOsmNodes() {
         return traversable.getNodes();
     }
 
     @Override
-    public OsmNode getNearestTraversableOsmNode(double lon, double lat) {
+    public synchronized OsmNode getNearestTraversableOsmNode(double lon, double lat) {
         return traversable.getNearest(lon, lat);
     }
 
     @Override
-    public void clearAll() {
+    public synchronized void clearAll() {
         rtree = new RTree();
         traversable = new RTree();
     }
 
     @Override
-    public BoundingBox getBounds() {
+    public synchronized BoundingBox getBounds() {
         if (rtree.getBoundingBox() == null) {
             return new BoundingBox(-180, -90, 180, 90);
         } else {

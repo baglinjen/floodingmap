@@ -48,13 +48,12 @@ public class MouseEventOverlayComponent extends BorderPane {
 
     private static void selectHeightCurve(State state, Services services, Point2D.Double mousePos) {
         if (!state.getShowSelectedHeightCurve()) return;
-        var curveTree = services.getGeoJsonService().getCurveTree();
-        if (curveTree == null) return;
-        var hc = services.getGeoJsonService().getCurveTree().getHeightCurveForPoint(mousePos.getX(), mousePos.getY());
+        var hc = services.getHeightCurveService().getHeightCurveForPoint(mousePos.getX(), mousePos.getY());
+
         if (state.getHcSelected() != null) {
-            state.getHcSelected().setSelected(false);
-            hc.setSelected(true);
+            state.getHcSelected().setUnselected(state.getWaterLevel());
         }
+        hc.setSelected();
         state.setHcSelected(hc);
     }
 

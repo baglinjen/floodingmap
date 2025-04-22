@@ -1,8 +1,7 @@
 package dk.itu.data.utils;
-import dk.itu.data.models.db.OsmElement;
-import dk.itu.data.models.db.OsmNode;
-import dk.itu.data.models.db.OsmWay;
-import dk.itu.data.datastructure.curvetree.CurveTree;
+import dk.itu.data.models.db.osm.OsmElement;
+import dk.itu.data.models.db.osm.OsmNode;
+import dk.itu.data.models.db.osm.OsmWay;
 import dk.itu.data.services.Services;
 import dk.itu.util.LoggerFactory;
 import kotlin.Pair;
@@ -14,10 +13,7 @@ import java.util.List;
 public class DijkstraConfiguration {
     private static final Logger logger = LoggerFactory.getLogger();
     private boolean shouldVisualize, isAStar;
-
     private OsmNode startNode, endNode;
-    private long startNodeId, endNodeId;
-
     private double waterLevel = 0.0;
     private Pair<OsmElement, Double> route;
     private final List<OsmNode> touchedNodes = new ArrayList<>();
@@ -27,14 +23,6 @@ public class DijkstraConfiguration {
     }
     public void setStartNode(OsmNode startNode){
         this.startNode = startNode;
-    }
-
-    //Setters for testing purposes
-    public void setStartNodeId(long startNodeId){
-        this.startNodeId = startNodeId;
-    }
-    public void setEndNodeId(long endNodeId){
-        this.endNodeId = endNodeId;
     }
 
     public OsmNode getEndNode() {
@@ -68,18 +56,14 @@ public class DijkstraConfiguration {
     }
 
     public void calculateRoute(boolean isWithDb) {
-        Services.withServices(s -> {
-            var nodes = s.getOsmService(isWithDb).getTraversableOsmNodes();
-
-            //If no nodes have been set -> attempt to find nodes by id
-            if(startNode == null) startNode = nodes.stream().filter(c -> c.getId() == startNodeId).findFirst().get();
-            if(endNode == null) endNode = nodes.stream().filter(c -> c.getId() == endNodeId).findFirst().get();
+        Services.withServices(services -> {
+            var nodes = services.getOsmService(isWithDb).getTraversableOsmNodes();
 
             if (startNode.getId() == endNode.getId()) throw new IllegalArgumentException("Start node and end node can not be the same");
 
             touchedNodes.clear();
 
-            var route = createRoute(startNode, endNode, nodes, s.getGeoJsonService().getCurveTree());
+            var route = createDijkstra(startNode, endNode, nodes, services);
 
             if (route == null) logger.warn("No possible route could be found between: {}, {}", startNode.getId(), endNode.getId());
 
@@ -88,7 +72,7 @@ public class DijkstraConfiguration {
 
     }
 
-    private OsmElement createRoute(OsmNode startNode, OsmNode endNode, List<OsmNode> nodes, CurveTree curveTree){
+    private OsmElement createDijkstra(OsmNode startNode, OsmNode endNode, List<OsmNode> nodes, Services services){
         nodes.removeIf(e -> e.getId() == startNode.getId() || e.getId() == endNode.getId());
         nodes.add(startNode);
         nodes.add(endNode);
@@ -111,7 +95,7 @@ public class DijkstraConfiguration {
             touchedNodes.add(curNode);
 
                 if (curNode == endNode) {
-                    return createPath(previousNodes, startNode, endNode);
+                    return createPath(previousNodes, startNode, endNode, services);
                 }
 
                 double currDistance = distances.get(curNode);
@@ -124,8 +108,8 @@ public class DijkstraConfiguration {
                         continue;
                     }
 
-                    var height = curveTree.getHeightCurveForPoint(nextNode.getLon(), nextNode.getLat()).getHeight();
-                    if (height < waterLevel) continue; //Road is flooded
+                    var height = services.getHeightCurveService().getHeightCurveForPoint(nextNode.getLon(), nextNode.getLat()).getHeight();
+                    if (height < waterLevel) continue; // Road is flooded
 
                     double connectionDistance = connection.getValue();
                     double distance = connectionDistance + currDistance;
@@ -139,7 +123,7 @@ public class DijkstraConfiguration {
                 }
         }
 
-        return null; //No path found
+        return null; // No path found
     }
 
     private OsmElement createPath(Map<OsmNode, OsmNode> previousNodes, OsmNode startNode, OsmNode endNode){
@@ -161,6 +145,6 @@ public class DijkstraConfiguration {
             count = count + 2;
         }
 
-        return OsmWay.createWayForRouting(coordinateList);
+        return OsmWay.createWayForDijkstra(coordinateList);
     }
 }

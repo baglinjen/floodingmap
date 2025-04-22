@@ -115,8 +115,6 @@ public class PhTree<T extends Geographical2D> {
             => Add element to ON
              */
 
-            System.out.println();
-
 //            if (iodb < node.getPrefixLength()) {
 //                // Overlaps before => new middle node must be created
 //

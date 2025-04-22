@@ -10,12 +10,8 @@ public class PolygonUtils {
      */
     public static double calculatePolygonArea(double[] coordinates) {
         // Validate input
-        if (coordinates.length % 2 != 0) {
-            throw new IllegalArgumentException("Coordinates array must contain an even number of elements");
-        }
-
-        if (coordinates.length < 6) {
-            throw new IllegalArgumentException("A polygon must have at least 3 vertices (6 coordinates)");
+        if (coordinates.length % 2 != 0 || coordinates.length < 6) {
+            return 0;
         }
 
         // Apply Shoelace formula directly on the array
@@ -24,7 +20,6 @@ public class PolygonUtils {
         // Take the absolute value and divide by 2
         return Math.abs(area) / 2.0;
     }
-
     private static double getArea(double[] coordinates) {
         double area = 0.0;
         int numPoints = coordinates.length / 2;
@@ -51,8 +46,6 @@ public class PolygonUtils {
             return reversePairs(polygon);
         }
     }
-
-
     public static double[] forceCounterClockwise(double[] polygon) {
         if (isClockwise(polygon)) {
             return reversePairs(polygon);
@@ -60,7 +53,6 @@ public class PolygonUtils {
             return polygon;
         }
     }
-
     private static boolean isClockwise(double[] coordinates) {
         // Ensure we have at least a triangle (6 values: 3 points with x,y each)
         if (coordinates.length < 6 || coordinates.length % 2 != 0) {
@@ -113,6 +105,18 @@ public class PolygonUtils {
         }
 
         return result;
+    }
+
+    public static boolean contains(double[] p1, double[] p2) {
+        // All p2 points should be in p1
+        var isInside = true;
+        var i = 0;
+        while (isInside && i < p2.length) {
+            // Test if p2 is in
+            isInside = isPointInPolygon(p1, p2[i], p2[i+1]);
+            i+=2;
+        }
+        return isInside;
     }
 
     public static boolean isClosed(double[] coords) {
@@ -256,7 +260,8 @@ public class PolygonUtils {
      */
     private static boolean isVertexIntersection(
             double x1, double y1, double x2, double y2,
-            double x3, double y3, double x4, double y4) {
+            double x3, double y3, double x4, double y4
+    ) {
         // Check if any endpoint of one segment coincides with any endpoint of the other
         return (isPointEqual(x1, y1, x3, y3) || isPointEqual(x1, y1, x4, y4) ||
                 isPointEqual(x2, y2, x3, y3) || isPointEqual(x2, y2, x4, y4));
@@ -271,7 +276,6 @@ public class PolygonUtils {
     }
 
     /**
-     *
      * @param x Longitude
      * @param y Latitude
      * @param bounds [minX, minY, maxX, maxY]

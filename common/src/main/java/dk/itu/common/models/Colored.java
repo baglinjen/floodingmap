@@ -5,30 +5,25 @@ import dk.itu.common.configurations.DrawingConfiguration;
 import java.awt.*;
 
 public abstract class Colored implements Drawable {
-    public static double DRAWING_TOLERANCE = 2;
+    public static double DRAWING_TOLERANCE = 8;
     private Color rgbaColor;
-    private float stroke = 1;
+    private Integer stroke;
 
     public void setStyle(DrawingConfiguration.Style style) {
         if (style != null) {
-            var rgba = style.rgba();
-            if (rgba != null) {
-                this.rgbaColor = rgba;
-            }
-            var stroke = style.stroke();
-            if (stroke != null) {
-                this.stroke = stroke;
-            }
+            this.rgbaColor = style.rgba();
+            this.stroke = style.stroke();
         } else {
             this.rgbaColor = null;
+            this.stroke = null;
         }
     }
+    public void setStyle(Color rgbaColor, Integer stroke) { this.rgbaColor = rgbaColor; this.stroke = stroke; }
 
     public Color getRgbaColor() {
         return rgbaColor;
     }
-    public float getStroke() {
+    public Integer getStroke() {
         return stroke;
     }
-    public void setStyle(Color rgbaColor, float stroke) { this.rgbaColor = rgbaColor; this.stroke = stroke; }
 }

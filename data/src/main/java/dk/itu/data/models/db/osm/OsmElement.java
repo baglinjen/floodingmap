@@ -1,6 +1,7 @@
-package dk.itu.data.models.db;
+package dk.itu.data.models.db.osm;
 
 import dk.itu.common.models.Colored;
+import dk.itu.data.models.db.BoundingBox;
 
 public abstract class OsmElement extends Colored {
     private final long id;
@@ -16,4 +17,8 @@ public abstract class OsmElement extends Colored {
     public long getId() { return id; }
     public double getArea() { return area; }
     public BoundingBox getBoundingBox() { return boundingBox; }
+
+    public double distance(OsmElement other) {
+        return this.boundingBox.distanceToBoundingBox(other.boundingBox);
+    }
 }

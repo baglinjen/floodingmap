@@ -1,9 +1,8 @@
 package dk.itu.data.datastructure.rtree;
 
 import dk.itu.data.models.db.BoundingBox;
-import dk.itu.data.models.db.OsmElement;
-import dk.itu.data.models.db.OsmNode;
-import org.jooq.meta.derby.sys.Sys;
+import dk.itu.data.models.db.osm.OsmElement;
+import dk.itu.data.models.db.osm.OsmNode;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
@@ -11,38 +10,42 @@ import java.util.Comparator;
 import java.util.List;
 
 public class RTree {
-    private static final int MAX_ENTRIES = 10; // TODO: Test most efficient max per node before split
+    private static final int MAX_ENTRIES = 500; // TODO: Test most efficient max per node before split
     private RTreeNode root;
 
-    public List<OsmElement> search(double minLon, double minLat, double maxLon, double maxLat) {
+    public List<OsmElement> search(int limit, double minLon, double minLat, double maxLon, double maxLat) {
         if (root == null) {
             return List.of();
         }
 
-        return new ArrayList<>(
-                searchRecursive(root, new BoundingBox(minLon, minLat, maxLon, maxLat))
-                .parallelStream()
-                .map(RTreeNode::getElements)
-                .flatMap(List::stream)
-                .sorted(Comparator.comparingDouble(OsmElement::getArea).reversed())
-                .toList()
-        );
+        List<OsmElement> elements = new ArrayList<>();
+
+        searchRecursive(root, new BoundingBox(minLon, minLat, maxLon, maxLat), elements, limit);
+
+        return elements.parallelStream().sorted(Comparator.comparingDouble(OsmElement::getArea).reversed()).toList();
     }
 
     public void insert(OsmElement element) {
-        long startTime = System.currentTimeMillis();
-        if (element == null) return;
-
         if (root == null) {
             root = new RTreeNode();
         }
 
         RTreeNode leaf = chooseLeaf(root, element.getBoundingBox());
         leaf.addEntry(element);
+//        System.out.println("Amount of children: " + leaf.getElements().size());
 
-        if (leaf.elements.size() > MAX_ENTRIES) {
-            splitLeaf(leaf);
-//          adjustTree(leaf, newLeaf);
+        if (leaf.isLeaf()) {
+            if (leaf.elements.size() >= MAX_ENTRIES) {
+                RTreeNode newLeaf = splitLeaf(leaf);
+                adjustTree(leaf, newLeaf);
+            }
+        } else {
+            // Never hit since chooseLeaf always returns a leaf node
+            forcedReinsert(leaf);
+            if (leaf.elements.size() >= MAX_ENTRIES) {
+                RTreeNode newInternal = splitInternal(leaf);
+                adjustTree(leaf, newInternal);
+            }
         }
     }
 
@@ -91,69 +94,145 @@ public class RTree {
         }
 
         assert bestChild != null;
-        node.mbr.expand(bbox);
         return chooseLeaf(bestChild, bbox);
     }
 
-    private void splitLeaf(RTreeNode leaf) {
+    private OsmElement[] pickSeeds(List<OsmElement> elements) {
+        OsmElement seedA = null, seedB = null;
+        double maxDistance = -1;
+
+        for (int i = 0; i < elements.size(); i++) {
+            for (int j = i + 1; j < elements.size(); j++) {
+                double distance = elements.get(i).getBoundingBox().distanceToBoundingBox(elements.get(j).getBoundingBox());
+                if (distance > maxDistance) {
+                    maxDistance = distance;
+                    seedA = elements.get(i);
+                    seedB = elements.get(j);
+                }
+            }
+        }
+        return new OsmElement[]{seedA, seedB};
+    }
+
+//    private RTreeNode chooseSubtree(RTreeNode parent, OsmElementMemory newEntry) {
+//        RTreeNode bestNode = null;
+//        double minOverlapIncrease = Double.MAX_VALUE;
+//        double minAreaIncrease = Double.MAX_VALUE;
+//
+//        for (RTreeNode child : parent.children) {
+//            double originalOverlap = computeOverlap(parent.children);
+//            double newOverlap = computeOverlapAfterInsertion(parent.children, newEntry, child);
+//
+//            double overlapIncrease = newOverlap - originalOverlap;
+//            double areaIncrease = child.mbr.getExpanded(newEntry.getBoundingBox()).area() - child.mbr.area();
+//
+//            if (overlapIncrease < minOverlapIncrease ||
+//                    (overlapIncrease == minOverlapIncrease && areaIncrease < minAreaIncrease)) {
+//                bestNode = child;
+//                minOverlapIncrease = overlapIncrease;
+//                minAreaIncrease = areaIncrease;
+//            }
+//        }
+//        return bestNode;
+//    }
+
+//    private double computeOverlap(List<RTreeNode> children) {
+//        double overlap = 0;
+//        for (int i = 0; i < children.size(); i++) {
+//            for (int j = i + 1; j < children.size(); j++) {
+//                overlap += children.get(i).mbr.intersectionArea(children.get(j).mbr);
+//            }
+//        }
+//        return overlap;
+//    }
+//
+//    private double computeOverlapAfterInsertion(List<RTreeNode> children, OsmElementMemory newEntry, RTreeNode targetChild) {
+//        BoundingBox newMBB = targetChild.mbr.getExpanded(newEntry.getBoundingBox());
+//
+//        double overlap = 0;
+//        for (RTreeNode child : children) {
+//            if (child != targetChild) {
+//                overlap += newMBB.intersectionArea(child.mbr);
+//            }
+//        }
+//        return overlap;
+//    }
+
+    private double computeOverlapIncrease(RTreeNode node, BoundingBox newBBox) {
+        BoundingBox expanded = node.mbr.getExpanded(newBBox);
+        return expanded.area() - node.mbr.area();
+    }
+
+    private void forcedReinsert(RTreeNode node) {
+        if (node.elements.size() <= MAX_ENTRIES) return;
+
+        // Sort elements by distance from node's center
+        BoundingBox nodeCenter = node.mbr;
+        node.elements.sort(Comparator.comparingDouble(
+                e -> e.getBoundingBox().distanceToBoundingBox(nodeCenter))
+        );
+
+        // Remove a fraction (e.g., 30%) for reinsertion
+        int reinsertCount = (int) (node.elements.size() * 0.3);
+        List<OsmElement> toReinsert = new ArrayList<>(
+                node.elements.subList(node.elements.size() - reinsertCount, node.elements.size())
+        );
+
+        // Remove from the node
+        node.elements.removeAll(toReinsert);
+
+        // Reinsert removed elements
+        for (OsmElement e : toReinsert) {
+            insert(e);
+        }
+    }
+
+    private RTreeNode splitLeaf(RTreeNode leaf) {
         List<OsmElement> elements = new ArrayList<>(leaf.elements);
         leaf.elements.clear();
 
-        OsmElement entryA = elements.removeFirst(); // TODO: Choose the two elements furthest from each other
-        OsmElement entryB = elements.removeLast();
+        // Pick two seeds that are geographically far apart
+        OsmElement[] seeds = pickSeeds(elements);
+        OsmElement entryA = seeds[0];
+        OsmElement entryB = seeds[1];
+        elements.remove(entryA);
+        elements.remove(entryB);
 
+        // Create two new leaf nodes
         RTreeNode groupA = new RTreeNode();
         RTreeNode groupB = new RTreeNode();
 
         groupA.addEntry(entryA);
         groupB.addEntry(entryB);
 
-        for (OsmElement element : elements) {
-            BoundingBox bbox = element.getBoundingBox();
-            double expansionA = groupA.mbr.getExpanded(bbox).area() - groupA.mbr.area();
-            double expansionB = groupB.mbr.getExpanded(bbox).area() - groupB.mbr.area();
+        // Distribution of the rest
+        while (!elements.isEmpty()) {
+            OsmElement element = elements.removeFirst();
+            double overlapA = computeOverlapIncrease(groupA, element.getBoundingBox());
+            double overlapB = computeOverlapIncrease(groupB, element.getBoundingBox());
 
-            if (expansionA < expansionB) {
+            if (overlapA < overlapB) {
                 groupA.addEntry(element);
-            } else {
+            } else if (overlapB < overlapA) {
                 groupB.addEntry(element);
+            } else {
+                // Choose the one with smaller area
+                double areaA = groupA.mbr.area();
+                double areaB = groupB.mbr.area();
+                if (areaA < areaB) {
+                    groupA.addEntry(element);
+                } else {
+                    groupB.addEntry(element);
+                }
             }
         }
 
-        leaf.addChild(groupA);
-        leaf.addChild(groupB);
-    }
+        // GroupA is copied back to the original node
+        leaf.elements.addAll(groupA.elements);
+        leaf.updateBoundingBox();
 
-//    private BoundingBox getBoundingBox(OsmElement element) {
-//        if (element instanceof OsmNode node) {
-//            return new BoundingBox(node.getLongitude(), node.getLatitude(), node.getLongitude(), node.getLatitude());
-//        } else if (element instanceof OsmWay way) {
-//            double minX = Double.MAX_VALUE, minY = Double.MAX_VALUE;
-//            double maxX = Double.MIN_VALUE, maxY = Double.MIN_VALUE;
-//
-//            for (OsmNode node : way.getNodes()) {
-//                minX = Math.min(minX, node.getLongitude());
-//                minY = Math.min(minY, node.getLatitude());
-//                maxX = Math.max(maxX, node.getLongitude());
-//                maxY = Math.max(maxY, node.getLatitude());
-//            }
-//
-//            return new BoundingBox(minX, minY, maxX, maxY);
-//        } else if (element instanceof OsmRelation relation) {
-//            BoundingBox bbox = null;
-//            for (OsmWay way : relation.getWayMembers()) {
-//                BoundingBox wayBbox = getBoundingBox(way);
-//                if (bbox == null) {
-//                    bbox = new BoundingBox(wayBbox.getMinX(), wayBbox.getMinY(), wayBbox.getMaxX(), wayBbox.getMaxY());
-//                } else {
-//                    bbox.expand(wayBbox);
-//                }
-//            }
-//            return bbox;
-//        }
-//
-//        throw new IllegalArgumentException("Unsupported element type");
-//    }
+        return groupB; // New sibling node
+    }
 
     private RTreeNode findParent(RTreeNode current, RTreeNode child) {
         // If the current node contains the child node, return current as the parent
@@ -198,7 +277,6 @@ public class RTree {
             newNodeB.addChild(child);
         }
 
-        // Update bounding boxes for the new nodes
         newNodeA.updateBoundingBox();
         newNodeB.updateBoundingBox();
 
@@ -249,6 +327,7 @@ public class RTree {
 
         // Add the new node as a sibling
         parent.addChild(newNode);
+        parent.updateBoundingBox();
 
         // If parent overflows, split it recursively
         if (parent.children.size() > MAX_ENTRIES) {
@@ -257,26 +336,26 @@ public class RTree {
         }
     }
 
-    private List<RTreeNode> searchRecursive(RTreeNode node, BoundingBox queryBox) {
-        List<RTreeNode> results = new ArrayList<>();
+    private void searchRecursive(RTreeNode node, BoundingBox queryBox, List<OsmElement> results, int limit) {
+//        if (results.size() >= limit) return;
 
         if (!node.mbr.intersects(queryBox)) {
-            return results; // No intersection, skip this branch
+            return; // No intersection, skip this branch
         }
 
         if (node.isLeaf()) { // If it's a leaf, add matching elements
-            for (OsmElement element : node.elements) {
-                if (!(element instanceof OsmNode) && element.getBoundingBox().intersects(queryBox)) {
-                    results.add(node);
-                }
-            }
+            results.addAll(node.elements);
+//            for (OsmElement element : node.elements) {
+//                if (element.getBoundingBox().intersects(queryBox)) {
+//                System.out.println(element.getId());
+//                    results.add(element);
+//                }
+//            }
         } else {
             for (RTreeNode child : node.children) {   // Recurse into children
-                results.addAll(searchRecursive(child, queryBox));
+                searchRecursive(child, queryBox, results, limit);
             }
         }
-
-        return results;
     }
 
     public List<OsmNode> getNodes() {

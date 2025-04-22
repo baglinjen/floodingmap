@@ -1,11 +1,12 @@
 package dk.itu.ui;
 
 import dk.itu.common.configurations.CommonConfiguration;
-import dk.itu.data.models.db.OsmNode;
-import dk.itu.data.models.parser.ParserGeoJsonElement;
+import dk.itu.data.models.db.heightcurve.HeightCurveElement;
+import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.services.Services;
 import dk.itu.data.utils.DijkstraConfiguration;
 import dk.itu.ui.drawables.NearestNeighbour;
+import kotlin.Pair;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
@@ -16,22 +17,23 @@ import static dk.itu.ui.FloodingApp.HEIGHT;
 
 public class State {
     private final List<Consumer<Point2D.Double>> mouseMovedListeners = new ArrayList<>();
-    private boolean shouldDrawGeoJson = false;
+    private final List<Consumer<Pair<Float, Float>>> minMaxWaterLevelListeners = new ArrayList<>();
+    private boolean shouldDrawGeoJson = true;
     private final DijkstraConfiguration dijkstraConfiguration;
     private double mouseX, mouseY;
     private float waterLevel = 0f;
-    private final float minWaterLevel, maxWaterLevel;
+    private float minWaterLevel, maxWaterLevel;
     private final SuperAffine superAffine = new SuperAffine();
     private boolean showSelectedHeightCurve = false;
-    private ParserGeoJsonElement hcSelected = null;
+    private HeightCurveElement hcSelected = null;
     private NearestNeighbour selectedOsmElement = null;
     private boolean withDb = CommonConfiguration.getInstance().getUseDb();
     private boolean showNearestNeighbour = false;
 
     public State(Services services) {
         this.dijkstraConfiguration = new DijkstraConfiguration();
-        this.minWaterLevel = services.getGeoJsonService().getMinWaterLevel();
-        this.maxWaterLevel = services.getGeoJsonService().getMaxWaterLevel();
+        this.minWaterLevel = services.getHeightCurveService().getMinWaterLevel();
+        this.maxWaterLevel = services.getHeightCurveService().getMaxWaterLevel();
         this.resetWindowBounds();
     }
 
@@ -49,10 +51,10 @@ public class State {
         this.showNearestNeighbour = showNearestNeighbour;
     }
 
-    public ParserGeoJsonElement getHcSelected() {
+    public HeightCurveElement getHcSelected() {
         return hcSelected;
     }
-    public void setHcSelected(ParserGeoJsonElement hcSelected) {
+    public void setHcSelected(HeightCurveElement hcSelected) {
         this.hcSelected = hcSelected;
     }
 
@@ -104,6 +106,9 @@ public class State {
     public void addOnMouseMovedListener(Consumer<Point2D.Double> listener) {
         mouseMovedListeners.add(listener);
     }
+    public void addMinMaxWaterLevelListener(Consumer<Pair<Float, Float>> listener) {
+        minMaxWaterLevelListeners.add(listener);
+    }
 
     // Getters for water max/min level
     public float getMinWaterLevel() {
@@ -141,6 +146,13 @@ public class State {
 
     public void resetWindowBounds() {
         Services.withServices(this::resetWindowBounds);
+    }
+    public void updateMinMaxWaterLevels(Services services) {
+        this.minWaterLevel = services.getHeightCurveService().getMinWaterLevel();
+        this.maxWaterLevel = services.getHeightCurveService().getMaxWaterLevel();
+        for (var listener : minMaxWaterLevelListeners) {
+            listener.accept(new Pair<>(this.minWaterLevel, this.maxWaterLevel));
+        }
     }
 
     public void resetWindowBounds(Services services) {

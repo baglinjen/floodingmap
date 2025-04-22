@@ -13,6 +13,11 @@ public class WaterSliderComponent extends Slider {
         setMajorTickUnit(0.5);
         setBlockIncrement(0.5);
 
+        state.addMinMaxWaterLevelListener(minMaxWaterLevel -> {
+            setMin(minMaxWaterLevel.component1());
+            setMax(minMaxWaterLevel.component2());
+        });
+
         valueProperty().addListener((_, oldValue, newValue) -> {
             if (oldValue.floatValue() != newValue.floatValue()) {
                 state.setWaterLevel(newValue.floatValue());

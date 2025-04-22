@@ -1,6 +1,10 @@
 package dk.itu.data.repositories;
 
 import dk.itu.data.models.db.*;
+import dk.itu.data.models.db.osm.OsmElement;
+import dk.itu.data.models.db.osm.OsmNode;
+import dk.itu.data.models.db.osm.OsmRelation;
+import dk.itu.data.models.db.osm.OsmWay;
 import dk.itu.data.models.parser.ParserOsmElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.models.parser.ParserOsmRelation;

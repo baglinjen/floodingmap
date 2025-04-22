@@ -11,6 +11,8 @@ public class ActionsComponent extends HBox {
                 new CalculateRouteButton(state),
                 new DataResetComponent(state),
                 new DataLoadComponent(state),
+                new LoadHeightCurvesComponent(state),
+                new DataLoadComponent(state),
                 new SettingsMenuComponent(state)
         );
     }

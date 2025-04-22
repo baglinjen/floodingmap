@@ -1,8 +1,8 @@
 package dk.itu.data.repositories;
 
 import dk.itu.data.models.db.BoundingBox;
-import dk.itu.data.models.db.OsmElement;
-import dk.itu.data.models.db.OsmNode;
+import dk.itu.data.models.db.osm.OsmElement;
+import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.models.parser.ParserOsmElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 
