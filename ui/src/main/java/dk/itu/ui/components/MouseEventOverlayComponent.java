@@ -4,6 +4,8 @@ import dk.itu.data.services.Services;
 import dk.itu.ui.State;
 import javafx.scene.layout.BorderPane;
 
+import java.awt.geom.Point2D;
+
 public class MouseEventOverlayComponent extends BorderPane {
 
     public MouseEventOverlayComponent(State state) {
@@ -25,19 +27,40 @@ public class MouseEventOverlayComponent extends BorderPane {
         });
         setOnMouseMoved(event -> {
             state.mouseMoved(event.getX(), event.getY());
-            if (!state.getShowSelected()) return;
             var mousePos = state.getMouseLonLat();
             Services.withServices(services -> {
-                var hc = services.getGeoJsonService().getCurveTree().getHeightCurveForPoint(mousePos.getX(), mousePos.getY());
-                if (state.getHcSelected() != null) {
-                    state.getHcSelected().setSelected(false);
-                    hc.setSelected(true);
-                }
-                state.setHcSelected(hc);
+                if (state.getShowSelectedHeightCurve()) selectHeightCurve(state, services, mousePos);
+                selectNearestNeighbour(state, services, mousePos);
             });
         });
+        setOnMouseClicked(_ -> {
+            var mousePos = state.getMouseLonLat();
+            Services.withServices(services -> {
+                selectNearestNeighbour(state, services, mousePos);
+            });
+        });
+        var contextMenu = new MapMenu(state);
+        setOnContextMenuRequested(e -> contextMenu.show(this, e.getSceneX(), e.getSceneY()));
 
         // Add debug component
         setBottom(new DebugComponent(state));
+    }
+
+    private static void selectHeightCurve(State state, Services services, Point2D.Double mousePos) {
+        if (!state.getShowSelectedHeightCurve()) return;
+        var hc = services.getHeightCurveService().getHeightCurveForPoint(mousePos.getX(), mousePos.getY());
+
+        if (state.getHcSelected() != null) {
+            state.getHcSelected().setUnselected(state.getWaterLevel());
+        }
+        hc.setSelected();
+        state.setHcSelected(hc);
+    }
+
+    private static void selectNearestNeighbour(State state, Services services, Point2D.Double mousePos) {
+        if (!state.getShowNearestNeighbour()) return;
+        state.setSelectedOsmElement(
+                services.getOsmService(state.isWithDb()).getNearestTraversableOsmNode(mousePos.getX(), mousePos.getY())
+        );
     }
 }

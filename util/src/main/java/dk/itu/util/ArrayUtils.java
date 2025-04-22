@@ -1,6 +1,9 @@
 package dk.itu.util;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 public class ArrayUtils {
     /**
@@ -11,8 +14,14 @@ public class ArrayUtils {
      * @return New array excluding tail index 0
      */
     public static double[] appendExcludingN(double[] a1, double[] a2, int indexesToIgnore) {
-        var newArray = Arrays.copyOf(a1, a1.length + a2.length - 2);
-        System.arraycopy(a2, 2, newArray, a1.length, a2.length - 2);
+        var newArray = Arrays.copyOf(a1, a1.length + a2.length - indexesToIgnore);
+        System.arraycopy(a2, indexesToIgnore, newArray, a1.length, a2.length - indexesToIgnore);
         return newArray;
+    }
+
+    public static <T> List<T> appendSingle(List<T> list, T t){
+        List<T> newList = new ArrayList<>(list);
+        newList.add(t);
+        return Collections.unmodifiableList(newList);
     }
 }

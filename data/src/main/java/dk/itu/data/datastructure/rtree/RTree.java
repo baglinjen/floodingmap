@@ -664,25 +664,6 @@ public class RTree {
         }
     }
 
-//    private RTreeNode[] handleOverflow(RTreeNode node) {
-//        if (node.elements.size() <= MAX_ENTRIES) {
-//            return null;
-//        }
-//
-//        // Try forced reinsert first if appropriate
-//        int level = calculateLevel(node);
-//        if (!reinsertLevels.contains(level) && level <= REINSERT_LEVELS) {
-//            boolean didReinsert = forcedReinsert(node, level);
-//            if (didReinsert && node.elements.size() <= MAX_ENTRIES) {
-//                return null; // No split needed
-//            }
-//        }
-//
-//        // Split the node if necessary
-//        RTreeNode newNode = node.isLeaf() ? splitLeaf(node) : splitInternal(node);
-//        return new RTreeNode[] {node, newNode};
-//    }
-
     public void insert(OsmElementMemory element) {
         // Create root if it doesn't exist
         if (root == null) {
@@ -719,3 +700,4 @@ public class RTree {
                 .sorted(Comparator.comparingDouble(OsmElementMemory::getArea).reversed()).toList());
     }
 }
+

@@ -9,10 +9,13 @@ public class ActionsComponent extends HBox {
         getChildren().addAll(
                 new ReCenterComponent(state),
                 new SelectedHeightCurveToggle(state),
+                new NearestNeighbourToggle(state),
                 new DrawingToggle(state),
-                new DijkstraToggle(state),
+//                new DijkstraToggle(state),
+                new CalculateRouteButton(state),
                 new DataResetComponent(state),
-                new DataLoadComponent(state)
+                new DataLoadComponent(state),
+                new LoadHeightCurvesComponent(state)
         );
     }
 }

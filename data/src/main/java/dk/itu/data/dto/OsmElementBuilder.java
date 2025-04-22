@@ -66,8 +66,10 @@ public class OsmElementBuilder {
                     osmParserResult.addWay(newWay);
 
                     //If the way is traversable -> modify the containing nodes
-                    if(this.tags.containsKey("highway")) wayNodes.forEach(ParserOsmNode::setRouting);
-
+                    if (this.tags.containsKey("highway")) {
+                        wayNodes.forEach(osmParserResult::addTraversableNode);
+                    }
+                    // Connect the nodes between each other
                     for(int i = 0; i < wayNodes.size(); i++){
                         var curNode = wayNodes.get(i);
                         if(i != 0) curNode.addConnection(wayNodes.get(i-1));

@@ -14,13 +14,11 @@ public class DataResetComponent extends SplitMenuButton {
                 createMenuItem("OSM", ResetOption.OSM)
 //                createMenuItem("GEOJSON", ResetOption.GEOJSON)
         );
-        setOnAction(_ -> {
-            Services.withServices(services -> {
-                if (option == ResetOption.OSM) {
-                    services.getOsmService(state.isWithDb()).clearAll();
-                }
-            });
-        });
+        setOnAction(_ -> Services.withServices(services -> {
+            if (option == ResetOption.OSM) {
+                services.getOsmService(state.isWithDb()).clearAll();
+            }
+        }));
     }
 
     private MenuItem createMenuItem(String text, ResetOption optionType) {

@@ -4,11 +4,10 @@ import dk.itu.util.LoggerFactory;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 public class CommonConfiguration {
-    private static Logger logger = LoggerFactory.getLogger();
+    private static final Logger logger = LoggerFactory.getLogger();
     private static CommonConfiguration commonConfiguration = null;
     public static CommonConfiguration getInstance() {
         if (commonConfiguration == null) {
@@ -18,11 +17,14 @@ public class CommonConfiguration {
     }
 
     private final boolean forceParseOsm, forceParseGeoJson;
+    private final String dataForsyningenToken;
+    private final boolean useDb;
 
     private CommonConfiguration() {
-        Properties properties = System.getProperties();
-        this.forceParseOsm = Boolean.parseBoolean(properties.getProperty("configuration.forceParseOsm", "false"));
-        this.forceParseGeoJson = Boolean.parseBoolean(properties.getProperty("configuration.forceParseGeoJson", "false"));
+        this.forceParseOsm = Boolean.parseBoolean(Objects.requireNonNullElse(System.getenv("forceParseOsm"), "false"));
+        this.forceParseGeoJson = Boolean.parseBoolean(Objects.requireNonNullElse(System.getenv("forceParseGeoJson"), "false"));
+        this.dataForsyningenToken = System.getenv("dataForsyningenToken");
+        this.useDb = Boolean.parseBoolean(Objects.requireNonNullElse(System.getenv("useDb"), "false"));
     }
 
     public boolean shouldForceParseOsm() {
@@ -31,6 +33,13 @@ public class CommonConfiguration {
 
     public boolean shouldForceParseGeoJson() {
         return this.forceParseGeoJson;
+    }
+
+    public String getDataForsyningenToken() {
+        return this.dataForsyningenToken;
+    }
+    public boolean getUseDb() {
+        return this.useDb;
     }
 
     public List<String> getDataFiles() {
@@ -55,7 +64,7 @@ public class CommonConfiguration {
                                     new File(
                                             CommonConfiguration.class
                                                     .getClassLoader()
-                                                    .getResources("geojson")
+                                                    .getResources("gml")
                                                     .nextElement()
                                                     .toURI()
                                     ).listFiles()

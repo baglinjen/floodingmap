@@ -11,13 +11,14 @@ import java.util.List;
 
 import static dk.itu.util.ArrayUtils.appendExcludingN;
 import static dk.itu.util.PolygonUtils.*;
+import static dk.itu.util.ShapePreparer.*;
 
 public class ParserOsmRelation extends ParserOsmElement {
     private static final Logger logger = LoggerFactory.getLogger();
     private final double[] bounds = new double[4];
-    private Path2D.Double shape = null;
     private final List<double[]> innerPolygons = new ArrayList<>();
     private final List<double[]> outerPolygons = new ArrayList<>();
+    private Path2D.Double path = null;
 
     public ParserOsmRelation(long id, List<Pair<ParserOsmElement, OsmRelationMemberType>> elements, OsmRelationType type) {
         super(id);
@@ -178,8 +179,6 @@ public class ParserOsmRelation extends ParserOsmElement {
 
         if (!pathsToAdd.isEmpty() || outerPolygons.isEmpty()) {
             setShouldBeDrawn(false);
-        } else {
-            shape = pathFromPolygonLists(outerPolygons, innerPolygons);
         }
     }
 
@@ -193,11 +192,6 @@ public class ParserOsmRelation extends ParserOsmElement {
         return bounds;
     }
 
-    @Override
-    public Path2D.Double getShape() {
-        return shape;
-    }
-
     public List<double[]> getOuterPolygons() {
         return outerPolygons;
     }
@@ -206,9 +200,16 @@ public class ParserOsmRelation extends ParserOsmElement {
     }
 
     @Override
+    public void prepareDrawing(Graphics2D g2d) {
+        path = prepareComplexPolygon(g2d, outerPolygons, innerPolygons, 1);
+    }
+
+    @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
+        if (path == null) return;
+
         g2d.setColor(getRgbaColor());
-        g2d.fill(shape);
+        g2d.fill(path);
     }
 
     public enum OsmRelationType {
