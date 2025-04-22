@@ -8,25 +8,19 @@ import dk.itu.data.models.parser.ParserOsmWay;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class OsmParserResult {
-    private final List<ParserOsmElement> nodes = new ArrayList<>();
+    private final List<ParserOsmNode> nodes = new ArrayList<>();
     private final List<ParserOsmElement> ways = new ArrayList<>();
     private final List<ParserOsmElement> relations = new ArrayList<>();
+    private final List<ParserOsmNode> traversableNodes = new ArrayList<>();
     private List<ParserOsmElement> elementsToBeDrawn;
 
     public List<ParserOsmElement> getElementsToBeDrawn() {
         return elementsToBeDrawn;
     }
-
-    public List<ParserOsmElement> getNodesForRouting(){
-        return nodes.parallelStream()
-                .filter(e -> e instanceof ParserOsmNode)
-                .map(e -> (ParserOsmNode)e)
-                .filter(ParserOsmNode::isRouting)
-                .map(e -> (ParserOsmElement)e)
-                .collect(Collectors.toList());
+    public List<ParserOsmNode> getTraversableNodes() {
+        return traversableNodes;
     }
 
     public void sanitize() {
@@ -43,7 +37,9 @@ public class OsmParserResult {
     public void addNode(ParserOsmNode node) {
         this.nodes.add(node);
     }
-
+    public void addTraversableNode(ParserOsmNode node) {
+        this.traversableNodes.add(node);
+    }
     public void addWay(ParserOsmWay way) {
         this.ways.add(way);
     }
@@ -52,38 +48,32 @@ public class OsmParserResult {
     }
 
     public ParserOsmElement findNode(long id) {
-        return findElement(id, 0, this.nodes.size(), this.nodes);
+        return findElement(id, this.nodes);
     }
     public ParserOsmElement findWay(long id) {
-        return findElement(id, 0, this.ways.size(), this.ways);
+        return findElement(id, this.ways);
     }
     public ParserOsmElement findRelation(long id) {
-        return findElement(id, 0, this.relations.size(), this.relations);
+        return findElement(id, this.relations);
     }
 
-    private ParserOsmElement findElement(long id, int leftIndexBoundInclusive, int rightIndexBoundExclusive, List<ParserOsmElement> elements) {
-        if (leftIndexBoundInclusive > rightIndexBoundExclusive-1) {
-            return null;
-        } else if (leftIndexBoundInclusive == rightIndexBoundExclusive-1) {
-            var lastElement = elements.get(leftIndexBoundInclusive);
-            if (lastElement.getId() == id) {
-                return lastElement;
+    public <T extends ParserOsmElement> T findElement(long id, List<T> elements) {
+        int left = 0;
+        int right = elements.size() - 1;
+
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+            T midNode = elements.get(mid);
+
+            if (midNode.getId() == id) {
+                return midNode;
+            } else if (midNode.getId() < id) {
+                left = mid + 1;
             } else {
-                return null;
+                right = mid - 1;
             }
         }
 
-        var halfwayIndex = leftIndexBoundInclusive + ((rightIndexBoundExclusive - leftIndexBoundInclusive) / 2);
-        var halfWayElement = elements.get(halfwayIndex);
-        if (id > halfWayElement.getId()) {
-            // Look at right side
-            return findElement(id, halfwayIndex+1, rightIndexBoundExclusive, elements);
-        } else if (id < halfWayElement.getId()) {
-            // Look at left side
-            return findElement(id, leftIndexBoundInclusive, halfwayIndex, elements);
-        } else {
-            // Hit
-            return halfWayElement;
-        }
+        return null;
     }
 }

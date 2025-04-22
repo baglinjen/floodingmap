@@ -1,35 +1,46 @@
 package dk.itu.data.services;
 
-import dk.itu.common.models.OsmElement;
 import dk.itu.data.dto.OsmParserResult;
-import dk.itu.data.models.db.Bounds;
+import dk.itu.data.models.db.BoundingBox;
+import dk.itu.data.models.db.osm.OsmElement;
+import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.parsers.OsmParser;
 import dk.itu.data.repositories.OsmElementRepository;
 import dk.itu.data.repositories.OsmElementRepositoryDb;
 import dk.itu.data.repositories.OsmElementRepositoryMemory;
+import dk.itu.util.LoggerFactory;
+import org.apache.logging.log4j.Logger;
 
 import java.sql.Connection;
 import java.util.List;
 
 public class OsmService {
-
+    private static final Logger logger = LoggerFactory.getLogger();
     private final OsmElementRepository osmElementRepository;
-
-    public OsmService(Connection connection) {
-        osmElementRepository = new OsmElementRepositoryDb(connection);
-    }
 
     public OsmService() {
         osmElementRepository = OsmElementRepositoryMemory.getInstance();
     }
-
-    public List<OsmElement> getOsmElementsToBeDrawn(int limit, double minLon, double minLat, double maxLon, double maxLat) {
-        return osmElementRepository.getOsmElements(limit, minLon, minLat, maxLon, maxLat);
+    public OsmService(Connection connection) {
+        osmElementRepository = new OsmElementRepositoryDb(connection);
     }
 
-    public List<OsmElement> getOsmNodes(){
-       // return osmElementRepository.getOsmNodes();
-        return List.of();
+    public OsmNode getNearestTraversableOsmNode(double lon, double lat) {
+        synchronized (this.osmElementRepository) {
+            return osmElementRepository.getNearestTraversableOsmNode(lon, lat);
+        }
+    }
+
+    public List<OsmElement> getOsmElementsToBeDrawn(int limit, double minLon, double minLat, double maxLon, double maxLat) {
+        synchronized (this.osmElementRepository) {
+            return osmElementRepository.getOsmElements(limit, minLon, minLat, maxLon, maxLat);
+        }
+    }
+
+    public List<OsmNode> getTraversableOsmNodes(){
+        synchronized (this.osmElementRepository) {
+            return osmElementRepository.getTraversableOsmNodes();
+        }
     }
 
     public void loadOsmData(String osmFileName) {
@@ -38,21 +49,29 @@ public class OsmService {
         // Get data from OSM file
         OsmParser.parse(osmFileName, osmParserResult);
 
-        //Add nodes to database for routing
-        // osmElementRepository.add(osmParserResult.getNodesForRouting());
-
         // Filter and sort data for visual purposes
         osmParserResult.sanitize();
 
-        // Add to Database
-        osmElementRepository.add(osmParserResult.getElementsToBeDrawn());
+        synchronized (this.osmElementRepository) {
+            // Add to Database
+            logger.info("Started inserting drawable elements to repository");
+            osmElementRepository.add(osmParserResult.getElementsToBeDrawn());
+            logger.info("Finished inserting drawable elements to repository");
+            logger.info("Started inserting traversable elements to repository");
+            osmElementRepository.addTraversable(osmParserResult.getTraversableNodes());
+            logger.info("Finished inserting traversable elements to repository");
+        }
     }
 
-    public Bounds getBounds() {
-        return osmElementRepository.getBounds();
+    public BoundingBox getBounds() {
+        synchronized (this.osmElementRepository) {
+            return osmElementRepository.getBounds();
+        }
     }
 
     public void clearAll() {
-        // osmElementRepository.clearAll();
+        synchronized (this.osmElementRepository) {
+            osmElementRepository.clearAll();
+        }
     }
 }

@@ -6,15 +6,15 @@ import javafx.scene.control.ToggleButton;
 public class SelectedHeightCurveToggle extends ToggleButton {
     public SelectedHeightCurveToggle(State state) {
         super("Show selected height curve");
-        setSelected(state.getShowSelected());
+        setSelected(state.getShowSelectedHeightCurve());
         setOnAction(_ -> {
-            if (state.getShowSelected()) {
+            if (state.getShowSelectedHeightCurve()) {
                 if (state.getHcSelected() != null) {
-                    state.getHcSelected().setSelected(false);
+                    state.getHcSelected().setUnselected(state.getWaterLevel());
                     state.setHcSelected(null);
                 }
             }
-            state.setShowSelected(!state.getShowSelected());
+            state.setShowSelectedHeightCurve(!state.getShowSelectedHeightCurve());
         });
     }
 }

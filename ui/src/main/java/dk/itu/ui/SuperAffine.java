@@ -8,7 +8,7 @@ import java.awt.geom.NoninvertibleTransformException;
 import java.awt.geom.Point2D;
 
 public class SuperAffine extends AffineTransform {
-    private final Logger logger = LogManager.getLogger();
+    private static final Logger logger = LogManager.getLogger();
 
     public SuperAffine() {
         super();
@@ -57,7 +57,7 @@ public class SuperAffine extends AffineTransform {
      * Transforms the specified point by the inverse of this transform.
      * @param x The X coordinate of the point to transform
      * @param y The Y coordinate of the point to transform
-     * @return A Point2D containing the transformed point [x, y]. Returns [0,0] if can't transform
+     * @return A Point2D containing the transformed point [x, y]. Returns [0,0] if it can't transform
      */
     public Point2D inverseTransform(double x, double y) {
         try {

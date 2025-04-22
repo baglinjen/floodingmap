@@ -1,9 +1,11 @@
 package dk.itu.data.repositories;
 
-import dk.itu.common.models.OsmElement;
 import dk.itu.data.datastructure.rtree.RTree;
-import dk.itu.data.models.db.Bounds;
-import dk.itu.data.models.memory.*;
+import dk.itu.data.models.db.*;
+import dk.itu.data.models.db.osm.OsmElement;
+import dk.itu.data.models.db.osm.OsmNode;
+import dk.itu.data.models.db.osm.OsmRelation;
+import dk.itu.data.models.db.osm.OsmWay;
 import dk.itu.data.models.parser.ParserOsmElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.models.parser.ParserOsmRelation;
@@ -13,7 +15,6 @@ import java.util.List;
 
 public class OsmElementRepositoryMemory implements OsmElementRepository {
     private static OsmElementRepositoryMemory instance;
-    private final RTree rtree = new RTree();
 
     public static OsmElementRepositoryMemory getInstance() {
         if (instance == null) {
@@ -25,25 +26,55 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
 
     private OsmElementRepositoryMemory() {}
 
+    private RTree rtree = new RTree();
+    private RTree traversable = new RTree();
+
     @Override
-    public void add(List<ParserOsmElement> osmElements) {
-        for (ParserOsmElement osmElement : osmElements) {
-            switch (osmElement) {
-                case ParserOsmNode node -> rtree.insert(OsmNode.mapToOsmNode(node));
-                case ParserOsmWay way -> rtree.insert(OsmWay.mapToOsmWay(way));
-                case ParserOsmRelation relation -> rtree.insert(OsmRelation.mapToOsmRelation(relation));
-                default -> {}
-            }
+    public synchronized void add(List<ParserOsmElement> osmElements) {
+        osmElements.parallelStream().map(this::mapToOsmElement).toList().forEach(rtree::insert);
+    }
+
+    private OsmElement mapToOsmElement(ParserOsmElement osmElement) {
+        return switch (osmElement) {
+            case ParserOsmNode node -> OsmNode.mapToOsmNode(node);
+            case ParserOsmWay way -> OsmWay.mapToOsmWay(way);
+            case ParserOsmRelation relation -> OsmRelation.mapToOsmRelation(relation);
+            default -> null;
+        };
+    }
+
+    @Override
+    public synchronized void addTraversable(List<ParserOsmNode> nodes) {
+        nodes.parallelStream().map(OsmNode::mapToOsmNode).toList().forEach(traversable::insert);
+    }
+
+    @Override
+    public synchronized List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
+        return rtree.search(limit, minLon, minLat, maxLon, maxLat);
+    }
+
+    @Override
+    public synchronized List<OsmNode> getTraversableOsmNodes() {
+        return traversable.getNodes();
+    }
+
+    @Override
+    public synchronized OsmNode getNearestTraversableOsmNode(double lon, double lat) {
+        return traversable.getNearest(lon, lat);
+    }
+
+    @Override
+    public synchronized void clearAll() {
+        rtree = new RTree();
+        traversable = new RTree();
+    }
+
+    @Override
+    public synchronized BoundingBox getBounds() {
+        if (rtree.getBoundingBox() == null) {
+            return new BoundingBox(-180, -90, 180, 90);
+        } else {
+            return rtree.getBoundingBox();
         }
-    }
-
-    @Override
-    public List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
-        return rtree.search(minLon, minLat, maxLon, maxLat).parallelStream().toList();
-    }
-
-    @Override
-    public Bounds getBounds() {
-        return new Bounds(10.37, 55.94, 10.5, 56); // TODO: Find actual lat/lon from rtree
     }
 }

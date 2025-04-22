@@ -1,9 +1,5 @@
 package dk.itu.util;
 
-import java.awt.geom.Area;
-import java.awt.geom.Path2D;
-import java.util.List;
-
 public class PolygonUtils {
     /**
      * Calculates the exact area of a polygon from an array of coordinates using the shoelace formula
@@ -14,12 +10,8 @@ public class PolygonUtils {
      */
     public static double calculatePolygonArea(double[] coordinates) {
         // Validate input
-        if (coordinates.length % 2 != 0) {
-            throw new IllegalArgumentException("Coordinates array must contain an even number of elements");
-        }
-
-        if (coordinates.length < 6) {
-            throw new IllegalArgumentException("A polygon must have at least 3 vertices (6 coordinates)");
+        if (coordinates.length % 2 != 0 || coordinates.length < 6) {
+            return 0;
         }
 
         // Apply Shoelace formula directly on the array
@@ -28,7 +20,6 @@ public class PolygonUtils {
         // Take the absolute value and divide by 2
         return Math.abs(area) / 2.0;
     }
-
     private static double getArea(double[] coordinates) {
         double area = 0.0;
         int numPoints = coordinates.length / 2;
@@ -48,31 +39,6 @@ public class PolygonUtils {
         return area;
     }
 
-    public static Path2D.Double pathFromShape(double[] coordinates, boolean isPolygon) {
-        Path2D.Double path = new Path2D.Double(Path2D.WIND_NON_ZERO);
-        buildOnPath2D(path, coordinates, isPolygon);
-        return path;
-    }
-
-    @SafeVarargs
-    public static Path2D.Double pathFromPolygonLists(List<double[]>... polygonLists) {
-        Path2D.Double p = new Path2D.Double(Path2D.WIND_EVEN_ODD);
-        for (List<double[]> polygonList : polygonLists) {
-            for (double[] polygon : polygonList) {
-                buildOnPath2D(p, polygon, true);
-            }
-        }
-        return p;
-    }
-
-    public static void buildOnPath2D(Path2D.Double path, double[] coordinates, boolean isPolygon) {
-        path.moveTo(0.56*coordinates[0], -coordinates[1]);
-        for (int i = 2; i < coordinates.length; i+=2) {
-            path.lineTo(0.56*coordinates[i], -coordinates[i+1]);
-        }
-        if (isPolygon) path.closePath();
-    }
-
     public static double[] forceClockwise(double[] polygon) {
         if (isClockwise(polygon)) {
             return polygon;
@@ -80,8 +46,6 @@ public class PolygonUtils {
             return reversePairs(polygon);
         }
     }
-
-
     public static double[] forceCounterClockwise(double[] polygon) {
         if (isClockwise(polygon)) {
             return reversePairs(polygon);
@@ -89,7 +53,6 @@ public class PolygonUtils {
             return polygon;
         }
     }
-
     private static boolean isClockwise(double[] coordinates) {
         // Ensure we have at least a triangle (6 values: 3 points with x,y each)
         if (coordinates.length < 6 || coordinates.length % 2 != 0) {
@@ -144,6 +107,18 @@ public class PolygonUtils {
         return result;
     }
 
+    public static boolean contains(double[] p1, double[] p2) {
+        // All p2 points should be in p1
+        var isInside = true;
+        var i = 0;
+        while (isInside && i < p2.length) {
+            // Test if p2 is in
+            isInside = isPointInPolygon(p1, p2[i], p2[i+1]);
+            i+=2;
+        }
+        return isInside;
+    }
+
     public static boolean isClosed(double[] coords) {
         return coords[0] == coords[coords.length - 2] && coords[1] == coords[coords.length - 1];
     }
@@ -168,16 +143,6 @@ public class PolygonUtils {
         LAST_FIRST,
         LAST_LAST,
         NONE
-    }
-
-    // Polygon 1 contains polygon 2
-    public static boolean isPolygonContainedLibrary(double[] polygon1, double[] polygon2) {
-        var p1 = new Area(pathFromShape(polygon1, true));
-        var p2 = new Area(pathFromShape(polygon2, true));
-
-        p2.subtract(p1);
-
-        return p2.isEmpty();
     }
 
     /**
@@ -295,7 +260,8 @@ public class PolygonUtils {
      */
     private static boolean isVertexIntersection(
             double x1, double y1, double x2, double y2,
-            double x3, double y3, double x4, double y4) {
+            double x3, double y3, double x4, double y4
+    ) {
         // Check if any endpoint of one segment coincides with any endpoint of the other
         return (isPointEqual(x1, y1, x3, y3) || isPointEqual(x1, y1, x4, y4) ||
                 isPointEqual(x2, y2, x3, y3) || isPointEqual(x2, y2, x4, y4));
@@ -310,7 +276,6 @@ public class PolygonUtils {
     }
 
     /**
-     *
      * @param x Longitude
      * @param y Latitude
      * @param bounds [minX, minY, maxX, maxY]

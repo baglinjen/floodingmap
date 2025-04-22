@@ -83,7 +83,7 @@ public class CurveTree {
 
         //Convert map to list and return
         for(int i = 0; i < map.size(); i++){
-            var tempList = new ArrayList<ParserGeoJsonElement>(map.get(i));
+            var tempList = new ArrayList<>(map.get(i));
             if(!tempList.isEmpty()) result.add(tempList);
         }
 

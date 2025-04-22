@@ -13,9 +13,10 @@ import java.util.function.Consumer;
 
 public interface Services {
     OsmService getOsmService(boolean withDb);
-    GeoJsonService getGeoJsonService();
+    HeightCurveService getHeightCurveService();
 
     Logger logger = LoggerFactory.getLogger();
+
     private static Connection getConnection() {
         try {
             var credentials = CommonConfiguration.getInstance().getSqlCredentials();
@@ -29,27 +30,25 @@ public interface Services {
     static void withServices(Consumer<Services> consumer) {
         List<Connection> connections = new ArrayList<>();
         consumer.accept(new Services() {
-            private GeoJsonService geoJsonService = null;
+            private OsmService osmServiceDb;
 
             @Override
             public OsmService getOsmService(boolean withDb) {
                 if (withDb) {
-                    var connection = getConnection();
-                    connections.add(connection);
-                    return new OsmService(connection);
+                    if (osmServiceDb == null) {
+                        var connection = getConnection();
+                        connections.add(connection);
+                        osmServiceDb = new OsmService(connection);
+                    }
+                    return osmServiceDb;
                 } else {
                     return new OsmService();
                 }
             }
 
             @Override
-            public GeoJsonService getGeoJsonService() {
-                if (geoJsonService == null) {
-//                    var connection = getConnection();
-                    geoJsonService = GeoJsonService.getInstance();
-//                    connections.add(connection);
-                }
-                return geoJsonService;
+            public HeightCurveService getHeightCurveService() {
+                return new HeightCurveService();
             }
         });
 

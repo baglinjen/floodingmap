@@ -1,14 +1,14 @@
 package dk.itu.data.datastructure.rtree;
 
-import dk.itu.data.models.memory.BoundingBox;
-import dk.itu.data.models.memory.OsmElementMemory;
+import dk.itu.data.models.db.BoundingBox;
+import dk.itu.data.models.db.osm.OsmElement;
 
 import java.util.List;
 import java.util.ArrayList;
 
 public class RTreeNode {
     BoundingBox mbr;
-    List<OsmElementMemory> elements = new ArrayList<>();
+    List<OsmElement> elements = new ArrayList<>();
     List<RTreeNode> children = new ArrayList<>();
 
     public RTreeNode() {
@@ -19,12 +19,12 @@ public class RTreeNode {
         return children.isEmpty();
     }
 
-    public void addEntry(OsmElementMemory entry) {
+    public void addEntry(OsmElement entry) {
         elements.add(entry);
         updateMBR(entry.getBoundingBox());
     }
 
-    public List<OsmElementMemory> getElements() {
+    public List<OsmElement> getElements() {
         return elements;
     }
 
@@ -42,10 +42,10 @@ public class RTreeNode {
         double maxX = Double.MIN_VALUE, maxY = Double.MIN_VALUE;
 
         for (RTreeNode child : children) {
-            minX = Math.min(minX, child.mbr.getMinX());
-            minY = Math.min(minY, child.mbr.getMinY());
-            maxX = Math.max(maxX, child.mbr.getMaxX());
-            maxY = Math.max(maxY, child.mbr.getMaxY());
+            minX = Math.min(minX, child.mbr.getMinLon());
+            minY = Math.min(minY, child.mbr.getMinLat());
+            maxX = Math.max(maxX, child.mbr.getMaxLon());
+            maxY = Math.max(maxY, child.mbr.getMaxLat());
         }
 
         this.mbr = new BoundingBox(minX, minY, maxX, maxY);
@@ -53,7 +53,7 @@ public class RTreeNode {
 
     private void updateMBR(BoundingBox bbox) {
         if (mbr == null) {
-            mbr = new BoundingBox(bbox.getMinX(), bbox.getMinY(), bbox.getMaxX(), bbox.getMaxY());
+            mbr = new BoundingBox(bbox.getMinLon(), bbox.getMinLat(), bbox.getMaxLon(), bbox.getMaxLat());
         } else {
             mbr.expand(bbox);
         }
