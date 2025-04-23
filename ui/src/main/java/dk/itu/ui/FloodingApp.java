@@ -38,7 +38,6 @@ public class FloodingApp extends GameApplication {
 
             // Temporary whilst using in-memory
             services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
-            services.getOsmService(state.isWithDb()).loadOsmData("samso.osm");
             state.resetWindowBounds();
 
             float registeredWaterLevel = 0.0f;

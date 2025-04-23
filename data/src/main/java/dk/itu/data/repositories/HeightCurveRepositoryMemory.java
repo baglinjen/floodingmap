@@ -49,7 +49,7 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
             }
             heightCurveTree.put(element);
             elementsAdded++;
-            logger.debug("Added {}/{} height curve elements", elementsAdded, elements.size());
+//            logger.debug("Added {}/{} height curve elements", elementsAdded, elements.size());
         }
 
         logger.info("Finished adding {} height curve elements in {}ms", elements.size(), String.format("%.3f", (System.nanoTime() - startTime) / 1_000_000d));

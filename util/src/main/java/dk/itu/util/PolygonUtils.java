@@ -1,5 +1,7 @@
 package dk.itu.util;
 
+import java.util.stream.IntStream;
+
 public class PolygonUtils {
     /**
      * Calculates the exact area of a polygon from an array of coordinates using the shoelace formula
@@ -109,14 +111,12 @@ public class PolygonUtils {
 
     public static boolean contains(double[] p1, double[] p2) {
         // All p2 points should be in p1
-        var isInside = true;
-        var i = 0;
-        while (isInside && i < p2.length) {
-            // Test if p2 is in
-            isInside = isPointInPolygon(p1, p2[i], p2[i+1]);
-            i+=2;
-        }
-        return isInside;
+        return IntStream.range(0, (p2.length-1) / 2)
+                .parallel()
+                .allMatch(i -> {
+                    //
+                    return isPointInPolygon(p1, p2[i*2], p2[i*2+1]);
+                });
     }
 
     public static boolean isClosed(double[] coords) {
@@ -202,24 +202,26 @@ public class PolygonUtils {
         return true;
     }
 
-    /**
-     * Checks if a point is inside a polygon using the ray casting algorithm.
-     */
     public static boolean isPointInPolygon(double[] polygon, double x, double y) {
         boolean inside = false;
-        int numVertices = polygon.length / 2;
 
-        for (int i = 0, j = numVertices - 1; i < numVertices; j = i++) {
-            double xi = polygon[2*i];
-            double yi = polygon[2*i + 1];
-            double xj = polygon[2*j];
-            double yj = polygon[2*j + 1];
+        double x1 = polygon[polygon.length - 2];
+        double y1 = polygon[polygon.length - 1];
+        double x2, y2;
 
-            boolean intersect = ((yi > y) != (yj > y)) &&
-                    (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-            if (intersect) {
+        for (int i = 0; i < polygon.length; i+=2) {
+            x2 = polygon[i];
+            y2 = polygon[i + 1];
+
+            if (
+                    ((y1 > y) != (y2 > y)) && // Condition 1 within y bounds
+                    (x < (x2 - x1) * (y - y1) / (y2 - y1) + x1)  // Condition 2 within x bounds
+            ) {
                 inside = !inside;
             }
+
+            x1 = x2;
+            y1 = y2;
         }
 
         return inside;

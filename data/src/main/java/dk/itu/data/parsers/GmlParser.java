@@ -27,7 +27,7 @@ import static org.apache.commons.collections4.ListUtils.partition;
 
 public class GmlParser {
     private static final Logger logger = LoggerFactory.getLogger();
-    private static final int TIMEOUT_SECONDS = 30, THREADS_POOL_SIZE = 64, MAX_RETRIES = 3;
+    private static final int TIMEOUT_SECONDS = 45, THREADS_POOL_SIZE = 64, MAX_RETRIES = 8;
     private static final HttpClient httpClient = HttpClient
             .newBuilder()
             .connectTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
