@@ -113,6 +113,15 @@ public class FloodingApp extends GameApplication {
                     dijkstraRoute.prepareDrawing(g2d);
                     dijkstraRoute.draw(g2d, strokeBaseWidth);
                 }
+
+                if(state.getDijkstraConfiguration().getShouldVisualize()){
+                    var nodes = state.getDijkstraConfiguration().getTouchedNodes();
+                    for(var n : nodes){
+                        g2d.setColor(Color.MAGENTA);
+                        g2d.fill(new Ellipse2D.Double(0.56*n.getLon() - strokeBaseWidth*8/2, -n.getLat() - strokeBaseWidth*8/2, strokeBaseWidth*8, strokeBaseWidth*8));
+                    }
+                }
+
                 var startNode = state.getDijkstraConfiguration().getStartNode();
                 if (startNode != null) {
                     g2d.setColor(Color.GREEN);
