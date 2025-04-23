@@ -1,4 +1,4 @@
-package dk.itu.ui.components;
+package dk.itu.ui.components.toggleComponents;
 
 import dk.itu.ui.State;
 import javafx.scene.control.ToggleButton;
