@@ -1,6 +1,7 @@
 package dk.itu.data.datastructure.rtree;
-import dk.itu.common.models.OsmElement;
-import dk.itu.data.models.memory.*;
+import dk.itu.data.models.db.BoundingBox;
+import dk.itu.data.models.db.osm.OsmElement;
+import dk.itu.data.models.db.osm.OsmNode;
 import javafx.util.Pair;
 
 import java.util.*;
@@ -22,6 +23,21 @@ public class RTree {
     * */
     public RTreeNode getRoot() {
         return root;
+    }
+
+    public BoundingBox getBoundingBox() {
+        if (root == null) return null;
+        return root.getMBR();
+    }
+
+    public List<OsmNode> getElements() {
+        // TODO: Implement
+        return List.of();
+    }
+
+    public OsmNode getNearest(double lon, double lat) {
+        // TODO: Implement
+        return null;
     }
 
     /**
@@ -142,12 +158,12 @@ public class RTree {
     private void sortChildrenByAxis(List<RTreeNode> children, int axis) {
         children.sort((c1, c2) -> {
             double center1 = (axis == 0) ?
-                    (c1.mbr.getMinX() + c1.mbr.getMaxX()) / 2 :
-                    (c1.mbr.getMinY() + c1.mbr.getMaxY()) / 2;
+                    (c1.mbr.getMinLon() + c1.mbr.getMaxLon()) / 2 :
+                    (c1.mbr.getMinLat() + c1.mbr.getMaxLat()) / 2;
 
             double center2 = (axis == 0) ?
-                    (c2.mbr.getMinX() + c2.mbr.getMaxX()) / 2 :
-                    (c2.mbr.getMinY() + c2.mbr.getMaxY()) / 2;
+                    (c2.mbr.getMinLon() + c2.mbr.getMaxLon()) / 2 :
+                    (c2.mbr.getMinLat() + c2.mbr.getMaxLat()) / 2;
 
             return Double.compare(center1, center2);
         });
@@ -164,8 +180,8 @@ public class RTree {
             BoundingBox mbr2 = computeMBRForChildren(children.subList(i, children.size()));
 
             // Sum the perimeters (perimeter = 2 * (width + height))
-            sum += 2 * ((mbr1.getMaxX() - mbr1.getMinX()) + (mbr1.getMaxY() - mbr1.getMinY()));
-            sum += 2 * ((mbr2.getMaxX() - mbr2.getMinX()) + (mbr2.getMaxY() - mbr2.getMinY()));
+            sum += 2 * ((mbr1.getMaxLon() - mbr1.getMinLon()) + (mbr1.getMaxLat() - mbr1.getMinLat()));
+            sum += 2 * ((mbr2.getMaxLon() - mbr2.getMinLon()) + (mbr2.getMaxLat() - mbr2.getMinLat()));
         }
 
         return sum;
@@ -181,10 +197,10 @@ public class RTree {
 
         RTreeNode first = children.getFirst();
         BoundingBox mbr = new BoundingBox(
-                first.mbr.getMinX(),
-                first.mbr.getMinY(),
-                first.mbr.getMaxX(),
-                first.mbr.getMaxY()
+                first.mbr.getMinLon(),
+                first.mbr.getMinLat(),
+                first.mbr.getMaxLon(),
+                first.mbr.getMaxLat()
         );
 
         for (int i = 1; i < children.size(); i++) {
@@ -197,7 +213,7 @@ public class RTree {
     /**
      * Choose the split axis that minimizes the sum of perimeters for leaf nodes
      */
-    private int chooseSplitAxisForLeaf(List<OsmElementMemory> elements) {
+    private int chooseSplitAxisForLeaf(List<OsmElement> elements) {
         double minPerimeterSum = Double.POSITIVE_INFINITY;
         int bestAxis = 0;
 
@@ -221,7 +237,7 @@ public class RTree {
     /**
      * Choose the distribution with minimum overlap for leaf nodes
      */
-    private int[] chooseSplitIndexForLeaf(List<OsmElementMemory> elements, int axis) {
+    private int[] chooseSplitIndexForLeaf(List<OsmElement> elements, int axis) {
         // Sort by the chosen axis
         sortElementsByAxis(elements, axis);
 
@@ -253,18 +269,18 @@ public class RTree {
     /**
      * Sort elements by their center along the specified axis
      */
-    private void sortElementsByAxis(List<OsmElementMemory> elements, int axis) {
+    private void sortElementsByAxis(List<OsmElement> elements, int axis) {
         elements.sort((e1, e2) -> {
             BoundingBox b1 = e1.getBoundingBox();
             BoundingBox b2 = e2.getBoundingBox();
 
             double center1 = (axis == 0) ?
-                    (b1.getMinX() + b1.getMaxX()) / 2 :
-                    (b1.getMinY() + b1.getMaxY()) / 2;
+                    (b1.getMinLon() + b1.getMaxLon()) / 2 :
+                    (b1.getMinLat() + b1.getMaxLat()) / 2;
 
             double center2 = (axis == 0) ?
-                    (b2.getMinX() + b2.getMaxX()) / 2 :
-                    (b2.getMinY() + b2.getMaxY()) / 2;
+                    (b2.getMinLon() + b2.getMaxLon()) / 2 :
+                    (b2.getMinLat() + b2.getMaxLat()) / 2;
 
             return Double.compare(center1, center2);
         });
@@ -273,7 +289,7 @@ public class RTree {
     /**
      * Compute the sum of perimeters for all possible distributions of leaf elements
      */
-    private double computeDistributionPerimeterSumForLeaf(List<OsmElementMemory> elements) {
+    private double computeDistributionPerimeterSumForLeaf(List<OsmElement> elements) {
         double sum = 0;
 
         for (int i = MIN_ENTRIES; i <= elements.size() - MIN_ENTRIES; i++) {
@@ -281,8 +297,8 @@ public class RTree {
             BoundingBox mbr2 = computeMBRForElements(elements.subList(i, elements.size()));
 
             // Sum the perimeters
-            sum += 2 * ((mbr1.getMaxX() - mbr1.getMinX()) + (mbr1.getMaxY() - mbr1.getMinY()));
-            sum += 2 * ((mbr2.getMaxX() - mbr2.getMinX()) + (mbr2.getMaxY() - mbr2.getMinY()));
+            sum += 2 * ((mbr1.getMaxLon() - mbr1.getMinLon()) + (mbr1.getMaxLat() - mbr1.getMinLat()));
+            sum += 2 * ((mbr2.getMaxLon() - mbr2.getMinLon()) + (mbr2.getMaxLat() - mbr2.getMinLat()));
         }
 
         return sum;
@@ -291,18 +307,18 @@ public class RTree {
     /**
      * Compute the MBR for a list of elements
      */
-    private BoundingBox computeMBRForElements(List<OsmElementMemory> elements) {
+    private BoundingBox computeMBRForElements(List<OsmElement> elements) {
         if (elements.isEmpty()) {
             return new BoundingBox(0, 0, 0, 0);
         }
 
-        OsmElementMemory first = elements.getFirst();
+        OsmElement first = elements.getFirst();
         BoundingBox firstBox = first.getBoundingBox();
         BoundingBox mbr = new BoundingBox(
-                firstBox.getMinX(),
-                firstBox.getMinY(),
-                firstBox.getMaxX(),
-                firstBox.getMaxY()
+                firstBox.getMinLon(),
+                firstBox.getMinLat(),
+                firstBox.getMaxLon(),
+                firstBox.getMaxLat()
         );
 
         for (int i = 1; i < elements.size(); i++) {
@@ -320,7 +336,7 @@ public class RTree {
 
         if (node.isLeaf()) {
             // Handle leaf node split
-            List<OsmElementMemory> elements = new ArrayList<>(node.elements);
+            List<OsmElement> elements = new ArrayList<>(node.elements);
 
             // Choose split axis and distribution
             int bestAxis = chooseSplitAxisForLeaf(elements);
@@ -330,9 +346,9 @@ public class RTree {
             sortElementsByAxis(elements, bestAxis);
 
             // Distribute elements
-            List<OsmElementMemory> group1 = new ArrayList<>(
+            List<OsmElement> group1 = new ArrayList<>(
                     elements.subList(0, distribution[0]));
-            List<OsmElementMemory> group2 = new ArrayList<>(
+            List<OsmElement> group2 = new ArrayList<>(
                     elements.subList(distribution[0], elements.size()));
 
             // Update nodes
@@ -379,8 +395,8 @@ public class RTree {
         if (node.isLeaf() && !node.elements.isEmpty()) {
             // Get first element's bounding box
             BoundingBox first = node.elements.getFirst().getBoundingBox();
-            node.mbr = new BoundingBox(first.getMinX(), first.getMinY(),
-                    first.getMaxX(), first.getMaxY());
+            node.mbr = new BoundingBox(first.getMinLon(), first.getMinLat(),
+                    first.getMaxLon(), first.getMaxLat());
 
             // Expand for remaining elements
             for (int i = 1; i < node.elements.size(); i++) {
@@ -389,8 +405,8 @@ public class RTree {
         } else if (!node.isLeaf() && !node.children.isEmpty()) {
             // Get first child's bounding box
             BoundingBox first = node.children.getFirst().mbr;
-            node.mbr = new BoundingBox(first.getMinX(), first.getMinY(),
-                    first.getMaxX(), first.getMaxY());
+            node.mbr = new BoundingBox(first.getMinLon(), first.getMinLat(),
+                    first.getMaxLon(), first.getMaxLat());
 
             // Expand for remaining children
             for (int i = 1; i < node.children.size(); i++) {
@@ -426,7 +442,7 @@ public class RTree {
 
         if (node.isLeaf()) {
             // Handle leaf node - work directly with elements list
-            List<OsmElementMemory> elements = new ArrayList<>(node.elements);
+            List<OsmElement> elements = new ArrayList<>(node.elements);
 
             // Sort by distance from center
             elements.sort((e1, e2) -> {
@@ -437,7 +453,7 @@ public class RTree {
 
             // Select entries to reinsert (farthest p entries)
             int reinsertCount = Math.min(p, elements.size());
-            List<OsmElementMemory> entriesToReinsert =
+            List<OsmElement> entriesToReinsert =
                     new ArrayList<>(elements.subList(0, reinsertCount));
 
             // Keep the rest
@@ -445,7 +461,7 @@ public class RTree {
             node.updateBoundingBox();
 
             // Reinsert entries
-            for (OsmElementMemory element : entriesToReinsert) {
+            for (OsmElement element : entriesToReinsert) {
                 insert(element);
             }
         } else {
@@ -580,8 +596,8 @@ public class RTree {
     }
 
     private Pair<Double, Double> getCenter(BoundingBox box) {
-        double x = (box.getMinX() + box.getMaxX()) / 2;
-        double y = (box.getMinY() + box.getMaxY()) / 2;
+        double x = (box.getMinLon() + box.getMaxLon()) / 2;
+        double y = (box.getMinLat() + box.getMaxLat()) / 2;
         return new Pair<>(x, y);
     }
 
@@ -646,13 +662,13 @@ public class RTree {
         return null;
     }
 
-    private void searchRecursive(RTreeNode node, BoundingBox queryBox, List<OsmElementMemory> results) {
+    private void searchRecursive(RTreeNode node, BoundingBox queryBox, List<OsmElement> results) {
         if (!node.mbr.intersects(queryBox)) {
             return; // No intersection, skip this branch
         }
 
         if (node.isLeaf()) { // If it's a leaf, add matching elements
-            for (OsmElementMemory element : node.elements) {
+            for (OsmElement element : node.elements) {
                 if (element.getBoundingBox().intersects(queryBox)) {
                     results.add(element);
                 }
@@ -664,7 +680,7 @@ public class RTree {
         }
     }
 
-    public void insert(OsmElementMemory element) {
+    public void insert(OsmElement element) {
         // Create root if it doesn't exist
         if (root == null) {
             root = new RTreeNode();
@@ -688,16 +704,14 @@ public class RTree {
     }
 
     public List<OsmElement> search(double minLon, double minLat, double maxLon, double maxLat) {
-        if (root == null) {
-            return List.of();
-        }
-
-        List<OsmElementMemory> elements = new ArrayList<>();
+        List<OsmElement> elements = new ArrayList<>();
 
         searchRecursive(root, new BoundingBox(minLon, minLat, maxLon, maxLat), elements);
 
-        return new ArrayList<>(elements.parallelStream()
-                .sorted(Comparator.comparingDouble(OsmElementMemory::getArea).reversed()).toList());
+        return elements
+                .parallelStream()
+                .sorted(Comparator.comparingDouble(OsmElement::getArea).reversed())
+                .toList();
     }
 }
 
