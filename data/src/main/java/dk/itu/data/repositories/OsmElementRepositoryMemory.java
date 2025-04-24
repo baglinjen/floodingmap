@@ -50,12 +50,12 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
 
     @Override
     public synchronized List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
-        return rtree.search(limit, minLon, minLat, maxLon, maxLat);
+        return rtree.search(minLon, minLat, maxLon, maxLat);
     }
 
     @Override
     public synchronized List<OsmNode> getTraversableOsmNodes() {
-        return traversable.getNodes();
+        return traversable.getElements();
     }
 
     @Override
