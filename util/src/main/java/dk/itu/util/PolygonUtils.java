@@ -110,13 +110,13 @@ public class PolygonUtils {
     }
 
     public static boolean contains(double[] p1, double[] p2) {
-        // All p2 points should be in p1
-        return IntStream.range(0, (p2.length-1) / 2)
+        final boolean[] foundOutsideAsync = {false};
+        IntStream.range(0, p2.length / 2 - 1)
                 .parallel()
-                .allMatch(i -> {
-                    //
-                    return isPointInPolygon(p1, p2[i*2], p2[i*2+1]);
+                .forEach(i -> {
+                    if (!foundOutsideAsync[0] && !isPointInPolygon(p1, p2[i*2], p2[i*2 + 1])) foundOutsideAsync[0] = true;
                 });
+        return !foundOutsideAsync[0];
     }
 
     public static boolean isClosed(double[] coords) {
