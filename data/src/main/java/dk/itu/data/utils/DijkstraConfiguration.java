@@ -95,7 +95,7 @@ public class DijkstraConfiguration {
             touchedNodes.add(curNode);
 
                 if (curNode == endNode) {
-                    return createPath(previousNodes, startNode, endNode, services);
+                    return createPath(previousNodes, startNode, endNode);
                 }
 
                 double currDistance = distances.get(curNode);
@@ -145,6 +145,6 @@ public class DijkstraConfiguration {
             count = count + 2;
         }
 
-        return OsmWay.createWayForDijkstra(coordinateList);
+        return OsmWay.createWayForRouting(coordinateList);
     }
 }

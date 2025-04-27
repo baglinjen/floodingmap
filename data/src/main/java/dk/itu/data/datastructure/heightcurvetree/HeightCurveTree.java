@@ -7,9 +7,11 @@ import dk.itu.util.PolygonUtils;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 
 public class HeightCurveTree {
+    private static final int VERTICES_FOR_CONCURRENCY = 1500;
     private final HeightCurveTreeNode root = new HeightCurveTreeNode(
             new HeightCurveElement(
                     new double[] {
@@ -91,6 +93,7 @@ public class HeightCurveTree {
         }
     }
 
+    private static int win1 = 0, win2 = 0, win3 = 0, win4 = 0;
     public void put(ParserHeightCurveElement heightCurveElement) {
         minWaterLevel = Math.min(minWaterLevel, heightCurveElement.getHeight());
         maxWaterLevel = Math.max(maxWaterLevel, heightCurveElement.getHeight());
@@ -137,22 +140,51 @@ public class HeightCurveTree {
                 node.heightCurveElement.addInnerPolygon(newNode.heightCurveElement.getCoordinates());
             } else {
                 // Get the biggest child which contains element
-                boolean inserted = false;
-                for (var e : candidateNodes) {
-                    if (inserted) continue;
-                    if (e.contains(heightCurveElement)) {
-                        put(e, heightCurveElement);
-                        inserted = true;
-                    }
-                }
+                var shouldUseConcurrent = (
+                                candidateNodes
+                                        .parallelStream()
+                                        .map(e -> e.heightCurveElement.getCoordinates().length)
+                                        .reduce(0, Integer::sum) / 2
+                                +
+                                        heightCurveElement.getCoordinates().length / 2
+                        ) > VERTICES_FOR_CONCURRENCY;
 
-                // No child found which contains the element => add it to node
-                if (!inserted) {
+                var biggestChildContaining = shouldUseConcurrent ? findBiggestChildContainingConcurrent(candidateNodes, heightCurveElement) : findBiggestChildContaining(candidateNodes, heightCurveElement);
+
+                if (biggestChildContaining.isPresent()) {
+                    put(biggestChildContaining.get(), heightCurveElement);
+                } else {
+                    // No child found which contains the element => add it to node
                     node.children.add(new HeightCurveTreeNode(heightCurveElement));
                     node.heightCurveElement.addInnerPolygon(heightCurveElement.getCoordinates());
                 }
             }
         }
+    }
+
+    private Optional<HeightCurveTreeNode> findBiggestChildContaining(List<HeightCurveTreeNode> candidateNodes, HeightCurveElement heightCurveElement) {
+        HeightCurveTreeNode biggestChildContaining = null;
+        for (var child : candidateNodes) {
+            if (biggestChildContaining == null) {
+                if (child.contains(heightCurveElement)) {
+                    biggestChildContaining = child;
+                }
+            }
+        }
+        return Optional.ofNullable(biggestChildContaining);
+    }
+    private Optional<HeightCurveTreeNode> findBiggestChildContainingConcurrent(List<HeightCurveTreeNode> candidateNodes, HeightCurveElement heightCurveElement) {
+        AtomicReference<HeightCurveTreeNode> bn4 = new AtomicReference<>(null);
+        IntStream.range(0, candidateNodes.size())
+                .parallel()
+                .forEach(i -> {
+                    if (bn4.get() == null) {
+                        if (candidateNodes.get(i).contains(heightCurveElement)) {
+                            bn4.set(candidateNodes.get(i));
+                        }
+                    }
+                });
+        return Optional.ofNullable(bn4.get());
     }
 
     public void clear() {

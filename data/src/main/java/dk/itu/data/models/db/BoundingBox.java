@@ -28,6 +28,15 @@ public class BoundingBox implements Serializable {
         return point.x >= minLon && point.x <= maxLon && point.y >= minLat && point.y <= maxLat;
     }
 
+    public double intersectionArea(BoundingBox other) {
+        if (!intersects(other)) return 0;
+
+        var difLon = Math.max(Math.abs(minLon - other.maxLon), Math.abs(maxLon - other.minLon));
+        var difLat = Math.max(Math.abs(minLat - other.maxLat), Math.abs(maxLat - other.minLat));
+
+        return difLon * difLat;
+    }
+
     public double area() {
         return (maxLon - minLon) * (maxLat - minLat);
     }
