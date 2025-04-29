@@ -155,6 +155,9 @@ public class GmlParser {
                             nextEvent = reader.nextEvent();
                             elementBuilder.withEPSG25832Coords(nextEvent.asCharacters().getData());
                             break;
+                        case "hoejde":
+                            nextEvent = reader.nextEvent();
+                            elementBuilder.withHeight(Float.parseFloat(nextEvent.asCharacters().getData()));
                     }
                 }
 

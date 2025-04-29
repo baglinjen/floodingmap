@@ -1,10 +1,9 @@
 package datastructures;
 
-import dk.itu.common.models.OsmElement;
+import dk.itu.data.models.db.osm.OsmElement;
 import dk.itu.data.datastructure.rtree.RTree;
 import dk.itu.data.datastructure.rtree.RTreeNode;
-import dk.itu.data.models.memory.BoundingBox;
-import dk.itu.data.models.memory.OsmElementMemory;
+import dk.itu.data.models.db.BoundingBox;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -21,11 +20,11 @@ public class RTreeTest {
         // Arrange
         RTree rtree = new RTree();
         BoundingBox bbox = new BoundingBox(1, 1, 2, 2);
-        OsmElementMemory element = new OsmElementMemory(1, bbox, bbox.area()) {
+        OsmElement element = new OsmElement(1, bbox, bbox.area()) {
             @Override
-            public void draw(Graphics2D g2d, float strokeBaseWidth) {
-
-            }
+            public void prepareDrawing(Graphics2D g2d) {}
+            @Override
+            public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         };
 
         // Act
@@ -46,23 +45,23 @@ public class RTreeTest {
         BoundingBox bbox2 = new BoundingBox(1, 1, 3, 3);
         BoundingBox bbox3 = new BoundingBox(10, 10, 12, 12);
         // Elements to insert
-        OsmElementMemory inside1 = new OsmElementMemory(1, bbox1, bbox1.area()) {
+        OsmElement inside1 = new OsmElement(1, bbox1, bbox1.area()) {
             @Override
-            public void draw(Graphics2D g2d, float strokeBaseWidth) {
-
-            }
+            public void prepareDrawing(Graphics2D g2d) {}
+            @Override
+            public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         }; // Area = 1
-        OsmElementMemory inside2 = new OsmElementMemory(2, bbox2, bbox2.area()) {
+        OsmElement inside2 = new OsmElement(2, bbox2, bbox2.area()) {
             @Override
-            public void draw(Graphics2D g2d, float strokeBaseWidth) {
-
-            }
+            public void prepareDrawing(Graphics2D g2d) {}
+            @Override
+            public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         }; // Area = 4
-        OsmElementMemory outside = new OsmElementMemory(3, bbox3, bbox3.area()) {
+        OsmElement outside = new OsmElement(3, bbox3, bbox3.area()) {
             @Override
-            public void draw(Graphics2D g2d, float strokeBaseWidth) {
-
-            }
+            public void prepareDrawing(Graphics2D g2d) {}
+            @Override
+            public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         };
 
         rtree.insert(inside1);
