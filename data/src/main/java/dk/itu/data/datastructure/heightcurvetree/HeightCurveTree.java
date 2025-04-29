@@ -65,8 +65,17 @@ public class HeightCurveTree {
         if (node.heightCurveElement.getHeight() <= waterLevel) {
             steps.putIfAbsent(stepDepth, new ConcurrentLinkedQueue<>());
             steps.get(stepDepth).add(node.heightCurveElement);
+
+            // Add elements lower than node => they're now flooded
             node.children
                     .parallelStream()
+                    .filter(child -> child.heightCurveElement.getHeight() <= node.heightCurveElement.getHeight())
+                    .forEach(child -> getElements(child, steps.get(stepDepth)));
+
+            // Continue iteration through other nodes
+            node.children
+                    .parallelStream()
+                    .filter(child -> child.heightCurveElement.getHeight() > node.heightCurveElement.getHeight())
                     .forEach(c -> getFloodingStepsConcurrent(c, steps, waterLevel, stepDepth+1));
         }
     }
@@ -94,7 +103,7 @@ public class HeightCurveTree {
     }
 
     public void put(ParserHeightCurveElement heightCurveElement) {
-        minWaterLevel = Math.min(minWaterLevel, heightCurveElement.getHeight());
+        minWaterLevel = Math.max(Math.min(minWaterLevel, heightCurveElement.getHeight()), 0);
         maxWaterLevel = Math.max(maxWaterLevel, heightCurveElement.getHeight());
         put(root, HeightCurveElement.mapToHeightCurveElement(heightCurveElement));
     }
