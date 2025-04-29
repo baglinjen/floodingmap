@@ -7,6 +7,11 @@ import javafx.util.Pair;
 import java.util.*;
 import java.util.List;
 
+/*
+* The R* Tree is based on https://infolab.usc.edu/csci599/Fall2001/paper/rstar-tree.pdf
+* Min entries and reinsert percentage are based on the report (p. 327)
+* */
+
 public class RTree {
     private static final int MAX_ENTRIES = 500;  // Maximum entries in a node
     private static final int MIN_ENTRIES = MAX_ENTRIES / 2;  // Minimum entries (40-50% of max is typical)
@@ -30,18 +35,144 @@ public class RTree {
         return root.getMBR();
     }
 
-    public List<OsmNode> getElements() {
-        // TODO: Implement
-        return List.of();
+    /**
+     * Find the nearest OsmNode to the specified coordinates
+     * @param lon Longitude of the query point
+     * @param lat Latitude of the query point
+     * @return The nearest OsmNode or null if tree is empty
+     */
+    public OsmNode getNearest(double lon, double lat) {
+        if (root == null) {
+            return null;
+        }
+
+        // Priority queue to sort by distance
+        PriorityQueue<NNEntry> queue = new PriorityQueue<>();
+
+        // Add root node to queue with its minimum destination
+        queue.add(new NNEntry(root, minDist(lon, lat, root.mbr)));
+
+        OsmNode nearest = null;
+        double nearestDist = Double.MAX_VALUE;
+
+        // Process queue until empty, or we can guarantee we found the nearest
+        while (!queue.isEmpty()) {
+            NNEntry entry = queue.poll();
+
+            // If minimum dist > nearest distance found so far, we're done
+            if (entry.distance > nearestDist) {
+                break;
+            }
+
+            if (entry.node.isLeaf()) {
+                // Check each element in the leaf
+                for (OsmElement element : entry.node.elements) {
+                    // Only consider elements that are OsmNodes
+                    if (element instanceof OsmNode node) {
+                        double dist = pointDistance(lon, lat, node.getLon(), node.getLat());
+
+                        if (dist < nearestDist) {
+                            nearest = node;
+                            nearestDist = dist;
+                        }
+                    }
+                }
+            } else {
+                // Add all children to the queue
+                for (RTreeNode child : entry.node.children) {
+                    double childDist = minDist(lon, lat, child.mbr);
+
+                    // Only add if it could contain a closer point
+                    if (childDist < nearestDist) {
+                        queue.add(new NNEntry(child, childDist));
+                    }
+                }
+            }
+        }
+
+        return nearest;
     }
 
-    public OsmNode getNearest(double lon, double lat) {
-        // TODO: Implement
-        return null;
+    /**
+     * Calculate minimum possible distance from point to bounding box
+     * @param px Point x coordinate (longitude)
+     * @param py Point y coordinate (latitude)
+     * @param box The bounding box
+     * @return The minimum possible Euclidean distance
+     */
+    private double minDist(double px, double py, BoundingBox box) {
+        double dx = 0.0;
+        double dy = 0.0;
+
+        // Distance in x-dimension
+        if (px < box.getMinLon()) {
+            dx = box.getMinLon() - px;
+        } else if (px > box.getMaxLon()) {
+            dx = px - box.getMaxLon();
+        }
+
+        // Distance in y-dimension
+        if (py < box.getMinLat()) {
+            dy = box.getMinLat() - py;
+        } else if (py > box.getMaxLat()) {
+            dy = py - box.getMaxLat();
+        }
+
+        // Euclidean distance
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    /**
+     * Calculate the exact distance between two points
+     * @param x1 First point x coordinate
+     * @param y1 First point y coordinate
+     * @param x2 Second point x coordinate
+     * @param y2 Second point y coordinate
+     * @return The Euclidean distance between the points
+     */
+    private double pointDistance(double x1, double y1, double x2, double y2) {
+        double dx = x1 - x2;
+        double dy = y1 - y2;
+        // Euclidean distance
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    /**
+     * Get all elements in the R-tree
+     * @return List of all OsmNode elements in the tree
+     */
+    public List<OsmNode> getElements() {
+        List<OsmNode> result = new ArrayList<>();
+        if (root != null) {
+            collectNodes(root, result);
+        }
+        return result;
+    }
+
+    /**
+     * Helper method to collect all OsmNode elements from the tree
+     * @param node Current node to process
+     * @param result List to collect nodes into
+     */
+    private void collectNodes(RTreeNode node, List<OsmNode> result) {
+        if (node.isLeaf()) {
+            for (OsmElement element : node.elements) {
+                if (element instanceof OsmNode) {
+                    result.add((OsmNode) element);
+                }
+            }
+        } else {
+            for (RTreeNode child : node.children) {
+                collectNodes(child, result);
+            }
+        }
     }
 
     /**
      * Find the leaf node where the element should be inserted
+     * @param node current node
+     * @param elementBox the node is within
+     * @return leaf node
      */
     private RTreeNode chooseLeaf(RTreeNode node, BoundingBox elementBox) {
         if (node.isLeaf()) {
@@ -380,7 +511,6 @@ public class RTree {
         node.updateBoundingBox();
         newNode.updateBoundingBox();
 
-        // Debug check to ensure MBR was created
         if (newNode.mbr == null) {
             forceCreateMBR(newNode);
         }
@@ -389,7 +519,7 @@ public class RTree {
     }
 
     /**
-     * Helper method to force MBR creation
+     * Helper method to force MBR creation in case a node's MBR is null after node split
      **/
     private void forceCreateMBR(RTreeNode node) {
         if (node.isLeaf() && !node.elements.isEmpty()) {
@@ -502,7 +632,7 @@ public class RTree {
 
         // Add child to the target node (should not be a leaf)
         if (targetNode.isLeaf()) {
-            throw new IllegalStateException("Target node at level " + (level-1) + " should not be a leaf");
+            throw new IllegalStateException("Target node at level " + (level - 1) + " should not be a leaf");
         }
 
         targetNode.addChild(nodeToInsert);
@@ -713,5 +843,24 @@ public class RTree {
                 .sorted(Comparator.comparingDouble(OsmElement::getArea).reversed())
                 .toList();
     }
+
+    /**
+     * Helper class for nearest neighbor queue entries
+     */
+    private static class NNEntry implements Comparable<NNEntry> {
+        RTreeNode node;
+        double distance;
+
+        public NNEntry(RTreeNode node, double distance) {
+            this.node = node;
+            this.distance = distance;
+        }
+
+        @Override
+        public int compareTo(NNEntry other) {
+            return Double.compare(this.distance, other.distance);
+        }
+    }
 }
+
 
