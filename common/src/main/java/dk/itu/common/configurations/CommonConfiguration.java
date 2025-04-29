@@ -16,23 +16,12 @@ public class CommonConfiguration {
         return commonConfiguration;
     }
 
-    private final boolean forceParseOsm, forceParseGeoJson;
     private final String dataForsyningenToken;
     private final boolean useDb;
 
     private CommonConfiguration() {
-        this.forceParseOsm = Boolean.parseBoolean(Objects.requireNonNullElse(System.getenv("forceParseOsm"), "false"));
-        this.forceParseGeoJson = Boolean.parseBoolean(Objects.requireNonNullElse(System.getenv("forceParseGeoJson"), "false"));
         this.dataForsyningenToken = System.getenv("dataForsyningenToken");
         this.useDb = Boolean.parseBoolean(Objects.requireNonNullElse(System.getenv("useDb"), "false"));
-    }
-
-    public boolean shouldForceParseOsm() {
-        return this.forceParseOsm;
-    }
-
-    public boolean shouldForceParseGeoJson() {
-        return this.forceParseGeoJson;
     }
 
     public String getDataForsyningenToken() {

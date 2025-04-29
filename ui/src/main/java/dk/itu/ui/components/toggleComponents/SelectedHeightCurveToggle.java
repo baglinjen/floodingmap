@@ -10,7 +10,7 @@ public class SelectedHeightCurveToggle extends ToggleButton {
         setOnAction(_ -> {
             if (state.getShowSelectedHeightCurve()) {
                 if (state.getHcSelected() != null) {
-                    state.getHcSelected().setUnselected(state.getWaterLevel());
+                    state.getHcSelected().setUnselected();
                     state.setHcSelected(null);
                 }
             }

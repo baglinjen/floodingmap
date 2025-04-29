@@ -22,6 +22,7 @@ public class HeightCurveElement extends Colored {
     private final float height;
     private final double area;
     private Path2D.Double path;
+    private boolean isAboveWater = false;
 
     public HeightCurveElement(double[] outerPolygon, float height, double area, double[] bounds) {
         this.outerPolygon = outerPolygon;
@@ -59,16 +60,18 @@ public class HeightCurveElement extends Colored {
     }
 
     public void setAboveWater() {
+        isAboveWater = true;
         setStyle(STYLE_ABOVE_WATER);
     }
     public void setBelowWater() {
+        isAboveWater = false;
         setStyle(STYLE_BELOW_WATER);
     }
     public void setSelected() {
         setStyle(STYLE_SELECTED);
     }
-    public void setUnselected(float waterLevel) {
-        setStyle(height >= waterLevel ? STYLE_ABOVE_WATER : STYLE_BELOW_WATER);
+    public void setUnselected() {
+        setStyle(isAboveWater ? STYLE_ABOVE_WATER : STYLE_BELOW_WATER);
     }
 
     @Override
