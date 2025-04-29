@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 
 public class HeightCurveTree {
-    private static final int VERTICES_FOR_CONCURRENCY = 1500;
+    private static final int VERTICES_FOR_CONCURRENCY = 1000;
     private final HeightCurveTreeNode root = new HeightCurveTreeNode(
             new HeightCurveElement(
                     new double[] {
@@ -65,8 +65,17 @@ public class HeightCurveTree {
         if (node.heightCurveElement.getHeight() <= waterLevel) {
             steps.putIfAbsent(stepDepth, new ConcurrentLinkedQueue<>());
             steps.get(stepDepth).add(node.heightCurveElement);
+
+            // Add elements lower than node => they're now flooded
             node.children
                     .parallelStream()
+                    .filter(child -> child.heightCurveElement.getHeight() <= node.heightCurveElement.getHeight())
+                    .forEach(child -> getElements(child, steps.get(stepDepth)));
+
+            // Continue iteration through other nodes
+            node.children
+                    .parallelStream()
+                    .filter(child -> child.heightCurveElement.getHeight() > node.heightCurveElement.getHeight())
                     .forEach(c -> getFloodingStepsConcurrent(c, steps, waterLevel, stepDepth+1));
         }
     }
@@ -93,9 +102,8 @@ public class HeightCurveTree {
         }
     }
 
-    private static int win1 = 0, win2 = 0, win3 = 0, win4 = 0;
     public void put(ParserHeightCurveElement heightCurveElement) {
-        minWaterLevel = Math.min(minWaterLevel, heightCurveElement.getHeight());
+        minWaterLevel = Math.max(Math.min(minWaterLevel, heightCurveElement.getHeight()), 0);
         maxWaterLevel = Math.max(maxWaterLevel, heightCurveElement.getHeight());
         put(root, HeightCurveElement.mapToHeightCurveElement(heightCurveElement));
     }
@@ -149,7 +157,10 @@ public class HeightCurveTree {
                                         heightCurveElement.getCoordinates().length / 2
                         ) > VERTICES_FOR_CONCURRENCY;
 
-                var biggestChildContaining = shouldUseConcurrent ? findBiggestChildContainingConcurrent(candidateNodes, heightCurveElement) : findBiggestChildContaining(candidateNodes, heightCurveElement);
+                var biggestChildContaining = shouldUseConcurrent ?
+                        findBiggestChildContainingConcurrent(candidateNodes, heightCurveElement)
+                        :
+                        findBiggestChildContainingBlocking(candidateNodes, heightCurveElement);
 
                 if (biggestChildContaining.isPresent()) {
                     put(biggestChildContaining.get(), heightCurveElement);
@@ -162,18 +173,28 @@ public class HeightCurveTree {
         }
     }
 
-    private Optional<HeightCurveTreeNode> findBiggestChildContaining(List<HeightCurveTreeNode> candidateNodes, HeightCurveElement heightCurveElement) {
+    private Optional<HeightCurveTreeNode> findBiggestChildContainingBlocking(List<HeightCurveTreeNode> candidateNodes, HeightCurveElement heightCurveElement) {
         HeightCurveTreeNode biggestChildContaining = null;
         for (var child : candidateNodes) {
-            if (biggestChildContaining == null) {
-                if (child.contains(heightCurveElement)) {
-                    biggestChildContaining = child;
-                }
-            }
+            if (biggestChildContaining != null) break;
+            if (child.contains(heightCurveElement)) biggestChildContaining = child;
         }
         return Optional.ofNullable(biggestChildContaining);
     }
     private Optional<HeightCurveTreeNode> findBiggestChildContainingConcurrent(List<HeightCurveTreeNode> candidateNodes, HeightCurveElement heightCurveElement) {
+        final HeightCurveTreeNode[] bn = {null};
+        IntStream.range(0, candidateNodes.size())
+                .parallel()
+                .forEach(i -> {
+                    var c = candidateNodes.get(i);
+                    if (bn[0] == null) {
+                        if (c.contains(heightCurveElement)) bn[0] = c;
+                    }
+                });
+        return Optional.ofNullable(bn[0]);
+    }
+
+    private Optional<HeightCurveTreeNode> findC(List<HeightCurveTreeNode> candidateNodes, HeightCurveElement heightCurveElement) {
         AtomicReference<HeightCurveTreeNode> bn4 = new AtomicReference<>(null);
         IntStream.range(0, candidateNodes.size())
                 .parallel()

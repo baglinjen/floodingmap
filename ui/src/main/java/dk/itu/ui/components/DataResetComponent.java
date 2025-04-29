@@ -9,14 +9,16 @@ public class DataResetComponent extends SplitMenuButton {
     private ResetOption option = ResetOption.OSM;
     public DataResetComponent(State state) {
         super();
-        setText("Reset OSM");
+        setText("Reset");
         getItems().addAll(
-                createMenuItem("OSM", ResetOption.OSM)
-//                createMenuItem("GEOJSON", ResetOption.GEOJSON)
+                createMenuItem("OSM", ResetOption.OSM),
+                createMenuItem("GML", ResetOption.GML)
         );
         setOnAction(_ -> Services.withServices(services -> {
             if (option == ResetOption.OSM) {
                 services.getOsmService(state.isWithDb()).clearAll();
+            } else if (option == ResetOption.GML) {
+                services.getHeightCurveService().clearAll();
             }
         }));
     }
@@ -32,6 +34,6 @@ public class DataResetComponent extends SplitMenuButton {
 
     private enum ResetOption {
         OSM,
-        GEOJSON
+        GML
     }
 }

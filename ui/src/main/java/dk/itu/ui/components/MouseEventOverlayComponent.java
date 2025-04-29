@@ -2,7 +2,14 @@ package dk.itu.ui.components;
 
 import dk.itu.data.services.Services;
 import dk.itu.ui.State;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Label;
+import javafx.scene.layout.Background;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.paint.Paint;
 
 import java.awt.geom.Point2D;
 
@@ -39,10 +46,75 @@ public class MouseEventOverlayComponent extends BorderPane {
                 selectNearestNeighbour(state, services, mousePos);
             });
         });
+        setOnKeyTyped(event -> {
+            switch (event.getCharacter().toUpperCase()) {
+                case "H":
+                    if (state.getShowSelectedHeightCurve()) {
+                        if (state.getHcSelected() != null) {
+                            state.getHcSelected().setUnselected();
+                            state.setHcSelected(null);
+                        }
+                    }
+                    state.setShowSelectedHeightCurve(!state.getShowSelectedHeightCurve());
+                    break;
+                case "N":
+                    state.setShowNearestNeighbour(!state.getShowNearestNeighbour());
+                    break;
+                case "S":
+                    if (state.getNearestNeighbour() == null) {
+                        Services.withServices(services -> {
+                            selectNearestNeighbour(state, services, state.getMouseLonLat());
+                        });
+                    }
+                    if (state.getNearestNeighbour() != null) state.getDijkstraConfiguration().setStartNode(state.getNearestNeighbour().getSelectedOsmElement());
+                    break;
+                case "E":
+                    if (state.getNearestNeighbour() == null) {
+                        Services.withServices(services -> {
+                            selectNearestNeighbour(state, services, state.getMouseLonLat());
+                        });
+                    }
+                    if (state.getNearestNeighbour() != null) state.getDijkstraConfiguration().setEndNode(state.getNearestNeighbour().getSelectedOsmElement());
+                    break;
+                case "C":
+                    try {
+                        state.getDijkstraConfiguration().calculateRoute(state.isWithDb());
+                    } catch (Exception e) {
+                        var alert = new Alert(Alert.AlertType.ERROR);
+                        alert.setTitle("Something went wrong");
+                        alert.setHeaderText("An exception was thrown when attempting to calculate routing");
+                        alert.setContentText(e.getMessage());
+                        alert.showAndWait();
+                    }
+                    break;
+                case "A":
+                    state.getDijkstraConfiguration().setIsAStar(!state.getDijkstraConfiguration().getIsAStart());
+                    break;
+                case "D":
+                    state.toggleShouldDrawGeoJson();
+                    break;
+                case "L":
+                    Services.withServices(services -> {
+                        double[] wb = state.getWindowBounds();
+                        services.getHeightCurveService().loadGmlData(wb[0], wb[1], wb[2], wb[3]);
+                    });
+                case "R":
+                    state.getDijkstraConfiguration().toggleShouldVisualize();
+                    break;
+            }
+        });
         var contextMenu = new MapMenu(state);
         setOnContextMenuRequested(e -> contextMenu.show(this, e.getSceneX(), e.getSceneY()));
 
         // Add debug component
+        var keyLabelContainer = new HBox(
+                new Label("H: Toggle Selected HC      N: Toggle NN      S: Set Start      E: Set End      C: Calculate Route      A: Toggle A*      D: Toggle Draw HCs      L: Load HC      R: Toggle Visualize Route")
+        );
+        keyLabelContainer.setAlignment(Pos.CENTER);
+        keyLabelContainer.setBackground(Background.fill(Paint.valueOf("#ffffff")));
+        keyLabelContainer.setPadding(new Insets(5, 0, 5, 0));
+
+        setTop(keyLabelContainer);
         setBottom(new DebugComponent(state));
     }
 
@@ -51,7 +123,7 @@ public class MouseEventOverlayComponent extends BorderPane {
         var hc = services.getHeightCurveService().getHeightCurveForPoint(mousePos.getX(), mousePos.getY());
 
         if (state.getHcSelected() != null) {
-            state.getHcSelected().setUnselected(state.getWaterLevel());
+            state.getHcSelected().setUnselected();
         }
         hc.setSelected();
         state.setHcSelected(hc);

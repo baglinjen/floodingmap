@@ -20,7 +20,7 @@ public class DataLoadComponent extends SplitMenuButton {
                         .toList()
         );
         setOnAction(_ -> {
-            if (selectedFile == null || (!selectedFile.endsWith(".osm") && !selectedFile.endsWith(".gml"))) {
+            if (isDisabled() || selectedFile == null || (!selectedFile.endsWith(".osm") && !selectedFile.endsWith(".gml"))) {
                 return;
             }
             Services.withServices(services -> {

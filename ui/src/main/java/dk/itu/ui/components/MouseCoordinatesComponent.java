@@ -7,7 +7,7 @@ public class MouseCoordinatesComponent extends Label {
     public MouseCoordinatesComponent(State state) {
         super();
         var mouseLonLat = state.getMouseLonLat();
-        setText(String.format("Y: %.4f X: %.4f", mouseLonLat.getX(), mouseLonLat.getY()));
-        state.addOnMouseMovedListener((lonLat) -> setText(String.format("Y: %.4f X: %.4f", lonLat.getX(), lonLat.getY())));
+        setText(String.format("LON: %.4f LAT: %.4f", mouseLonLat.getX(), mouseLonLat.getY()));
+        state.addOnMouseMovedListener((lonLat) -> setText(String.format("LON: %.4f LAT: %.4f", lonLat.getX(), lonLat.getY())));
     }
 }

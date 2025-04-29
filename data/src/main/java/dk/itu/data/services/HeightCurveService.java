@@ -122,4 +122,10 @@ public class HeightCurveService {
             this.repository.setUnconnectedElements(heightCurveParserResult.getUnconnectedElements());
         }
     }
+
+    public void clearAll() {
+        synchronized (this.repository) {
+            this.repository.clear();
+        }
+    }
 }

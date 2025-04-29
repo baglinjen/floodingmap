@@ -39,6 +39,9 @@ public class DijkstraConfiguration {
         shouldVisualize = !shouldVisualize;
     }
 
+    public boolean getIsAStart(){
+        return this.isAStar;
+    }
     public void setIsAStar(boolean isAStar){
         this.isAStar = isAStar;
     }
@@ -59,6 +62,7 @@ public class DijkstraConfiguration {
         Services.withServices(services -> {
             var nodes = services.getOsmService(isWithDb).getTraversableOsmNodes();
 
+            if (startNode == null || endNode == null) throw new IllegalArgumentException("Start node and end node must be selected");
             if (startNode.getId() == endNode.getId()) throw new IllegalArgumentException("Start node and end node can not be the same");
 
             touchedNodes.clear();

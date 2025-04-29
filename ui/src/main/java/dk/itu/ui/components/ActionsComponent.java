@@ -12,7 +12,6 @@ public class ActionsComponent extends HBox {
                 new DataResetComponent(state),
                 new DataLoadComponent(state),
                 new LoadHeightCurvesComponent(state),
-                new DataLoadComponent(state),
                 new SettingsMenuComponent(state)
         );
     }

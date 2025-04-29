@@ -37,9 +37,11 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-            services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
-//            services.getOsmService(state.isWithDb()).loadOsmData("samso.osm");
+//            services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
+            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
             state.resetWindowBounds();
+//            var bounds = state.getWindowBounds();
+//            services.getHeightCurveService().loadGmlData(bounds[0], bounds[1], bounds[2], bounds[3]);
 
             float registeredWaterLevel = 0.0f;
 
@@ -158,10 +160,6 @@ public class FloodingApp extends GameApplication {
                 .getDefaultConfiguration()
                 .createCompatibleImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB_PRE);
         Services.withServices(services -> {
-            if (CommonConfiguration.getInstance().shouldForceParseOsm()) {
-                services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
-            }
-
             // Set State
             this.state = new State(services);
         });
