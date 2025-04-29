@@ -7,7 +7,6 @@ import dk.itu.util.PolygonUtils;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 
 public class HeightCurveTree {
@@ -54,10 +53,7 @@ public class HeightCurveTree {
         Map<Integer, Queue<HeightCurveElement>> steps = new ConcurrentHashMap<>();
         int stepDepth = 0;
 
-        steps.put(stepDepth, new ConcurrentLinkedQueue<>());
-        steps.get(stepDepth).add(root.heightCurveElement);
-
-        getFloodingStepsConcurrent(root, steps, waterLevel, stepDepth+1);
+        getFloodingStepsConcurrent(root, steps, waterLevel, stepDepth);
 
         return IntStream.range(0, steps.size()).mapToObj(i -> steps.get(i).stream().toList()).toList();
     }
@@ -194,25 +190,11 @@ public class HeightCurveTree {
         return Optional.ofNullable(bn[0]);
     }
 
-    private Optional<HeightCurveTreeNode> findC(List<HeightCurveTreeNode> candidateNodes, HeightCurveElement heightCurveElement) {
-        AtomicReference<HeightCurveTreeNode> bn4 = new AtomicReference<>(null);
-        IntStream.range(0, candidateNodes.size())
-                .parallel()
-                .forEach(i -> {
-                    if (bn4.get() == null) {
-                        if (candidateNodes.get(i).contains(heightCurveElement)) {
-                            bn4.set(candidateNodes.get(i));
-                        }
-                    }
-                });
-        return Optional.ofNullable(bn4.get());
-    }
-
     public void clear() {
         root.children.clear();
     }
 
-    private static class HeightCurveTreeNode {
+    public static class HeightCurveTreeNode {
         private final HeightCurveElement heightCurveElement;
         private final List<HeightCurveTreeNode> children;
 
@@ -221,6 +203,9 @@ public class HeightCurveTree {
             this.children = new ArrayList<>();
         }
 
+        public HeightCurveElement getHeightCurveElement() {
+            return heightCurveElement;
+        }
         public double getArea() {
             return heightCurveElement.getArea();
         }
