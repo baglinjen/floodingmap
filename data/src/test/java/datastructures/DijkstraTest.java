@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.*;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dk.itu.data.models.db.OsmNode;
-import dk.itu.data.models.db.OsmWay;
+import dk.itu.data.models.db.osm.OsmNode;
+import dk.itu.data.models.db.osm.OsmWay;
 import dk.itu.data.services.Services;
 import dk.itu.data.utils.DijkstraConfiguration;
 import dk.itu.util.LoggerFactory;
@@ -28,7 +28,7 @@ public class DijkstraTest {
     void setupSuite(){
         Services.withServices(services -> {
             services.getOsmService(false).loadOsmData("tuna.osm");
-            services.getGeoJsonService().loadGeoJsonData("tuna-dijkstra.geojson");
+            services.getHeightCurveService().loadGmlFileData("tuna-dijkstra.gml");
             nodes = services.getOsmService(false).getTraversableOsmNodes();
         });
 
@@ -43,8 +43,12 @@ public class DijkstraTest {
     })
     void DijkstraCanFindShortestPath(long startNodeId, long endNodeId, String filename){
         //Arrange
-        testConfiguration.setStartNodeId(startNodeId);
-        testConfiguration.setEndNodeId(endNodeId);
+        testConfiguration.setStartNode(
+                nodes.parallelStream().filter(node -> node.getId() == startNodeId).findFirst().orElseThrow()
+        );
+        testConfiguration.setEndNode(
+                nodes.parallelStream().filter(node -> node.getId() == endNodeId).findFirst().orElseThrow()
+        );
         var expectedRouteCoordinates = extractCoordinates(filename);
 
         //Act
@@ -66,8 +70,12 @@ public class DijkstraTest {
     })
     void DijkstraWillAccountForRisingWater(long startNodeId, long endNodeId, float waterLevel, String filename){
         //Arrange
-        testConfiguration.setStartNodeId(startNodeId);
-        testConfiguration.setEndNodeId(endNodeId);
+        testConfiguration.setStartNode(
+                nodes.parallelStream().filter(node -> node.getId() == startNodeId).findFirst().orElseThrow()
+        );
+        testConfiguration.setEndNode(
+                nodes.parallelStream().filter(node -> node.getId() == endNodeId).findFirst().orElseThrow()
+        );
         testConfiguration.setWaterLevel(waterLevel);
         var expectedCoords = extractCoordinates(filename);
 
@@ -95,7 +103,8 @@ public class DijkstraTest {
             var mapper = new ObjectMapper();
             return mapper.readValue(
                     new File(DijkstraTest.class.getClassLoader().getResource("dijkstraRouteData/"+filename).toURI()),
-                    new TypeReference<List<Long>>(){}
+                    new TypeReference<>() {
+                    }
             );
         } catch(Exception e){
             logger.error("An exception occurred processing route data: {}", e.getMessage());

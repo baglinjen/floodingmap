@@ -51,19 +51,41 @@ public class HeightCurveElementBuilder {
         this.gmlId = gmlId;
     }
 
+    public void withHeight(float height) {
+        if (!valid) return;
+        this.height = height;
+    }
+
     public void withEPSG25832Coords(String coords) {
         if (!valid) return;
 
         var coordsList = coords.split(" ");
-        if (coordsList.length < 5 || coordsList.length % 3 != 0) {
+        if (coordsList.length < 5) {
             valid = false;
             return;
         }
 
-        this.height = Float.parseFloat(coordsList[2]);
+        if (coordsList.length % 3 == 0) {
+            withEPSG25832CoordsWithHeight(coordsList);
+        } else {
+            withEPSG25832CoordsWithoutHeight(coordsList);
+        }
+    }
 
+    public void withEPSG25832CoordsWithHeight(String[] coordsList) {
         this.coordinates = ListUtils
                 .partition(List.of(coordsList), 3)
+                .parallelStream()
+                .flatMapToDouble(set -> {
+                    var lonLat = utmToWgs(Double.parseDouble(set.getFirst()), Double.parseDouble(set.get(1)));
+                    return DoubleStream.of(lonLat[0], lonLat[1]);
+                })
+                .toArray();
+    }
+
+    public void withEPSG25832CoordsWithoutHeight(String[] coordsList) {
+        this.coordinates = ListUtils
+                .partition(List.of(coordsList), 2)
                 .parallelStream()
                 .flatMapToDouble(set -> {
                     var lonLat = utmToWgs(Double.parseDouble(set.getFirst()), Double.parseDouble(set.get(1)));
