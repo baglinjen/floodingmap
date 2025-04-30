@@ -10,6 +10,8 @@ import java.util.List;
 
 import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.services.Services;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -18,6 +20,7 @@ import java.awt.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class RTreeTest {
+    private static final Log log = LogFactory.getLog(RTreeTest.class);
     List<OsmNode> nodes;
     RTree rtree;
 
@@ -236,5 +239,38 @@ public class RTreeTest {
     {
         // Elements should be empty at initialization, before insertion.
         assertTrue(rtree.getElements().isEmpty(), "Empty tree should return empty list");
+    }
+
+    @Test
+    public void testGetRoot()
+    {
+        // Arrange
+        OsmNode node1 = new OsmNode(1, 0, 0, new BoundingBox(0, 0, 0, 0), null);
+        OsmNode node2 = new OsmNode(2, 10, 10, new BoundingBox(10, 10, 10, 10), null);
+
+        rtree.insert(node1);
+        rtree.insert(node2);
+
+        // Act
+        RTreeNode root = rtree.getRoot();
+
+        // Assert
+        assertNotNull(root);
+    }
+
+   @Test
+   public void testGetBoundingBox() {
+        // Arrange
+       OsmNode node1 = new OsmNode(1, 0, 0, new BoundingBox(0, 0, 0, 0), null);
+       OsmNode node2 = new OsmNode(2, 10, 10, new BoundingBox(10, 10, 10, 10), null);
+
+       rtree.insert(node1);
+       rtree.insert(node2);
+
+       // Act
+       BoundingBox bbox = rtree.getBoundingBox();
+
+       // Assert
+       assertNotNull(bbox);
     }
 }
