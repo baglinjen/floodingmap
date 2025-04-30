@@ -23,74 +23,22 @@ public class RTree {
 
     private RTreeNode root;
 
-    /*
-    * The root of the R tree
-    * */
-    public RTreeNode getRoot() {
-        return root;
-    }
-
-    public BoundingBox getBoundingBox() {
-        if (root == null) return null;
-        return root.getMBR();
-    }
-
     /**
-     * Find the nearest OsmNode to the specified coordinates
-     * @param lon Longitude of the query point
-     * @param lat Latitude of the query point
-     * @return The nearest OsmNode or null if tree is empty
+     * Helper class for nearest neighbor queue entries
      */
-    public OsmNode getNearest(double lon, double lat) {
-        if (root == null) {
-            return null;
+    private static class NNEntry implements Comparable<NNEntry> {
+        RTreeNode node;
+        double distance;
+
+        public NNEntry(RTreeNode node, double distance) {
+            this.node = node;
+            this.distance = distance;
         }
 
-        // Priority queue to sort by distance
-        PriorityQueue<NNEntry> queue = new PriorityQueue<>();
-
-        // Add root node to queue with its minimum destination
-        queue.add(new NNEntry(root, minDist(lon, lat, root.mbr)));
-
-        OsmNode nearest = null;
-        double nearestDist = Double.MAX_VALUE;
-
-        // Process queue until empty, or we can guarantee we found the nearest
-        while (!queue.isEmpty()) {
-            NNEntry entry = queue.poll();
-
-            // If minimum dist > nearest distance found so far, we're done
-            if (entry.distance > nearestDist) {
-                break;
-            }
-
-            if (entry.node.isLeaf()) {
-                // Check each element in the leaf
-                for (OsmElement element : entry.node.elements) {
-                    // Only consider elements that are OsmNodes
-                    if (element instanceof OsmNode node) {
-                        double dist = pointDistance(lon, lat, node.getLon(), node.getLat());
-
-                        if (dist < nearestDist) {
-                            nearest = node;
-                            nearestDist = dist;
-                        }
-                    }
-                }
-            } else {
-                // Add all children to the queue
-                for (RTreeNode child : entry.node.children) {
-                    double childDist = minDist(lon, lat, child.mbr);
-
-                    // Only add if it could contain a closer point
-                    if (childDist < nearestDist) {
-                        queue.add(new NNEntry(child, childDist));
-                    }
-                }
-            }
+        @Override
+        public int compareTo(NNEntry other) {
+            return Double.compare(this.distance, other.distance);
         }
-
-        return nearest;
     }
 
     /**
@@ -415,6 +363,16 @@ public class RTree {
 
             return Double.compare(center1, center2);
         });
+    }
+
+    /**
+     * Clears all elements from the R-tree, effectively resetting it to an empty state.
+     * After this operation, the tree will have no root node.
+     */
+    public void clear() {
+        // Java's garbage collector will handle the cleanup of all nodes
+        root = null;
+        reinsertLevels.clear();
     }
 
     /**
@@ -844,22 +802,74 @@ public class RTree {
                 .toList();
     }
 
+    /*
+     * The root of the R tree
+     * */
+    public RTreeNode getRoot() {
+        return root;
+    }
+
+    public BoundingBox getBoundingBox() {
+        if (root == null) return null;
+        return root.getMBR();
+    }
+
     /**
-     * Helper class for nearest neighbor queue entries
+     * Find the nearest OsmNode to the specified coordinates
+     * @param lon Longitude of the query point
+     * @param lat Latitude of the query point
+     * @return The nearest OsmNode or null if tree is empty
      */
-    private static class NNEntry implements Comparable<NNEntry> {
-        RTreeNode node;
-        double distance;
-
-        public NNEntry(RTreeNode node, double distance) {
-            this.node = node;
-            this.distance = distance;
+    public OsmNode getNearest(double lon, double lat) {
+        if (root == null) {
+            return null;
         }
 
-        @Override
-        public int compareTo(NNEntry other) {
-            return Double.compare(this.distance, other.distance);
+        // Priority queue to sort by distance
+        PriorityQueue<NNEntry> queue = new PriorityQueue<>();
+
+        // Add root node to queue with its minimum destination
+        queue.add(new NNEntry(root, minDist(lon, lat, root.mbr)));
+
+        OsmNode nearest = null;
+        double nearestDist = Double.MAX_VALUE;
+
+        // Process queue until empty, or we can guarantee we found the nearest
+        while (!queue.isEmpty()) {
+            NNEntry entry = queue.poll();
+
+            // If minimum dist > nearest distance found so far, we're done
+            if (entry.distance > nearestDist) {
+                break;
+            }
+
+            if (entry.node.isLeaf()) {
+                // Check each element in the leaf
+                for (OsmElement element : entry.node.elements) {
+                    // Only consider elements that are OsmNodes
+                    if (element instanceof OsmNode node) {
+                        double dist = pointDistance(lon, lat, node.getLon(), node.getLat());
+
+                        if (dist < nearestDist) {
+                            nearest = node;
+                            nearestDist = dist;
+                        }
+                    }
+                }
+            } else {
+                // Add all children to the queue
+                for (RTreeNode child : entry.node.children) {
+                    double childDist = minDist(lon, lat, child.mbr);
+
+                    // Only add if it could contain a closer point
+                    if (childDist < nearestDist) {
+                        queue.add(new NNEntry(child, childDist));
+                    }
+                }
+            }
         }
+
+        return nearest;
     }
 }
 

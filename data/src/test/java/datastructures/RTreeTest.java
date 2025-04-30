@@ -7,6 +7,10 @@ import dk.itu.data.models.db.BoundingBox;
 
 import java.lang.reflect.Method;
 import java.util.List;
+
+import dk.itu.data.models.db.osm.OsmNode;
+import dk.itu.data.services.Services;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.awt.*;
@@ -14,11 +18,23 @@ import java.awt.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class RTreeTest {
+    List<OsmNode> nodes;
+    RTree rtree;
+
+    @BeforeEach
+    public void setUp() {
+        rtree = new RTree();
+
+        Services.withServices(services -> {
+            services.getOsmService(false).loadOsmData("tuna.osm");
+            services.getHeightCurveService().loadGmlFileData("tuna-dijkstra.gml");
+            nodes = services.getOsmService(false).getTraversableOsmNodes();
+        });
+    }
 
     @Test
     public void testInsertSingleElementCreatesRoot() {
         // Arrange
-        RTree rtree = new RTree();
         BoundingBox bbox = new BoundingBox(1, 1, 2, 2);
         OsmElement element = new OsmElement(1, bbox, bbox.area()) {
             @Override
@@ -40,7 +56,6 @@ public class RTreeTest {
     @Test
     public void testSearchReturnsOnlyMatchingElements() {
         // Arrange
-        RTree rtree = new RTree();
         BoundingBox bbox1 = new BoundingBox(1, 1, 2, 2);
         BoundingBox bbox2 = new BoundingBox(1, 1, 3, 3);
         BoundingBox bbox3 = new BoundingBox(10, 10, 12, 12);
@@ -108,5 +123,118 @@ public class RTreeTest {
 
         // Assert
         assertEquals(child1, result, "Expected chooseLeaf to select child1 due to least enlargement");
+    }
+
+    @Test
+    public void testNearestEmptyTree() {
+        // Test nearest neighbor on empty tree
+        OsmNode nearest = rtree.getNearest(0, 0);
+        assertNull(nearest, "Empty tree should return null for nearest neighbor");
+    }
+
+    @Test
+    public void testNearestSingleNode() {
+        // Arrange
+        BoundingBox bbox = new BoundingBox(1, 1, 2, 2);
+
+        OsmNode node = new OsmNode(1, 1.5, 1.5, bbox, null);
+        rtree.insert(node);
+
+        // Act
+        OsmNode nearest = rtree.getNearest(1, 2);
+
+        // Assert
+        assertNotNull(nearest, "Should find the only available node");
+        assertEquals(1, nearest.getId(), "Should find the node with ID 1");
+    }
+
+    @Test
+    public void testNearestMultipleNodes() {
+        // Arrange
+        BoundingBox bbox1 = new BoundingBox(0, 0, 0, 0);
+        BoundingBox bbox2 = new BoundingBox(10.0, 10.0, 10.0, 10.0);
+        BoundingBox bbox3 = new BoundingBox(5.0, 5.0, 5.0, 5.0);
+        BoundingBox bbox4 = new BoundingBox(-5.0, -5.0, -5.0, -5.0);
+
+        OsmNode node1 = new OsmNode(1, 0.0, 0.0, bbox1, null);
+        OsmNode node2 = new OsmNode(2, 10.0, 10.0, bbox2, null);
+        OsmNode node3 = new OsmNode(3, 5.0, 5.0, bbox3, null);
+        OsmNode node4 = new OsmNode(4, -5.0, -5.0, bbox4, null);
+
+        rtree.insert(node1);
+        rtree.insert(node2);
+        rtree.insert(node3);
+        rtree.insert(node4);
+
+        // Act
+
+        // Test point at origin - should find node1
+        OsmNode nearest1 = rtree.getNearest(0.0, 0.0);
+
+        // Test point near node2 - should find node2
+        OsmNode nearest2 = rtree.getNearest(9.5, 9.5);
+
+        // Test point equidistant from multiple nodes
+        OsmNode nearest3 = rtree.getNearest(5.0, 0.0);
+
+        // Test point near node4
+        OsmNode nearest4 = rtree.getNearest(-4.0, -4.0);
+
+        // Assert
+        assertEquals(node1.getId(), nearest1.getId(), "Should find node1 at the origin");
+        assertEquals(node2.getId(), nearest2.getId(), "Should find node2 as the nearest");
+        assertNotNull(nearest3, "Should find a node even at equidistant point");
+        assertEquals(node4.getId(), nearest4.getId(), "Should find node4 as the nearest");
+    }
+
+    @Test
+    public void testGridOfNodes() {
+        // Arrange
+        for (int i = 0; i < 10; i++) {   // 10x10 grid of nodes
+            for (int j = 0; j < 10; j++) {
+                OsmNode node = new OsmNode(i * 10 + j, i, j, new BoundingBox(i, j, i, j), null);
+                rtree.insert(node);
+            }
+        }
+
+        // Act
+        // Test exact position
+        OsmNode nearest1 = rtree.getNearest(5, 5);
+
+        // Test position between grid points
+        OsmNode nearest2 = rtree.getNearest(5.6, 7.4);
+
+        // Test position outside grid but closest to a corner
+        OsmNode nearest3 = rtree.getNearest(-1, -1);
+
+        // Position far away
+        OsmNode nearest4 = rtree.getNearest(100, 100);
+
+        // Assert
+        assertEquals(55, nearest1.getId(), "Should find node at (5,5)");
+        assertEquals(67, nearest2.getId(), "Should find node at (6,7)");
+        assertEquals(0, nearest3.getId(), "Should find node at (0,0)");
+        assertEquals(99, nearest4.getId(), "Should find node at (9,9)");
+    }
+
+    @Test
+    public void testGetElements() {
+        OsmNode node1 = new OsmNode(1, 0, 0, new BoundingBox(0, 0, 0, 0), null);
+        OsmNode node2 = new OsmNode(2, 10, 10, new BoundingBox(10, 10, 10, 10), null);
+
+        rtree.insert(node1);
+        rtree.insert(node2);
+
+        List<OsmNode> elements = rtree.getElements();
+        assertEquals(2, elements.size(), "Should return all added nodes");
+        assertTrue(elements.stream().anyMatch(n -> n.getId() == 1), "Should contain node1");
+        assertTrue(elements.stream().anyMatch(n -> n.getId() == 2), "Should contain node2");
+    }
+
+    @Test
+    public void testEmptyElements()
+    {
+        // Elements should be empty at initialization, before insertion.
+        assertTrue(rtree.getElements().isEmpty(), "Empty tree should return empty list");
     }
 }
