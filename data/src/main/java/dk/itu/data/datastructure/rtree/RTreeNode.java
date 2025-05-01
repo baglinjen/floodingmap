@@ -23,6 +23,7 @@ public class RTreeNode {
         return mbr;
     }
 
+
     public boolean isLeaf() {
         return children.isEmpty();
     }
