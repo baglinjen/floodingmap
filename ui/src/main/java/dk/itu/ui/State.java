@@ -4,7 +4,7 @@ import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.data.models.db.heightcurve.HeightCurveElement;
 import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.services.Services;
-import dk.itu.data.utils.DijkstraConfiguration;
+import dk.itu.data.utils.RoutingConfiguration;
 import dk.itu.ui.drawables.NearestNeighbour;
 import kotlin.Pair;
 
@@ -19,7 +19,7 @@ public class State {
     private final List<Consumer<Point2D.Double>> mouseMovedListeners = new ArrayList<>();
     private final List<Consumer<Pair<Float, Float>>> minMaxWaterLevelListeners = new ArrayList<>();
     private boolean shouldDrawGeoJson = true;
-    private final DijkstraConfiguration dijkstraConfiguration;
+    private final RoutingConfiguration routingConfiguration;
     private double mouseX, mouseY;
     private float waterLevel = 0f;
     private float minWaterLevel, maxWaterLevel;
@@ -31,7 +31,7 @@ public class State {
     private boolean showNearestNeighbour = false;
 
     public State(Services services) {
-        this.dijkstraConfiguration = new DijkstraConfiguration();
+        this.routingConfiguration = new RoutingConfiguration();
         this.minWaterLevel = services.getHeightCurveService().getMinWaterLevel();
         this.maxWaterLevel = services.getHeightCurveService().getMaxWaterLevel();
         this.resetWindowBounds();
@@ -73,9 +73,9 @@ public class State {
         return shouldDrawGeoJson;
     }
 
-    // Getter and setter for dijkstra
-    public DijkstraConfiguration getDijkstraConfiguration(){
-        return dijkstraConfiguration;
+    // Getter and setter for routing
+    public RoutingConfiguration getRoutingConfiguration(){
+        return routingConfiguration;
     }
 
     // Calculates mouse lon/lat
@@ -129,7 +129,7 @@ public class State {
     }
     public void setWaterLevel(float waterLevel) {
         this.waterLevel = waterLevel;
-        this.dijkstraConfiguration.setWaterLevel(waterLevel);
+        this.routingConfiguration.setWaterLevel(waterLevel);
     }
 
     // Getter for Affine

@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.models.db.osm.OsmWay;
 import dk.itu.data.services.Services;
-import dk.itu.data.utils.DijkstraConfiguration;
+import dk.itu.data.utils.RoutingConfiguration;
 import dk.itu.util.LoggerFactory;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.*;
@@ -20,9 +20,9 @@ import java.util.List;
 import java.util.Map;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class DijkstraTest {
+public class RoutingTest {
     private static final Logger logger = LoggerFactory.getLogger();
-    private static DijkstraConfiguration testConfiguration;
+    private static RoutingConfiguration testConfiguration;
     private static Map<Long, OsmNode> nodes;
 
     @BeforeEach
@@ -33,16 +33,17 @@ public class DijkstraTest {
             nodes = services.getOsmService(false).getTraversableOsmNodes();
         });
 
-        testConfiguration = new DijkstraConfiguration();
+        testConfiguration = new RoutingConfiguration();
         testConfiguration.setWaterLevel(0.0);
     }
 
     @ParameterizedTest
     @CsvSource({
-            "9342037677, 4289093536, '9342037677-4289093536-route.json'"
-            //TODO: Add more cases
+            "9342037677, 4289093536, '9342037677-4289093536-route.json'",
+            "3344638963, 11975103676, '3344638963-11975103676-route.json'"
+            //TODO: Consider adding more cases
     })
-    void DijkstraCanFindShortestPath(long startNodeId, long endNodeId, String filename){
+    void DijkstraCanFindShortestPath(long startNodeId, long endNodeId, String filename) throws InterruptedException {
         //Arrange
         testConfiguration.setStartNode(nodes.get(startNodeId));
         testConfiguration.setEndNode(nodes.get(endNodeId));
@@ -50,7 +51,9 @@ public class DijkstraTest {
         var expectedRouteCoordinates = extractCoordinates(filename);
 
         //Act
-        testConfiguration.calculateRoute(false);
+        var thread = testConfiguration.calculateRoute(false);
+        thread.join();
+
         var route = testConfiguration.getRoute(false, 0.0);
         var routeCoordinates = ((OsmWay)route).getOuterCoordinates();
 
@@ -62,11 +65,11 @@ public class DijkstraTest {
 
     @ParameterizedTest
     @CsvSource({
-            "1078669419, 4545580716, 0.0, '1078669419-4545580716-route.json'",
-            "1078669419, 4545580716, 4.0, '1078669419-4545580716-route-flooded.json'"
-            //TODO: Add more cases
+            "1078669419, 4545580716, 0.0, 'flooded/1078669419-4545580716-route.json'",
+            "1078669419, 4545580716, 4.0, 'flooded/1078669419-4545580716-route-flooded.json'"
+            //TODO: Consider adding more cases
     })
-    void DijkstraWillAccountForRisingWater(long startNodeId, long endNodeId, float waterLevel, String filename){
+    void DijkstraWillAccountForRisingWater(long startNodeId, long endNodeId, float waterLevel, String filename) throws InterruptedException {
         //Arrange
         testConfiguration.setStartNode(nodes.get(startNodeId));
         testConfiguration.setEndNode(nodes.get(endNodeId));
@@ -75,7 +78,9 @@ public class DijkstraTest {
         var expectedCoords = extractCoordinates(filename);
 
         //Act
-        testConfiguration.calculateRoute(false);
+        var thread = testConfiguration.calculateRoute(false);
+        thread.join();
+
         var route = testConfiguration.getRoute(false, waterLevel);
         var routeCoordinates = ((OsmWay)route).getOuterCoordinates();
 
@@ -85,11 +90,45 @@ public class DijkstraTest {
         assertThat(routeCoordinates).isEqualTo(expectedCoords);
     }
 
+    @ParameterizedTest
+    @CsvSource({
+            "9342037677, 4289093536, '9342037677-4289093536-route.json'",
+            "3344638963, 11975103676, '3344638963-11975103676-route.json'",
+            "1078669419, 4545580716, 'flooded/1078669419-4545580716-route.json'"
+    })
+    public void DijkstraAndAStarFindsEquallyCorrectRoute(long startNodeId, long endNodeId, String filename) throws InterruptedException{
+        //Arrange
+        testConfiguration.setStartNode(nodes.get(startNodeId));
+        testConfiguration.setEndNode(nodes.get(endNodeId));
 
-    @Disabled("Not implemented yet")
-    @Test
-    public void PathCanBeConstructedFromNodes(){
-        //TODO: Implement
+        var expectedRouteCoordinates = extractCoordinates(filename);
+
+        //Act
+        testConfiguration.setIsAStar(false);
+
+        var dijkstraThread = testConfiguration.calculateRoute(false);
+        dijkstraThread.join();
+
+        var dijkstraRoute = testConfiguration.getRoute(false, 0.0);
+        var dijkstraCoordinates = ((OsmWay)dijkstraRoute).getOuterCoordinates();
+
+        testConfiguration.setIsAStar(true);
+
+        var aStarThread = testConfiguration.calculateRoute(false);
+        aStarThread.join();
+
+        var aStarRoute = testConfiguration.getRoute(false, 0.0);
+        var aStarCoordinates = ((OsmWay)aStarRoute).getOuterCoordinates();
+
+        //Assert
+        assertThat(dijkstraRoute).isNotNull();
+        assertThat(dijkstraCoordinates).isNotNull();
+
+        assertThat(aStarRoute).isNotNull();
+        assertThat(aStarCoordinates).isNotNull();
+
+        assertThat(dijkstraCoordinates).isEqualTo(aStarCoordinates);
+        assertThat(dijkstraCoordinates).isEqualTo(expectedRouteCoordinates);
     }
 
     //Load test data with list of id's
@@ -97,7 +136,7 @@ public class DijkstraTest {
         try{
             var mapper = new ObjectMapper();
             return mapper.readValue(
-                    new File(DijkstraTest.class.getClassLoader().getResource("dijkstraRouteData/"+filename).toURI()),
+                    new File(RoutingTest.class.getClassLoader().getResource("testdata/routing/"+filename).toURI()),
                     new TypeReference<>() {
                     }
             );

@@ -110,26 +110,26 @@ public class FloodingApp extends GameApplication {
                 heightCurves.forEach(hc -> hc.draw(g2d, strokeBaseWidth));
 
                 // Draw dijkstra route if there is one
-                var dijkstraRoute = state.getDijkstraConfiguration().getRoute(state.isWithDb(), state.getWaterLevel());
+                var dijkstraRoute = state.getRoutingConfiguration().getRoute(state.isWithDb(), state.getWaterLevel());
                 if (dijkstraRoute != null){
                     dijkstraRoute.prepareDrawing(g2d);
                     dijkstraRoute.draw(g2d, strokeBaseWidth);
                 }
 
-                if(state.getDijkstraConfiguration().getShouldVisualize()){
-                    var nodes = state.getDijkstraConfiguration().getTouchedNodes();
+                if(state.getRoutingConfiguration().getShouldVisualize()){
+                    var nodes = state.getRoutingConfiguration().getTouchedNodes();
                     for(var n : nodes){
                         g2d.setColor(Color.MAGENTA);
                         g2d.fill(new Ellipse2D.Double(0.56*n.getLon() - strokeBaseWidth*8/2, -n.getLat() - strokeBaseWidth*8/2, strokeBaseWidth*8, strokeBaseWidth*8));
                     }
                 }
 
-                var startNode = state.getDijkstraConfiguration().getStartNode();
+                var startNode = state.getRoutingConfiguration().getStartNode();
                 if (startNode != null) {
                     g2d.setColor(Color.GREEN);
                     g2d.fill(new Ellipse2D.Double(0.56*startNode.getLon() - strokeBaseWidth*8/2, -startNode.getLat() - strokeBaseWidth*8/2, strokeBaseWidth*8, strokeBaseWidth*8));
                 }
-                var endNode = state.getDijkstraConfiguration().getEndNode();
+                var endNode = state.getRoutingConfiguration().getEndNode();
                 if (endNode != null) {
                     g2d.setColor(Color.RED);
                     g2d.fill(new Ellipse2D.Double(0.56*endNode.getLon() - strokeBaseWidth*8/2, -endNode.getLat() - strokeBaseWidth*8/2, strokeBaseWidth*8, strokeBaseWidth*8));

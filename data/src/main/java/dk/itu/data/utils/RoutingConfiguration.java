@@ -10,7 +10,7 @@ import org.apache.logging.log4j.Logger;
 import java.util.*;
 import java.util.List;
 
-public class DijkstraConfiguration {
+public class RoutingConfiguration {
     private static final Logger logger = LoggerFactory.getLogger();
     private boolean shouldVisualize, isAStar;
     private OsmNode startNode, endNode;
@@ -59,7 +59,7 @@ public class DijkstraConfiguration {
         return List.copyOf(touchedNodes);
     }
 
-    public void calculateRoute(boolean isWithDb) {
+    public Thread calculateRoute(boolean isWithDb) {
         calculationThread = new Thread(() -> {
             Services.withServices(services -> {
                 var nodes = services.getOsmService(isWithDb).getTraversableOsmNodes();
@@ -78,6 +78,7 @@ public class DijkstraConfiguration {
         });
 
         calculationThread.start();
+        return calculationThread;
     }
 
     private OsmElement createDijkstra(OsmNode startNode, OsmNode endNode, Map<Long, OsmNode> nodes, Services services){
@@ -127,7 +128,7 @@ public class DijkstraConfiguration {
                         //A new shorter way has been found
                         distances.put(nextNode, distance);
                         previousNodes.put(nextNode, curNode);
-                        heuristicDistances.put(nextNode, distance + (isAStar ? DijkstraUtils.distanceMeters(nextNode.getLat(), nextNode.getLon(), endNode.getLat(), endNode.getLon()) : 0.0));
+                        heuristicDistances.put(nextNode, distance + (isAStar ? RoutingUtils.distanceMeters(nextNode.getLat(), nextNode.getLon(), endNode.getLat(), endNode.getLon()) : 0.0));
                         pq.offer(nextNode);
                     }
                 }
