@@ -12,7 +12,9 @@ import dk.itu.util.LoggerFactory;
 import org.apache.logging.log4j.Logger;
 
 import java.sql.Connection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class OsmService {
     private static final Logger logger = LoggerFactory.getLogger();
@@ -37,9 +39,13 @@ public class OsmService {
         }
     }
 
-    public List<OsmNode> getTraversableOsmNodes(){
+    public Map<Long, OsmNode> getTraversableOsmNodes(){
         synchronized (this.osmElementRepository) {
-            return osmElementRepository.getTraversableOsmNodes();
+            var nodes = osmElementRepository.getTraversableOsmNodes();
+            var result = new HashMap<Long, OsmNode>();
+
+            nodes.forEach(node -> result.put(node.getId(), node));
+            return result;
         }
     }
 

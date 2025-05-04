@@ -17,12 +17,13 @@ import org.junit.jupiter.params.provider.CsvSource;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class DijkstraTest {
     private static final Logger logger = LoggerFactory.getLogger();
     private static DijkstraConfiguration testConfiguration;
-    private static List<OsmNode> nodes;
+    private static Map<Long, OsmNode> nodes;
 
     @BeforeEach
     void setupSuite(){
@@ -43,12 +44,9 @@ public class DijkstraTest {
     })
     void DijkstraCanFindShortestPath(long startNodeId, long endNodeId, String filename){
         //Arrange
-        testConfiguration.setStartNode(
-                nodes.parallelStream().filter(node -> node.getId() == startNodeId).findFirst().orElseThrow()
-        );
-        testConfiguration.setEndNode(
-                nodes.parallelStream().filter(node -> node.getId() == endNodeId).findFirst().orElseThrow()
-        );
+        testConfiguration.setStartNode(nodes.get(startNodeId));
+        testConfiguration.setEndNode(nodes.get(endNodeId));
+
         var expectedRouteCoordinates = extractCoordinates(filename);
 
         //Act
@@ -70,12 +68,9 @@ public class DijkstraTest {
     })
     void DijkstraWillAccountForRisingWater(long startNodeId, long endNodeId, float waterLevel, String filename){
         //Arrange
-        testConfiguration.setStartNode(
-                nodes.parallelStream().filter(node -> node.getId() == startNodeId).findFirst().orElseThrow()
-        );
-        testConfiguration.setEndNode(
-                nodes.parallelStream().filter(node -> node.getId() == endNodeId).findFirst().orElseThrow()
-        );
+        testConfiguration.setStartNode(nodes.get(startNodeId));
+        testConfiguration.setEndNode(nodes.get(endNodeId));
+
         testConfiguration.setWaterLevel(waterLevel);
         var expectedCoords = extractCoordinates(filename);
 
@@ -134,7 +129,7 @@ public class DijkstraTest {
         var returnNodes = new ArrayList<OsmNode>();
 
         for(var id : loadRouteData(filename)){
-            returnNodes.add(nodes.stream().filter(o -> o.getId() == id).findFirst().get());
+            returnNodes.add(nodes.get(id));
         }
 
         return extractCoordinates(returnNodes);
