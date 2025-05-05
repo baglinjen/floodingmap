@@ -66,7 +66,7 @@ public class MouseEventOverlayComponent extends BorderPane {
                             selectNearestNeighbour(state, services, state.getMouseLonLat());
                         });
                     }
-                    if (state.getNearestNeighbour() != null) state.getDijkstraConfiguration().setStartNode(state.getNearestNeighbour().getSelectedOsmElement());
+                    if (state.getNearestNeighbour() != null) state.getRoutingConfiguration().setStartNode(state.getNearestNeighbour().getSelectedOsmElement());
                     break;
                 case "E":
                     if (state.getNearestNeighbour() == null) {
@@ -74,11 +74,11 @@ public class MouseEventOverlayComponent extends BorderPane {
                             selectNearestNeighbour(state, services, state.getMouseLonLat());
                         });
                     }
-                    if (state.getNearestNeighbour() != null) state.getDijkstraConfiguration().setEndNode(state.getNearestNeighbour().getSelectedOsmElement());
+                    if (state.getNearestNeighbour() != null) state.getRoutingConfiguration().setEndNode(state.getNearestNeighbour().getSelectedOsmElement());
                     break;
                 case "C":
                     try {
-                        state.getDijkstraConfiguration().calculateRoute(state.isWithDb());
+                        state.getRoutingConfiguration().calculateRoute(state.isWithDb());
                     } catch (Exception e) {
                         var alert = new Alert(Alert.AlertType.ERROR);
                         alert.setTitle("Something went wrong");
@@ -88,7 +88,7 @@ public class MouseEventOverlayComponent extends BorderPane {
                     }
                     break;
                 case "A":
-                    state.getDijkstraConfiguration().setIsAStar(!state.getDijkstraConfiguration().getIsAStart());
+                    state.getRoutingConfiguration().setIsAStar(!state.getRoutingConfiguration().getIsAStart());
                     break;
                 case "D":
                     state.toggleShouldDrawGeoJson();
@@ -99,7 +99,7 @@ public class MouseEventOverlayComponent extends BorderPane {
                         services.getHeightCurveService().loadGmlData(wb[0], wb[1], wb[2], wb[3]);
                     });
                 case "R":
-                    state.getDijkstraConfiguration().toggleShouldVisualize();
+                    state.getRoutingConfiguration().toggleShouldVisualize();
                     break;
             }
         });

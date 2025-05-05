@@ -10,13 +10,14 @@ import org.apache.logging.log4j.Logger;
 import java.util.*;
 import java.util.List;
 
-public class DijkstraConfiguration {
+public class RoutingConfiguration {
     private static final Logger logger = LoggerFactory.getLogger();
     private boolean shouldVisualize, isAStar;
     private OsmNode startNode, endNode;
     private double waterLevel = 0.0;
     private Pair<OsmElement, Double> route;
     private final List<OsmNode> touchedNodes = new ArrayList<>();
+    private Thread calculationThread;
 
     public OsmNode getStartNode() {
         return startNode;
@@ -58,28 +59,33 @@ public class DijkstraConfiguration {
         return List.copyOf(touchedNodes);
     }
 
-    public void calculateRoute(boolean isWithDb) {
-        Services.withServices(services -> {
-            var nodes = services.getOsmService(isWithDb).getTraversableOsmNodes();
+    public Thread calculateRoute(boolean isWithDb) {
+        calculationThread = new Thread(() -> {
+            Services.withServices(services -> {
+                var nodes = services.getOsmService(isWithDb).getTraversableOsmNodes();
 
-            if (startNode == null || endNode == null) throw new IllegalArgumentException("Start node and end node must be selected");
-            if (startNode.getId() == endNode.getId()) throw new IllegalArgumentException("Start node and end node can not be the same");
+                if (startNode == null || endNode == null) throw new IllegalArgumentException("Start node and end node must be selected");
+                if (startNode.getId() == endNode.getId()) throw new IllegalArgumentException("Start node and end node can not be the same");
 
-            touchedNodes.clear();
+                touchedNodes.clear();
 
-            var route = createDijkstra(startNode, endNode, nodes, services);
+                var route = createDijkstra(startNode, endNode, nodes, services);
 
-            if (route == null) logger.warn("No possible route could be found between: {}, {}", startNode.getId(), endNode.getId());
+                if (route == null) logger.warn("No possible route could be found between: {}, {}", startNode.getId(), endNode.getId());
 
-            this.route = new Pair<>(route, waterLevel);
+                this.route = new Pair<>(route, waterLevel);
+            });
         });
 
+        calculationThread.start();
+        return calculationThread;
     }
 
-    private OsmElement createDijkstra(OsmNode startNode, OsmNode endNode, List<OsmNode> nodes, Services services){
-        nodes.removeIf(e -> e.getId() == startNode.getId() || e.getId() == endNode.getId());
-        nodes.add(startNode);
-        nodes.add(endNode);
+    private OsmElement createDijkstra(OsmNode startNode, OsmNode endNode, Map<Long, OsmNode> nodes, Services services){
+        nodes.remove(startNode.getId());
+        nodes.remove(endNode.getId());
+        nodes.put(startNode.getId(), startNode);
+        nodes.put(endNode.getId(), endNode);
 
         Map<OsmNode, OsmNode> previousNodes = new HashMap<>();
         Map<OsmNode, Double> distances = new HashMap<>();
@@ -87,9 +93,9 @@ public class DijkstraConfiguration {
 
         PriorityQueue<OsmNode> pq = new PriorityQueue<>(Comparator.comparingDouble(n -> heuristicDistances.getOrDefault(n, Double.MAX_VALUE)));
 
-        nodes.forEach(e -> {
-            distances.put(e, e == startNode ? 0.0 : Double.MAX_VALUE);
-            heuristicDistances.put(e, e == endNode ? 0.0 : Double.MAX_VALUE);
+        nodes.forEach((k,v) -> {
+            distances.put(v, v == startNode ? 0.0 : Double.MAX_VALUE);
+            heuristicDistances.put(v, v == endNode ? 0.0 : Double.MAX_VALUE);
         });
 
         pq.offer(startNode);
@@ -107,7 +113,8 @@ public class DijkstraConfiguration {
                 for(var connection : curNode.getConnectionMap().entrySet()){
                     OsmNode nextNode;
                     try{
-                        nextNode = nodes.parallelStream().filter(o -> o.getId() == connection.getKey()).findFirst().orElseThrow();
+                        nextNode = nodes.get(connection.getKey());
+                        if(nextNode == null) throw new NoSuchElementException("No next node with chosen ID");
                     } catch(NoSuchElementException e){
                         continue;
                     }
@@ -121,7 +128,7 @@ public class DijkstraConfiguration {
                         //A new shorter way has been found
                         distances.put(nextNode, distance);
                         previousNodes.put(nextNode, curNode);
-                        heuristicDistances.put(nextNode, distance + (isAStar ? DijkstraUtils.distanceMeters(nextNode.getLat(), nextNode.getLon(), endNode.getLat(), endNode.getLon()) : 0.0));
+                        heuristicDistances.put(nextNode, distance + (isAStar ? RoutingUtils.distanceMeters(nextNode.getLat(), nextNode.getLon(), endNode.getLat(), endNode.getLon()) : 0.0));
                         pq.offer(nextNode);
                     }
                 }

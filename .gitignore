@@ -47,7 +47,6 @@ saves/
 profiles/
 system/
 editor_json/
-*.json
 
 # FXGL Tests #
 testprofiles/

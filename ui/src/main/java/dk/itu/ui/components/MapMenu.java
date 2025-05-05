@@ -11,14 +11,14 @@ public class MapMenu extends ContextMenu {
         routeStart.setOnAction(_ -> {
             var neighbour = state.getNearestNeighbour();
             if (neighbour != null) {
-                state.getDijkstraConfiguration().setStartNode(state.getNearestNeighbour().getSelectedOsmElement());
+                state.getRoutingConfiguration().setStartNode(state.getNearestNeighbour().getSelectedOsmElement());
             }
         });
         MenuItem routeEnd = new MenuItem("Set Route End");
         routeEnd.setOnAction(_ -> {
             var neighbour = state.getNearestNeighbour();
             if (neighbour != null) {
-                state.getDijkstraConfiguration().setEndNode(state.getNearestNeighbour().getSelectedOsmElement());
+                state.getRoutingConfiguration().setEndNode(state.getNearestNeighbour().getSelectedOsmElement());
             }
         });
         getItems().addAll(routeStart, routeEnd, createRoutingButton(state, false), createRoutingButton(state, true));
@@ -27,11 +27,11 @@ public class MapMenu extends ContextMenu {
     private MenuItem createRoutingButton(State state, boolean isAStar){
         MenuItem item = new MenuItem("Route with " + (isAStar ? "A-Star" : "Dijkstra"));
         item.setOnAction(_ -> {
-            if (state.getDijkstraConfiguration().getStartNode() == null || state.getDijkstraConfiguration().getEndNode() == null){
+            if (state.getRoutingConfiguration().getStartNode() == null || state.getRoutingConfiguration().getEndNode() == null){
                 displayAlert("Both start and end for route must be selected");
             } else{
-                state.getDijkstraConfiguration().setIsAStar(isAStar);
-                state.getDijkstraConfiguration().calculateRoute(state.isWithDb());
+                state.getRoutingConfiguration().setIsAStar(isAStar);
+                state.getRoutingConfiguration().calculateRoute(state.isWithDb());
             }
         });
 
