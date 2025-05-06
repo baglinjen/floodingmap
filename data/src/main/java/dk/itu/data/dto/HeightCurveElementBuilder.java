@@ -65,12 +65,21 @@ public class HeightCurveElementBuilder {
             return;
         }
 
-        if (coordsList.length % 3 == 0) {
+        if (containsHeightData(coordsList)){
             withEPSG25832CoordsWithHeight(coordsList);
         } else {
             withEPSG25832CoordsWithoutHeight(coordsList);
         }
     }
+
+    //If the third-placed element is NOT heights, then a lat & lon will be compared and should not be equal (except for extreme edge cases which are not relevant for Denmark)
+    private boolean containsHeightData(String[] coordsList){
+        var firstPotentialHeight = coordsList[2];
+        var lastPotentialHeight = coordsList[coordsList.length - 1];
+
+        return firstPotentialHeight.equals(lastPotentialHeight);
+    }
+
 
     public void withEPSG25832CoordsWithHeight(String[] coordsList) {
         this.coordinates = ListUtils
