@@ -8,6 +8,7 @@ import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.models.db.osm.OsmWay;
 import dk.itu.data.services.Services;
 import dk.itu.data.utils.RoutingConfiguration;
+import dk.itu.data.utils.RoutingUtils;
 import dk.itu.util.LoggerFactory;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.*;
@@ -29,12 +30,28 @@ public class RoutingTest {
     void setupSuite(){
         Services.withServices(services -> {
             services.getOsmService(false).loadOsmData("tuna.osm");
+            //services.getOsmService(false).loadOsmData("bornholm.osm");
             services.getHeightCurveService().loadGmlFileData("tuna-dijkstra.gml");
             nodes = services.getOsmService(false).getTraversableOsmNodes();
         });
 
         testConfiguration = new RoutingConfiguration();
         testConfiguration.setWaterLevel(0.0);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "1078669546, 1078669405, 450",
+            "1079130218, 1078685441, 3166",
+            "1078669228, 12568363317, 9"
+    })
+    void euclideanDistanceIsCorrect(long startNodeId, long endNodeId, double expectedDistance){
+        var startNode = nodes.get(startNodeId);
+        var endNode = nodes.get(endNodeId);
+
+        var distance = RoutingUtils.distanceMeters(startNode.getLat(), startNode.getLon(), endNode.getLat(), endNode.getLon());
+
+        assertThat(Math.floor(distance)).isEqualTo(expectedDistance);
     }
 
     @ParameterizedTest

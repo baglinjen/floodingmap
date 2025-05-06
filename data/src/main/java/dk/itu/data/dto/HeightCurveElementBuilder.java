@@ -65,12 +65,21 @@ public class HeightCurveElementBuilder {
             return;
         }
 
-        if (coordsList.length % 3 == 0) {
+        //if (coordsList.length % 3 == 0) {
+        if (containsHeightData(coordsList)){
             withEPSG25832CoordsWithHeight(coordsList);
         } else {
             withEPSG25832CoordsWithoutHeight(coordsList);
         }
     }
+
+    private boolean containsHeightData(String[] coordsList){
+        var firstHeight = coordsList[2];
+        var lastHeight = coordsList[coordsList.length - 1];
+
+        return firstHeight.equals(lastHeight);
+    }
+
 
     public void withEPSG25832CoordsWithHeight(String[] coordsList) {
         this.coordinates = ListUtils
