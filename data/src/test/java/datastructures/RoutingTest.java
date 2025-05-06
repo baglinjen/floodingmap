@@ -131,7 +131,7 @@ public class RoutingTest {
         //Act
         testConfiguration.setIsAStar(false);
 
-        assertThat(testConfiguration.getIsAStart()).isEqualTo(false);
+        assertThat(testConfiguration.getIsAStar()).isEqualTo(false);
 
         var dijkstraThread = testConfiguration.calculateRoute(false);
         dijkstraThread.join();
@@ -141,7 +141,7 @@ public class RoutingTest {
 
         testConfiguration.setIsAStar(true);
 
-        assertThat(testConfiguration.getIsAStart()).isEqualTo(true);
+        assertThat(testConfiguration.getIsAStar()).isEqualTo(true);
 
         var aStarThread = testConfiguration.calculateRoute(false);
         aStarThread.join();
