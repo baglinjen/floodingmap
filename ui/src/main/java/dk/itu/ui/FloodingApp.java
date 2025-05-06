@@ -2,7 +2,7 @@ package dk.itu.ui;
 
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
-import dk.itu.common.configurations.CommonConfiguration;
+import dk.itu.common.models.Drawable;
 import dk.itu.data.models.db.heightcurve.HeightCurveElement;
 import dk.itu.data.services.Services;
 import dk.itu.ui.components.MouseEventOverlayComponent;
@@ -106,8 +106,8 @@ public class FloodingApp extends GameApplication {
                 osmElements.parallelStream().forEach(e -> e.prepareDrawing(g2d));
                 heightCurves.parallelStream().forEach(e -> e.prepareDrawing(g2d));
                 // Draw elements
-                osmElements.forEach(element -> element.draw(g2d, strokeBaseWidth));
-                heightCurves.forEach(hc -> hc.draw(g2d, strokeBaseWidth));
+                osmElements.parallelStream().filter(Drawable::shouldDraw).toList().forEach(element -> element.draw(g2d, strokeBaseWidth));
+                heightCurves.parallelStream().filter(Drawable::shouldDraw).toList().forEach(hc -> hc.draw(g2d, strokeBaseWidth));
 
                 // Draw dijkstra route if there is one
                 var dijkstraRoute = state.getRoutingConfiguration().getRoute(state.isWithDb(), state.getWaterLevel());

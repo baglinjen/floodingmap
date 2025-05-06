@@ -76,7 +76,16 @@ public class HeightCurveElement extends Colored {
 
     @Override
     public void prepareDrawing(Graphics2D g2d) {
-        path = prepareComplexPolygon(g2d, List.of(outerPolygon), innerPolygons, DRAWING_TOLERANCE);
+        if (this.area * g2d.getTransform().getScaleX() >= DRAWING_AREA_TOLERANCE) {
+            path = prepareComplexPolygon(g2d, List.of(outerPolygon), innerPolygons, DRAWING_TOLERANCE);
+        } else {
+            path = null;
+        }
+    }
+
+    @Override
+    public boolean shouldDraw() {
+        return path != null;
     }
 
     @Override

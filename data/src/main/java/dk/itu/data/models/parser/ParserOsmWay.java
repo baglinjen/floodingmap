@@ -62,6 +62,11 @@ public class ParserOsmWay extends ParserOsmElement {
     }
 
     @Override
+    public boolean shouldDraw() {
+        return path != null;
+    }
+
+    @Override
     public void prepareDrawing(Graphics2D g2d) {
         path = isLine ? prepareLinePath(g2d, coordinates, 1) : preparePolygonPath(g2d, coordinates, 1);
     }

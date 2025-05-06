@@ -81,6 +81,11 @@ public class ParserGeoJsonElement extends ParserDrawable implements GeoJsonEleme
     }
 
     @Override
+    public boolean shouldDraw() {
+        return path != null;
+    }
+
+    @Override
     public void prepareDrawing(Graphics2D g2d) {
         path = prepareComplexPolygon(g2d, List.of(outerPolygon), innerPolygons, DRAWING_TOLERANCE);
     }

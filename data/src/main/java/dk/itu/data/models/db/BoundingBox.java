@@ -40,6 +40,11 @@ public class BoundingBox implements Serializable {
     public double area() {
         return (maxLon - minLon) * (maxLat - minLat);
     }
+    public double minimumLength() {
+        var width = maxLon - minLon;
+        var height = maxLat - minLat;
+        return Math.min(width, height);
+    }
 
     public BoundingBox getExpanded(BoundingBox other) {
         return new BoundingBox(
