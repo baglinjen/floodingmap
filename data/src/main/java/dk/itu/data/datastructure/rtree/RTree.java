@@ -13,7 +13,7 @@ import java.util.List;
 * */
 
 public class RTree {
-    private static final int MAX_ENTRIES = 500;  // Maximum entries in a node
+    private static final int MAX_ENTRIES = 250;  // Maximum entries in a node
     private static final int MIN_ENTRIES = MAX_ENTRIES / 2;  // Minimum entries (40-50% of max is typical)
     private static final double REINSERT_PERCENTAGE = 0.3;  // Percentage of entries to reinsert (30% is typical)
     private static final int REINSERT_LEVELS = 5;  // Max levels for forced reinsert to prevent recursion issues
@@ -793,7 +793,7 @@ public class RTree {
     }
 
     private void searchRecursive(RTreeNode node, BoundingBox queryBox, List<OsmElement> results) {
-        if (!node.mbr.intersects(queryBox)) {
+        if (node == null || !node.mbr.intersects(queryBox)) {
             return; // No intersection, skip this branch
         }
 

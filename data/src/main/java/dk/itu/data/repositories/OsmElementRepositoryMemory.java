@@ -10,10 +10,13 @@ import dk.itu.data.models.parser.ParserOsmElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.models.parser.ParserOsmRelation;
 import dk.itu.data.models.parser.ParserOsmWay;
+import dk.itu.util.LoggerFactory;
+import org.apache.logging.log4j.Logger;
 
 import java.util.List;
 
 public class OsmElementRepositoryMemory implements OsmElementRepository {
+    private static final Logger logger = LoggerFactory.getLogger();
     private static OsmElementRepositoryMemory instance;
 
     public static OsmElementRepositoryMemory getInstance() {
@@ -31,7 +34,13 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
 
     @Override
     public synchronized void add(List<ParserOsmElement> osmElements) {
-        osmElements.parallelStream().map(this::mapToOsmElement).toList().forEach(rtree::insert);
+        final int[] elementsAdded = {0};
+        int elementsToAdd = osmElements.size();
+        osmElements.parallelStream().map(this::mapToOsmElement).toList().forEach(element -> {
+            rtree.insert(element);
+            elementsAdded[0]++;
+            if (elementsAdded[0] % 10_000 == 0) logger.debug("Added {}/{} osm elements", elementsAdded[0], elementsToAdd);
+        });
     }
 
     private OsmElement mapToOsmElement(ParserOsmElement osmElement) {
@@ -45,7 +54,13 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
 
     @Override
     public synchronized void addTraversable(List<ParserOsmNode> nodes) {
-        nodes.parallelStream().map(OsmNode::mapToOsmNode).toList().forEach(traversable::insert);
+        final int[] elementsAdded = {0};
+        int elementsToAdd = nodes.size();
+        nodes.parallelStream().map(OsmNode::mapToOsmNode).toList().forEach(element -> {
+            traversable.insert(element);
+            elementsAdded[0]++;
+            if (elementsAdded[0] % 10_000 == 0) logger.debug("Added {}/{} traversable elements", elementsAdded[0], elementsToAdd);
+        });
     }
 
     @Override
