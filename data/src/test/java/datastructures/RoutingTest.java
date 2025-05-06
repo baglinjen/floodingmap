@@ -26,15 +26,18 @@ public class RoutingTest {
     private static RoutingConfiguration testConfiguration;
     private static Map<Long, OsmNode> nodes;
 
-    @BeforeEach
-    void setupSuite(){
+    @BeforeAll
+    void setupGeneral(){
         Services.withServices(services -> {
             services.getOsmService(false).loadOsmData("tuna.osm");
-            //services.getOsmService(false).loadOsmData("bornholm.osm");
+            services.getOsmService(false).loadOsmData("bornholm.osm");
             services.getHeightCurveService().loadGmlFileData("tuna-dijkstra.gml");
             nodes = services.getOsmService(false).getTraversableOsmNodes();
         });
+    }
 
+    @BeforeEach
+    void setupIndividual(){
         testConfiguration = new RoutingConfiguration();
         testConfiguration.setWaterLevel(0.0);
     }
@@ -78,6 +81,11 @@ public class RoutingTest {
         assertThat(route).isNotNull();
         assertThat(routeCoordinates).isNotNull();
         assertThat(routeCoordinates).isEqualTo(expectedRouteCoordinates);
+
+        assertThat(testConfiguration.getTouchedNodes().size()).isPositive();
+
+        assertThat(testConfiguration.getStartNode()).isEqualTo(nodes.get(startNodeId));
+        assertThat(testConfiguration.getEndNode()).isEqualTo(nodes.get(endNodeId));
     }
 
     @ParameterizedTest
@@ -113,7 +121,7 @@ public class RoutingTest {
             "3344638963, 11975103676, '3344638963-11975103676-route.json'",
             "1078669419, 4545580716, 'flooded/1078669419-4545580716-route.json'"
     })
-    public void DijkstraAndAStarFindsEquallyCorrectRoute(long startNodeId, long endNodeId, String filename) throws InterruptedException{
+    void DijkstraAndAStarFindsEquallyCorrectRoute(long startNodeId, long endNodeId, String filename) throws InterruptedException{
         //Arrange
         testConfiguration.setStartNode(nodes.get(startNodeId));
         testConfiguration.setEndNode(nodes.get(endNodeId));
@@ -123,6 +131,8 @@ public class RoutingTest {
         //Act
         testConfiguration.setIsAStar(false);
 
+        assertThat(testConfiguration.getIsAStart()).isEqualTo(false);
+
         var dijkstraThread = testConfiguration.calculateRoute(false);
         dijkstraThread.join();
 
@@ -130,6 +140,8 @@ public class RoutingTest {
         var dijkstraCoordinates = ((OsmWay)dijkstraRoute).getOuterCoordinates();
 
         testConfiguration.setIsAStar(true);
+
+        assertThat(testConfiguration.getIsAStart()).isEqualTo(true);
 
         var aStarThread = testConfiguration.calculateRoute(false);
         aStarThread.join();
@@ -146,6 +158,33 @@ public class RoutingTest {
 
         assertThat(dijkstraCoordinates).isEqualTo(aStarCoordinates);
         assertThat(dijkstraCoordinates).isEqualTo(expectedRouteCoordinates);
+    }
+
+    @Test
+    void RoutingConfigurationCanSwitchVisualization(){
+        assertThat(testConfiguration.getShouldVisualize()).isEqualTo(false);
+
+        testConfiguration.toggleShouldVisualize();
+        assertThat(testConfiguration.getShouldVisualize()).isEqualTo(true);
+
+        testConfiguration.toggleShouldVisualize();
+        assertThat(testConfiguration.getShouldVisualize()).isEqualTo(false);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            //Start node is on Tunø, end node on Bornholm -> not physically connected
+            "1078669498, 8202351169"
+    })
+    void RoutingCanHandleNotFindingARoute(long startNodeId, long endNodeId){
+        testConfiguration.setStartNode(nodes.get(startNodeId));
+        testConfiguration.setEndNode(nodes.get(endNodeId));
+
+        testConfiguration.calculateRoute(false);
+
+        var route = testConfiguration.getRoute(false, 0.0);
+
+        assertThat(route).isNull();
     }
 
     //Load test data with list of id's
