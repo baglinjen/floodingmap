@@ -39,6 +39,12 @@ public class OsmService {
         }
     }
 
+    public List<OsmElement> getOsmElementsToBeDrawnScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
+        synchronized (this.osmElementRepository) {
+            return osmElementRepository.getOsmElementsScaled(minLon, minLat, maxLon, maxLat, minBoundingBoxArea);
+        }
+    }
+
     public Map<Long, OsmNode> getTraversableOsmNodes(){
         synchronized (this.osmElementRepository) {
             var nodes = osmElementRepository.getTraversableOsmNodes();

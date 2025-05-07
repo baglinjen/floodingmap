@@ -6,6 +6,7 @@ import javafx.util.Pair;
 
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /*
 * The R* Tree is based on https://infolab.usc.edu/csci599/Fall2001/paper/rstar-tree.pdf
@@ -79,7 +80,7 @@ public class RTree {
                 }
             } else {
                 // Add all children to the queue
-                for (RTreeNode child : entry.node.children) {
+                for (RTreeNode child : entry.node.getChildren()) {
                     double childDist = minDist(lon, lat, child.mbr);
 
                     // Only add if it could contain a closer point
@@ -162,7 +163,7 @@ public class RTree {
                 }
             }
         } else {
-            for (RTreeNode child : node.children) {
+            for (RTreeNode child : node.getChildren()) {
                 collectNodes(child, result);
             }
         }
@@ -183,7 +184,7 @@ public class RTree {
         double minEnlargement = Double.POSITIVE_INFINITY;
         double minArea = Double.POSITIVE_INFINITY;
 
-        for (RTreeNode child : node.children) {
+        for (RTreeNode child : node.getChildren()) {
             // Calculate how much the child's MBR would need to be enlarged
             double enlargement = child.mbr.getExpanded(elementBox).area() - child.mbr.area();
             double area = child.mbr.area();
@@ -487,7 +488,7 @@ public class RTree {
             newNode.elements = group2;
         } else {
             // Handle internal node split
-            List<RTreeNode> children = new ArrayList<>(node.children);
+            List<RTreeNode> children = new ArrayList<>(node.getChildren());
 
             // Choose split axis and distribution
             int bestAxis = chooseSplitAxisForInternal(children);
@@ -503,8 +504,8 @@ public class RTree {
                     children.subList(distribution[0], children.size()));
 
             // Update nodes
-            node.children = group1;
-            newNode.children = group2;
+            node.setChildren(group1);
+            newNode.setChildren(group2);
         }
 
         // Update MBRs
@@ -532,16 +533,16 @@ public class RTree {
             for (int i = 1; i < node.elements.size(); i++) {
                 node.mbr.expand(node.elements.get(i).getBoundingBox());
             }
-        } else if (!node.isLeaf() && !node.children.isEmpty()) {
+        } else if (!node.isLeaf() && !node.getChildren().isEmpty()) {
             // Get first child's bounding box
-            BoundingBox first = node.children.getFirst().mbr;
+            BoundingBox first = node.getChildren().getFirst().mbr;
             node.mbr = new BoundingBox(first.getMinLon(), first.getMinLat(),
                     first.getMaxLon(), first.getMaxLat());
 
             // Expand for remaining children
-            for (int i = 1; i < node.children.size(); i++) {
-                if (node.children.get(i).mbr != null) {
-                    node.mbr.expand(node.children.get(i).mbr);
+            for (int i = 1; i < node.getChildren().size(); i++) {
+                if (node.getChildren().get(i).mbr != null) {
+                    node.mbr.expand(node.getChildren().get(i).mbr);
                 }
             }
         } else {
@@ -557,7 +558,7 @@ public class RTree {
         // Check if reinsert is needed
         boolean isFull = node.isLeaf() ?
                 node.elements.size() > MAX_ENTRIES :
-                node.children.size() > MAX_ENTRIES;
+                node.getChildren().size() > MAX_ENTRIES;
 
         if (!isFull) {
             return false;
@@ -596,7 +597,7 @@ public class RTree {
             }
         } else {
             // Handle internal node - work directly with children list
-            List<RTreeNode> children = new ArrayList<>(node.children);
+            List<RTreeNode> children = new ArrayList<>(node.getChildren());
 
             // Sort by distance from center
             children.sort((c1, c2) -> {
@@ -611,7 +612,7 @@ public class RTree {
                     new ArrayList<>(children.subList(0, reinsertCount));
 
             // Keep the rest
-            node.children = new ArrayList<>(children.subList(reinsertCount, children.size()));
+            node.setChildren(new ArrayList<>(children.subList(reinsertCount, children.size())));
             node.updateBoundingBox();
 
             // Reinsert children
@@ -638,16 +639,14 @@ public class RTree {
         targetNode.addChild(nodeToInsert);
 
         // Find parent for adjustment
-        RTreeNode parent = findParent(root, targetNode);
-
         // Check if we need to split
         RTreeNode newNode = null;
-        if (targetNode.children.size() > MAX_ENTRIES) {
+        if (targetNode.getChildren().size() > MAX_ENTRIES) {
             newNode = splitInternal(targetNode);
         }
 
         // Adjust tree upward
-        adjustTree(targetNode, newNode, parent);
+        adjustTree(targetNode, newNode, targetNode.getParent());
     }
 
     /**
@@ -662,7 +661,7 @@ public class RTree {
         RTreeNode bestChild = null;
         double minEnlargement = Double.POSITIVE_INFINITY;
 
-        for (RTreeNode child : node.children) {
+        for (RTreeNode child : node.getChildren()) {
             double enlargement = child.mbr.getExpanded(mbr).area() - child.mbr.area();
             if (bestChild == null || enlargement < minEnlargement) {
                 minEnlargement = enlargement;
@@ -707,15 +706,12 @@ public class RTree {
 
         // Check if parent needs splitting
         RTreeNode splitParent = null;
-        if (parent.children.size() > MAX_ENTRIES) {
+        if (parent.getChildren().size() > MAX_ENTRIES) {
             splitParent = splitInternal(parent);
         }
 
-        // Calculate grandparent
-        RTreeNode grandparent = findParent(root, parent);
-
         // Continue adjusting up the tree
-        adjustTree(parent, splitParent, grandparent);
+        adjustTree(parent, splitParent, parent.getParent());
     }
 
     private double getDistance(BoundingBox box, Pair<Double, Double> center) {
@@ -742,7 +738,7 @@ public class RTree {
             level++;
             boolean found = false;
 
-            for (RTreeNode child : current.children) {
+            for (RTreeNode child : current.getChildren()) {
                 if (containsNode(child, node)) {
                     current = child;
                     found = true;
@@ -759,54 +755,20 @@ public class RTree {
     private boolean containsNode(RTreeNode parent, RTreeNode target) {
         if (parent == target) return true;
 
-        for (RTreeNode child : parent.children) {
+        for (RTreeNode child : parent.getChildren()) {
             if (containsNode(child, target)) return true;
         }
 
         return false;
     }
 
-    /**
-     * Find the parent of a node in the tree
-     */
-    private RTreeNode findParent(RTreeNode current, RTreeNode target) {
-        if (current == null || current == target) {
-            return null;
-        }
+    private void searchRecursive(RTreeNode node, BoundingBox queryBox, Collection<OsmElement> results) {
+        if (node == null || !node.mbr.intersects(queryBox)) return; // No intersection, skip this branch
 
-        // Check if any children are the target
-        for (RTreeNode child : current.children) {
-            if (child == target) {
-                return current;
-            }
-        }
-
-        // Recursively check in each child
-        for (RTreeNode child : current.children) {
-            RTreeNode result = findParent(child, target);
-            if (result != null) {
-                return result;
-            }
-        }
-
-        return null;
-    }
-
-    private void searchRecursive(RTreeNode node, BoundingBox queryBox, List<OsmElement> results) {
-        if (node == null || !node.mbr.intersects(queryBox)) {
-            return; // No intersection, skip this branch
-        }
-
-        if (node.isLeaf()) { // If it's a leaf, add matching elements
-            for (OsmElement element : node.elements) {
-                if (element.getBoundingBox().intersects(queryBox)) {
-                    results.add(element);
-                }
-            }
+        if (node.isLeaf()) {
+            results.addAll(node.elements);
         } else {
-            for (RTreeNode child : node.children) {   // Recurse into children
-                searchRecursive(child, queryBox, results);
-            }
+            node.getChildren().parallelStream().forEach(child -> searchRecursive(child, queryBox, results));
         }
     }
 
@@ -829,19 +791,45 @@ public class RTree {
         }
 
         // Find parent and propagate changes upward
-        RTreeNode parent = findParent(root, leaf);
-        adjustTree(leaf, newNode, parent);
+        adjustTree(leaf, newNode, leaf.getParent());
     }
 
     public List<OsmElement> search(double minLon, double minLat, double maxLon, double maxLat) {
-        List<OsmElement> elements = new ArrayList<>();
+        Collection<OsmElement> elementsConcurrent = new ConcurrentLinkedQueue<>();
 
-        searchRecursive(root, new BoundingBox(minLon, minLat, maxLon, maxLat), elements);
+        searchRecursive(root, new BoundingBox(minLon, minLat, maxLon, maxLat), elementsConcurrent);
 
-        return elements
+        return elementsConcurrent
                 .parallelStream()
                 .sorted(Comparator.comparingDouble(OsmElement::getArea).reversed())
                 .toList();
+    }
+
+    public List<OsmElement> searchScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
+        Collection<OsmElement> elementsConcurrent = new ConcurrentLinkedQueue<>();
+
+        searchScaledRecursive(root, new BoundingBox(minLon, minLat, maxLon, maxLat), minBoundingBoxArea, elementsConcurrent);
+
+        return elementsConcurrent
+                .parallelStream()
+                .sorted(Comparator.comparingDouble(OsmElement::getArea).reversed())
+                .toList();
+    }
+    private void searchScaledRecursive(RTreeNode node, BoundingBox queryBox, double minBoundingBoxArea, Collection<OsmElement> results) {
+        if (node == null || !node.mbr.intersects(queryBox)) return; // No intersection, skip this branch
+
+        if (node.isLeaf()) {
+            results.addAll(node.elements);
+//            node.elements
+//                    .parallelStream()
+//                    .filter(e -> e.getArea() >= minBoundingBoxArea)
+//                    .forEach(results::add);
+        } else {
+            node.getChildren()
+                    .parallelStream()
+                    .filter(child -> child.mbr.area() >= minBoundingBoxArea)
+                    .forEach(child -> searchRecursive(child, queryBox, results));
+        }
     }
 
     /**

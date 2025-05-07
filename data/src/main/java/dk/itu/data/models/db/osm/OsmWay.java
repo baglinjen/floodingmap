@@ -53,11 +53,12 @@ public class OsmWay extends OsmElement {
 
     @Override
     public void prepareDrawing(Graphics2D g2d) {
-        if (this.getBoundingBox().minimumLength() * g2d.getTransform().getScaleX() >= DRAWING_AREA_TOLERANCE) {
-            path = isLine ? prepareLinePath(g2d, outerCoordinates, DRAWING_TOLERANCE) : preparePolygonPath(g2d, outerCoordinates, DRAWING_TOLERANCE);
-        } else {
-            path = null;
-        }
+        path = isLine ? prepareLinePath(g2d, outerCoordinates, DRAWING_TOLERANCE) : preparePolygonPath(g2d, outerCoordinates, DRAWING_TOLERANCE);
+//        if (this.getBoundingBox() != null && this.getBoundingBox().minimumLength() * g2d.getTransform().getScaleX() >= DRAWING_AREA_TOLERANCE) {
+//            path = isLine ? prepareLinePath(g2d, outerCoordinates, DRAWING_TOLERANCE) : preparePolygonPath(g2d, outerCoordinates, DRAWING_TOLERANCE);
+//        } else {
+//            path = null;
+//        }
     }
 
     @Override

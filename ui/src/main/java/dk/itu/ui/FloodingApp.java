@@ -37,8 +37,8 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-            services.getOsmService(state.isWithDb()).loadOsmData("ky.osm");
-//            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
+//            services.getOsmService(state.isWithDb()).loadOsmData("ky.osm");
+            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
             state.resetWindowBounds();
 //            var bounds = state.getWindowBounds();
 //            services.getHeightCurveService().loadGmlData(bounds[0], bounds[1], bounds[2], bounds[3]);
@@ -63,14 +63,25 @@ public class FloodingApp extends GameApplication {
                 g2d.clearRect(0, 0, WIDTH, HEIGHT);
                 g2d.setTransform(state.getSuperAffine());
 
+//                var osmElements = services
+//                        .getOsmService(state.isWithDb())
+//                        .getOsmElementsToBeDrawn(
+//                                state.getOsmLimit(),
+//                                window[0],
+//                                window[1],
+//                                window[2],
+//                                window[3]
+//                        );
+                double percentScreen = 0.025;
+
                 var osmElements = services
                         .getOsmService(state.isWithDb())
-                        .getOsmElementsToBeDrawn(
-                                state.getOsmLimit(),
+                        .getOsmElementsToBeDrawnScaled(
                                 window[0],
                                 window[1],
                                 window[2],
-                                window[3]
+                                window[3],
+                                (window[2] - window[0]) * percentScreen * (window[3] - window[1]) * percentScreen
                         );
                 List<HeightCurveElement> heightCurves =
                         state.shouldDrawGeoJson() ?
@@ -147,7 +158,7 @@ public class FloodingApp extends GameApplication {
 
                 view.setImage(bufferedImageToWritableImage(image));
 
-//                logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
+                logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
             }
         });
     }

@@ -44,11 +44,12 @@ public class OsmRelation extends OsmElement {
 
     @Override
     public void prepareDrawing(Graphics2D g2d) {
-        if (this.getBoundingBox().minimumLength() * g2d.getTransform().getScaleX() >= DRAWING_AREA_TOLERANCE) {
-            path = prepareComplexPolygon(g2d, outerPolygons, innerPolygons, DRAWING_TOLERANCE);
-        } else {
-            path = null;
-        }
+        path = prepareComplexPolygon(g2d, outerPolygons, innerPolygons, DRAWING_TOLERANCE);
+//        if (this.getBoundingBox().minimumLength() * g2d.getTransform().getScaleX() >= DRAWING_AREA_TOLERANCE) {
+//            path = prepareComplexPolygon(g2d, outerPolygons, innerPolygons, DRAWING_TOLERANCE);
+//        } else {
+//            path = null;
+//        }
     }
 
     @Override

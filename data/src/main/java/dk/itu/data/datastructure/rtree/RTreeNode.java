@@ -8,19 +8,30 @@ import java.util.ArrayList;
 
 public class RTreeNode {
     BoundingBox mbr;
+    RTreeNode parent;
     List<OsmElement> elements = new ArrayList<>();    // For leaf nodes
-    List<RTreeNode> children = new ArrayList<>();           // For internal nodes
-
+    private List<RTreeNode> children = new ArrayList<>();           // For internal nodes
     public RTreeNode()  {
         this.mbr = null;
+    }
+
+    public BoundingBox getMBR() {
+        return mbr;
+    }
+
+    public RTreeNode getParent() {
+        return parent;
+    }
+    public void setParent(RTreeNode parent) {
+        this.parent = parent;
     }
 
     public List<RTreeNode> getChildren() {
         return children;
     }
-
-    public BoundingBox getMBR() {
-        return mbr;
+    public void setChildren(List<RTreeNode> children) {
+        this.children = children;
+        this.children.forEach(child -> child.setParent(this));
     }
 
     public boolean isLeaf() {
@@ -38,6 +49,7 @@ public class RTreeNode {
 
     public void addChild(RTreeNode child) {
         children.add(child);
+        child.setParent(this);
         updateMBR(child.mbr);
     }
 

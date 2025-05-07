@@ -39,7 +39,7 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
         osmElements.parallelStream().map(this::mapToOsmElement).toList().forEach(element -> {
             rtree.insert(element);
             elementsAdded[0]++;
-            if (elementsAdded[0] % 10_000 == 0) logger.debug("Added {}/{} osm elements", elementsAdded[0], elementsToAdd);
+            if (elementsAdded[0] % 100_000 == 0) logger.debug("Added {}/{} osm elements", elementsAdded[0], elementsToAdd);
         });
     }
 
@@ -59,13 +59,18 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
         nodes.parallelStream().map(OsmNode::mapToOsmNode).toList().forEach(element -> {
             traversable.insert(element);
             elementsAdded[0]++;
-            if (elementsAdded[0] % 10_000 == 0) logger.debug("Added {}/{} traversable elements", elementsAdded[0], elementsToAdd);
+            if (elementsAdded[0] % 100_000 == 0) logger.debug("Added {}/{} traversable elements", elementsAdded[0], elementsToAdd);
         });
     }
 
     @Override
     public synchronized List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
         return rtree.search(minLon, minLat, maxLon, maxLat);
+    }
+
+    @Override
+    public synchronized List<OsmElement> getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
+        return rtree.searchScaled(minLon, minLat, maxLon, maxLat, minBoundingBoxArea);
     }
 
     @Override
