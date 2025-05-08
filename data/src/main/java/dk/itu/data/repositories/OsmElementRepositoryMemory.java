@@ -1,6 +1,6 @@
 package dk.itu.data.repositories;
 
-import dk.itu.data.datastructure.rtree.RTree;
+import dk.itu.data.datastructure.rtree.RStarTree;
 import dk.itu.data.models.db.*;
 import dk.itu.data.models.db.osm.OsmElement;
 import dk.itu.data.models.db.osm.OsmNode;
@@ -26,8 +26,8 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
 
     private OsmElementRepositoryMemory() {}
 
-    private RTree rtree = new RTree();
-    private RTree traversable = new RTree();
+    private RStarTree rtree = new RStarTree();
+    private RStarTree traversable = new RStarTree();
 
     @Override
     public synchronized void add(List<ParserOsmElement> osmElements) {
@@ -65,8 +65,8 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
 
     @Override
     public synchronized void clearAll() {
-        rtree = new RTree();
-        traversable = new RTree();
+        rtree = new RStarTree();
+        traversable = new RStarTree();
     }
 
     @Override

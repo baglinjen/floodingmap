@@ -12,8 +12,8 @@ import java.util.List;
 * Min entries and reinsert percentage are based on the report (p. 327)
 * */
 
-public class RTree {
-    private static final int MAX_ENTRIES = 500;  // Maximum entries in a node
+public class RStarTree {
+    private static final int MAX_ENTRIES = 100;  // Maximum entries in a node
     private static final int MIN_ENTRIES = MAX_ENTRIES / 2;  // Minimum entries (40-50% of max is typical)
     private static final double REINSERT_PERCENTAGE = 0.3;  // Percentage of entries to reinsert (30% is typical)
     private static final int REINSERT_LEVELS = 5;  // Max levels for forced reinsert to prevent recursion issues
@@ -363,16 +363,6 @@ public class RTree {
 
             return Double.compare(center1, center2);
         });
-    }
-
-    /**
-     * Clears all elements from the R-tree, effectively resetting it to an empty state.
-     * After this operation, the tree will have no root node.
-     */
-    public void clear() {
-        // Java's garbage collector will handle the cleanup of all nodes
-        root = null;
-        reinsertLevels.clear();
     }
 
     /**
@@ -791,6 +781,7 @@ public class RTree {
         adjustTree(leaf, newNode, parent);
     }
 
+
     public List<OsmElement> search(double minLon, double minLat, double maxLon, double maxLat) {
         List<OsmElement> elements = new ArrayList<>();
 
@@ -809,6 +800,9 @@ public class RTree {
         return root;
     }
 
+    /*
+    * Bounding box for the whole tree (root's bounding box)
+    * */
     public BoundingBox getBoundingBox() {
         if (root == null) return null;
         return root.getMBR();
@@ -870,6 +864,14 @@ public class RTree {
         }
 
         return nearest;
+    }
+
+    /**
+     * Clears all elements from the R-tree.
+     */
+    public void clear() {
+        root = null;
+        reinsertLevels.clear();
     }
 }
 
