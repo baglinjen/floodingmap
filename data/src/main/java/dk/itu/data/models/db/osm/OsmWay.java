@@ -31,7 +31,7 @@ public class OsmWay extends OsmElement {
         var osmWay = new OsmWay(
                 parserOsmWay.getId(),
                 parserOsmWay.isLine(), boundingBox,
-                parserOsmWay.isLine() ? 0 : parserOsmWay.getArea(),
+                parserOsmWay.getArea(),
                 parserOsmWay.getCoordinates()
         );
 
@@ -44,6 +44,10 @@ public class OsmWay extends OsmElement {
         var way = new OsmWay(0, true, null, 0, coordinates);
         way.setStyle(Color.yellow, 6);
         return way;
+    }
+
+    public boolean isLine() {
+        return isLine;
     }
 
     @Override

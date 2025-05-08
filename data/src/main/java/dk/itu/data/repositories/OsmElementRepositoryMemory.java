@@ -29,8 +29,7 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
 
     private OsmElementRepositoryMemory() {}
 
-    private RStarTree rtree = new RStarTree();
-    private RStarTree traversable = new RStarTree();
+    private final RStarTree rtree = new RStarTree(), traversable = new RStarTree();
 
     @Override
     public synchronized void add(List<ParserOsmElement> osmElements) {
@@ -90,8 +89,8 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
 
     @Override
     public synchronized void clearAll() {
-        rtree = new RStarTree();
-        traversable = new RStarTree();
+        rtree.clear();
+        traversable.clear();
     }
 
     @Override

@@ -32,7 +32,7 @@ public class RTreeTest {
         Services.withServices(services -> {
             services.getOsmService(false).loadOsmData("bornholm.osm");
             services.getHeightCurveService().loadGmlFileData("tuna-dijkstra.gml");
-            nodes = services.getOsmService(false).getTraversableOsmNodes();
+            nodes = services.getOsmService(false).getTraversableOsmNodes().values().stream().toList();
         });
     }
 
@@ -43,6 +43,12 @@ public class RTreeTest {
         OsmElement element = new OsmElement(1, bbox, bbox.area()) {
             @Override
             public void prepareDrawing(Graphics2D g2d) {}
+
+            @Override
+            public boolean shouldDraw() {
+                return false;
+            }
+
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         };
@@ -68,17 +74,29 @@ public class RTreeTest {
             @Override
             public void prepareDrawing(Graphics2D g2d) {}
             @Override
+            public boolean shouldDraw() {
+                return false;
+            }
+            @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         }; // Area = 1
         OsmElement inside2 = new OsmElement(2, bbox2, bbox2.area()) {
             @Override
             public void prepareDrawing(Graphics2D g2d) {}
             @Override
+            public boolean shouldDraw() {
+                return false;
+            }
+            @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         }; // Area = 4
         OsmElement outside = new OsmElement(3, bbox3, bbox3.area()) {
             @Override
             public void prepareDrawing(Graphics2D g2d) {}
+            @Override
+            public boolean shouldDraw() {
+                return false;
+            }
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         };

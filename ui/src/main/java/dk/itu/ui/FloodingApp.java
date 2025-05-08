@@ -3,9 +3,8 @@ package dk.itu.ui;
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
 import dk.itu.common.models.Drawable;
+import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.heightcurve.HeightCurveElement;
-import dk.itu.data.models.db.osm.OsmElement;
-import dk.itu.data.models.db.osm.OsmRelation;
 import dk.itu.data.services.Services;
 import dk.itu.ui.components.MouseEventOverlayComponent;
 import dk.itu.util.LoggerFactory;
@@ -39,8 +38,8 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
+//            services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
             services.getOsmService(state.isWithDb()).loadOsmData("ky.osm");
-//            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
             state.resetWindowBounds();
 //            var bounds = state.getWindowBounds();
 //            services.getHeightCurveService().loadGmlData(bounds[0], bounds[1], bounds[2], bounds[3]);
@@ -65,17 +64,6 @@ public class FloodingApp extends GameApplication {
                 g2d.clearRect(0, 0, WIDTH, HEIGHT);
                 g2d.setTransform(state.getSuperAffine());
 
-//                var osmElements = services
-//                        .getOsmService(state.isWithDb())
-//                        .getOsmElementsToBeDrawn(
-//                                state.getOsmLimit(),
-//                                window[0],
-//                                window[1],
-//                                window[2],
-//                                window[3]
-//                        );
-
-
                 var osmElements = services
                         .getOsmService(state.isWithDb())
                         .getOsmElementsToBeDrawnScaled(
@@ -84,9 +72,9 @@ public class FloodingApp extends GameApplication {
                                 window[2],
                                 window[3]
                         );
-                var boundingBoxes = services
+                List<BoundingBox> boundingBoxes = state.shouldDrawBoundingBox() ? services
                         .getOsmService(state.isWithDb())
-                        .getBoundingBoxes();
+                        .getBoundingBoxes() : new ArrayList<>();
                 List<HeightCurveElement> heightCurves =
                         state.shouldDrawGeoJson() ?
                                 services.getHeightCurveService().getElements()

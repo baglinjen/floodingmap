@@ -97,7 +97,12 @@ public class MouseEventOverlayComponent extends BorderPane {
                     Services.withServices(services -> {
                         double[] wb = state.getWindowBounds();
                         services.getHeightCurveService().loadGmlData(wb[0], wb[1], wb[2], wb[3]);
+                        state.updateMinMaxWaterLevels(services);
                     });
+                    break;
+                case "B":
+                    state.toggleShouldDrawBoundingBoxes();
+                    break;
                 case "R":
                     state.getRoutingConfiguration().toggleShouldVisualize();
                     break;
@@ -108,7 +113,7 @@ public class MouseEventOverlayComponent extends BorderPane {
 
         // Add debug component
         var keyLabelContainer = new HBox(
-                new Label("H: Toggle Selected HC      N: Toggle NN      S: Set Start      E: Set End      C: Calculate Route      A: Toggle A*      D: Toggle Draw HCs      L: Load HC      R: Toggle Visualize Route")
+                new Label("H: Toggle Selected HC      N: Toggle NN      S: Set Start      E: Set End      C: Calculate Route      A: Toggle A*      D: Toggle Draw HCs      L: Load HC      R: Toggle Visualize Route      B: Toggle Draw Bounding Boxes")
         );
         keyLabelContainer.setAlignment(Pos.CENTER);
         keyLabelContainer.setBackground(Background.fill(Paint.valueOf("#ffffff")));

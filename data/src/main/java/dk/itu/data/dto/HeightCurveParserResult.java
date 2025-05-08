@@ -31,7 +31,7 @@ public class HeightCurveParserResult {
     }
 
     public void sanitize() {
-        logger.info("Starting to sanitize height curve elements");
+        logger.info("Starting to sanitize {} height curve elements", elementsByHeight.values().stream().mapToInt(List::size).sum());
         elementsByHeight.values().forEach(list -> closeHeightCurvesForHeight(list, elements, unconnectedElements));
         elementsByHeight.clear();
         logger.info("Split in {} elements and {} unconnected elements - sorting by area", elements.size(), unconnectedElements.size());

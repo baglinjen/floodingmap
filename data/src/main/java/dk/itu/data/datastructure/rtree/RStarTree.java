@@ -2,6 +2,7 @@ package dk.itu.data.datastructure.rtree;
 import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.osm.OsmElement;
 import dk.itu.data.models.db.osm.OsmNode;
+import dk.itu.data.models.db.osm.OsmWay;
 import javafx.util.Pair;
 
 import java.util.*;
@@ -42,64 +43,6 @@ public class RStarTree {
         public int compareTo(NNEntry other) {
             return Double.compare(this.distance, other.distance);
         }
-    }
-
-    /**
-     * Find the nearest OsmNode to the specified coordinates
-     * @param lon Longitude of the query point
-     * @param lat Latitude of the query point
-     * @return The nearest OsmNode or null if tree is empty
-     */
-    public OsmNode getNearest(double lon, double lat) {
-        if (root == null) {
-            return null;
-        }
-
-        // Priority queue to sort by distance
-        PriorityQueue<NNEntry> queue = new PriorityQueue<>();
-
-        // Add root node to queue with its minimum destination
-        queue.add(new NNEntry(root, minDist(lon, lat, root.mbr)));
-
-        OsmNode nearest = null;
-        double nearestDist = Double.MAX_VALUE;
-
-        // Process queue until empty, or we can guarantee we found the nearest
-        while (!queue.isEmpty()) {
-            NNEntry entry = queue.poll();
-
-            // If minimum dist > nearest distance found so far, we're done
-            if (entry.distance > nearestDist) {
-                break;
-            }
-
-            if (entry.node.isLeaf()) {
-                // Check each element in the leaf
-                for (OsmElement element : entry.node.elements) {
-                    // Only consider elements that are OsmNodes
-                    if (element instanceof OsmNode node) {
-                        double dist = pointDistance(lon, lat, node.getLon(), node.getLat());
-
-                        if (dist < nearestDist) {
-                            nearest = node;
-                            nearestDist = dist;
-                        }
-                    }
-                }
-            } else {
-                // Add all children to the queue
-                for (RTreeNode child : entry.node.getChildren()) {
-                    double childDist = minDist(lon, lat, child.mbr);
-
-                    // Only add if it could contain a closer point
-                    if (childDist < nearestDist) {
-                        queue.add(new NNEntry(child, childDist));
-                    }
-                }
-            }
-        }
-
-        return nearest;
     }
 
     /**
@@ -813,7 +756,10 @@ public class RStarTree {
 
         return elementsConcurrent
                 .parallelStream()
-                .sorted(Comparator.comparingDouble(OsmElement::getArea).reversed())
+                .sorted(Comparator.comparing((e1) -> switch (e1) {
+                    case OsmWay way -> way.isLine() ? 0 : -way.getArea();
+                    default -> -e1.getArea();
+                }))
                 .toList();
     }
     private void searchScaledRecursive(RTreeNode node, BoundingBox queryBox, double minBoundingBoxArea, Collection<OsmElement> results) {
@@ -821,10 +767,6 @@ public class RStarTree {
 
         if (node.isLeaf()) {
             results.addAll(node.elements.parallelStream().filter(e -> e.getArea() >= minBoundingBoxArea).toList());
-//            node.elements
-//                    .parallelStream()
-//                    .filter(e -> e.getArea() >= minBoundingBoxArea)
-//                    .forEach(results::add);
         } else {
             node.getChildren()
                     .parallelStream()
@@ -835,7 +777,7 @@ public class RStarTree {
 
     public List<BoundingBox> getBoundingBoxes() {
         List<BoundingBox> boundingBoxes = new ArrayList<>();
-        int level = 0, levelsToCheck = 0;
+        int level = 1, levelsToCheck = Integer.MAX_VALUE;
         getBoundingBoxesRecursive(root, boundingBoxes, level, levelsToCheck);
         return boundingBoxes.stream().toList();
     }
@@ -907,7 +849,7 @@ public class RStarTree {
                 }
             } else {
                 // Add all children to the queue
-                for (RTreeNode child : entry.node.children) {
+                for (RTreeNode child : entry.node.getChildren()) {
                     double childDist = minDist(lon, lat, child.mbr);
 
                     // Only add if it could contain a closer point
