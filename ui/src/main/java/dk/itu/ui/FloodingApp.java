@@ -2,8 +2,10 @@ package dk.itu.ui;
 
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
-import dk.itu.common.configurations.CommonConfiguration;
+import dk.itu.common.models.Drawable;
 import dk.itu.data.models.db.heightcurve.HeightCurveElement;
+import dk.itu.data.models.db.osm.OsmElement;
+import dk.itu.data.models.db.osm.OsmRelation;
 import dk.itu.data.services.Services;
 import dk.itu.ui.components.MouseEventOverlayComponent;
 import dk.itu.util.LoggerFactory;
@@ -37,8 +39,8 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-//            services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
-            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
+            services.getOsmService(state.isWithDb()).loadOsmData("ky.osm");
+//            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
             state.resetWindowBounds();
 //            var bounds = state.getWindowBounds();
 //            services.getHeightCurveService().loadGmlData(bounds[0], bounds[1], bounds[2], bounds[3]);
@@ -63,15 +65,28 @@ public class FloodingApp extends GameApplication {
                 g2d.clearRect(0, 0, WIDTH, HEIGHT);
                 g2d.setTransform(state.getSuperAffine());
 
+//                var osmElements = services
+//                        .getOsmService(state.isWithDb())
+//                        .getOsmElementsToBeDrawn(
+//                                state.getOsmLimit(),
+//                                window[0],
+//                                window[1],
+//                                window[2],
+//                                window[3]
+//                        );
+
+
                 var osmElements = services
                         .getOsmService(state.isWithDb())
-                        .getOsmElementsToBeDrawn(
-                                state.getOsmLimit(),
+                        .getOsmElementsToBeDrawnScaled(
                                 window[0],
                                 window[1],
                                 window[2],
                                 window[3]
                         );
+                var boundingBoxes = services
+                        .getOsmService(state.isWithDb())
+                        .getBoundingBoxes();
                 List<HeightCurveElement> heightCurves =
                         state.shouldDrawGeoJson() ?
                                 services.getHeightCurveService().getElements()
@@ -106,30 +121,31 @@ public class FloodingApp extends GameApplication {
                 osmElements.parallelStream().forEach(e -> e.prepareDrawing(g2d));
                 heightCurves.parallelStream().forEach(e -> e.prepareDrawing(g2d));
                 // Draw elements
-                osmElements.forEach(element -> element.draw(g2d, strokeBaseWidth));
-                heightCurves.forEach(hc -> hc.draw(g2d, strokeBaseWidth));
+                osmElements.stream().filter(Drawable::shouldDraw).forEach(element -> element.draw(g2d, strokeBaseWidth));
+                heightCurves.stream().filter(Drawable::shouldDraw).forEach(hc -> hc.draw(g2d, strokeBaseWidth));
+                boundingBoxes.forEach(bb -> bb.draw(g2d, strokeBaseWidth));
 
                 // Draw dijkstra route if there is one
-                var dijkstraRoute = state.getDijkstraConfiguration().getRoute(state.isWithDb(), state.getWaterLevel());
+                var dijkstraRoute = state.getRoutingConfiguration().getRoute(state.isWithDb(), state.getWaterLevel());
                 if (dijkstraRoute != null){
                     dijkstraRoute.prepareDrawing(g2d);
                     dijkstraRoute.draw(g2d, strokeBaseWidth);
                 }
 
-                if(state.getDijkstraConfiguration().getShouldVisualize()){
-                    var nodes = state.getDijkstraConfiguration().getTouchedNodes();
+                if(state.getRoutingConfiguration().getShouldVisualize()){
+                    var nodes = state.getRoutingConfiguration().getTouchedNodes();
                     for(var n : nodes){
                         g2d.setColor(Color.MAGENTA);
                         g2d.fill(new Ellipse2D.Double(0.56*n.getLon() - strokeBaseWidth*8/2, -n.getLat() - strokeBaseWidth*8/2, strokeBaseWidth*8, strokeBaseWidth*8));
                     }
                 }
 
-                var startNode = state.getDijkstraConfiguration().getStartNode();
+                var startNode = state.getRoutingConfiguration().getStartNode();
                 if (startNode != null) {
                     g2d.setColor(Color.GREEN);
                     g2d.fill(new Ellipse2D.Double(0.56*startNode.getLon() - strokeBaseWidth*8/2, -startNode.getLat() - strokeBaseWidth*8/2, strokeBaseWidth*8, strokeBaseWidth*8));
                 }
-                var endNode = state.getDijkstraConfiguration().getEndNode();
+                var endNode = state.getRoutingConfiguration().getEndNode();
                 if (endNode != null) {
                     g2d.setColor(Color.RED);
                     g2d.fill(new Ellipse2D.Double(0.56*endNode.getLon() - strokeBaseWidth*8/2, -endNode.getLat() - strokeBaseWidth*8/2, strokeBaseWidth*8, strokeBaseWidth*8));

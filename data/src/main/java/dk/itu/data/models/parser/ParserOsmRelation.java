@@ -200,6 +200,11 @@ public class ParserOsmRelation extends ParserOsmElement {
     }
 
     @Override
+    public boolean shouldDraw() {
+        return path != null;
+    }
+
+    @Override
     public void prepareDrawing(Graphics2D g2d) {
         path = prepareComplexPolygon(g2d, outerPolygons, innerPolygons, 1);
     }

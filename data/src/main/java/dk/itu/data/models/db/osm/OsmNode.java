@@ -2,7 +2,7 @@ package dk.itu.data.models.db.osm;
 
 import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.parser.ParserOsmNode;
-import dk.itu.data.utils.DijkstraUtils;
+import dk.itu.data.utils.RoutingUtils;
 
 import java.awt.*;
 import java.util.Map;
@@ -24,7 +24,7 @@ public class OsmNode extends OsmElement {
                 parserOsmNode.getLon(),
                 parserOsmNode.getLat()
         );
-        var osmNode = new OsmNode(parserOsmNode.getId(), parserOsmNode.getLon(), parserOsmNode.getLat(), boundingBox, DijkstraUtils.buildConnectionMap(parserOsmNode));
+        var osmNode = new OsmNode(parserOsmNode.getId(), parserOsmNode.getLon(), parserOsmNode.getLat(), boundingBox, RoutingUtils.buildConnectionMap(parserOsmNode));
         osmNode.setStyle(parserOsmNode.getRgbaColor(), parserOsmNode.getStroke());
 
         return osmNode;
@@ -38,6 +38,11 @@ public class OsmNode extends OsmElement {
     }
     public Map<Long, Double> getConnectionMap() {
         return connectionMap;
+    }
+
+    @Override
+    public boolean shouldDraw() {
+        return false;
     }
 
     @Override

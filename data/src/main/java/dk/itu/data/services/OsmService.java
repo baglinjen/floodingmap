@@ -12,7 +12,9 @@ import dk.itu.util.LoggerFactory;
 import org.apache.logging.log4j.Logger;
 
 import java.sql.Connection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class OsmService {
     private static final Logger logger = LoggerFactory.getLogger();
@@ -37,9 +39,26 @@ public class OsmService {
         }
     }
 
-    public List<OsmNode> getTraversableOsmNodes(){
+    private double percentScreen = 0.02;
+    public List<OsmElement> getOsmElementsToBeDrawnScaled(double minLon, double minLat, double maxLon, double maxLat) {
         synchronized (this.osmElementRepository) {
-            return osmElementRepository.getTraversableOsmNodes();
+            return osmElementRepository.getOsmElementsScaled(minLon, minLat, maxLon, maxLat, (maxLon - minLon) * (maxLat - minLat) * percentScreen * percentScreen);
+        }
+    }
+
+    public List<BoundingBox> getBoundingBoxes() {
+        synchronized (this.osmElementRepository) {
+            return osmElementRepository.getBoundingBoxes();
+        }
+    }
+
+    public Map<Long, OsmNode> getTraversableOsmNodes(){
+        synchronized (this.osmElementRepository) {
+            var nodes = osmElementRepository.getTraversableOsmNodes();
+            var result = new HashMap<Long, OsmNode>();
+
+            nodes.forEach(node -> result.put(node.getId(), node));
+            return result;
         }
     }
 

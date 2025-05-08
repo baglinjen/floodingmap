@@ -5,7 +5,7 @@ import dk.itu.data.models.parser.ParserOsmNode;
 import java.util.HashMap;
 import java.util.Map;
 
-public class DijkstraUtils {
+public class RoutingUtils {
     private static final double EARTH_RADIUS_KM = 6371;
 
     public static Map<Long, Double> buildConnectionMap(ParserOsmNode node){

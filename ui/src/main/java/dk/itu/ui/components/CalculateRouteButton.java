@@ -8,10 +8,10 @@ public class CalculateRouteButton extends Button {
     public CalculateRouteButton(State state) {
         super("Calculate Route");
         setOnAction(_ -> {
-            if (state.getDijkstraConfiguration().getStartNode() == null || state.getDijkstraConfiguration().getEndNode() == null) {
+            if (state.getRoutingConfiguration().getStartNode() == null || state.getRoutingConfiguration().getEndNode() == null) {
                 displayAlert("Both start and end for route must be selected");
             } else {
-                state.getDijkstraConfiguration().calculateRoute(state.isWithDb());
+                state.getRoutingConfiguration().calculateRoute(state.isWithDb());
             }
         });
     }
