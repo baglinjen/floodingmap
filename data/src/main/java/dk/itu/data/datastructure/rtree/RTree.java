@@ -7,6 +7,8 @@ import javafx.util.Pair;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 /*
 * The R* Tree is based on https://infolab.usc.edu/csci599/Fall2001/paper/rstar-tree.pdf
@@ -14,7 +16,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 * */
 
 public class RTree {
-    private static final int MAX_ENTRIES = 250;  // Maximum entries in a node
+    private static final int MAX_ENTRIES = 1000;  // Maximum entries in a node
     private static final int MIN_ENTRIES = MAX_ENTRIES / 2;  // Minimum entries (40-50% of max is typical)
     private static final double REINSERT_PERCENTAGE = 0.3;  // Percentage of entries to reinsert (30% is typical)
     private static final int REINSERT_LEVELS = 5;  // Max levels for forced reinsert to prevent recursion issues
@@ -143,6 +145,7 @@ public class RTree {
      * @return List of all OsmNode elements in the tree
      */
     public List<OsmNode> getElements() {
+        // TODO: Use concurrent queue
         List<OsmNode> result = new ArrayList<>();
         if (root != null) {
             collectNodes(root, result);
@@ -402,20 +405,11 @@ public class RTree {
      * Sort elements by their center along the specified axis
      */
     private void sortElementsByAxis(List<OsmElement> elements, int axis) {
-        elements.sort((e1, e2) -> {
-            BoundingBox b1 = e1.getBoundingBox();
-            BoundingBox b2 = e2.getBoundingBox();
-
-            double center1 = (axis == 0) ?
-                    (b1.getMinLon() + b1.getMaxLon()) / 2 :
-                    (b1.getMinLat() + b1.getMaxLat()) / 2;
-
-            double center2 = (axis == 0) ?
-                    (b2.getMinLon() + b2.getMaxLon()) / 2 :
-                    (b2.getMinLat() + b2.getMaxLat()) / 2;
-
-            return Double.compare(center1, center2);
-        });
+        elements.sort(Comparator.comparingDouble(e -> (axis == 0) ?
+                // Center 1
+                (e.getBoundingBox().getMinLon() + e.getBoundingBox().getMaxLon()) / 2 :
+                // Center 2
+                (e.getBoundingBox().getMinLat() + e.getBoundingBox().getMaxLat()) / 2));
     }
 
     /**
@@ -819,7 +813,7 @@ public class RTree {
         if (node == null || !node.mbr.intersects(queryBox)) return; // No intersection, skip this branch
 
         if (node.isLeaf()) {
-            results.addAll(node.elements);
+            results.addAll(node.elements.parallelStream().filter(e -> e.getArea() >= minBoundingBoxArea).toList());
 //            node.elements
 //                    .parallelStream()
 //                    .filter(e -> e.getArea() >= minBoundingBoxArea)
@@ -828,7 +822,22 @@ public class RTree {
             node.getChildren()
                     .parallelStream()
                     .filter(child -> child.mbr.area() >= minBoundingBoxArea)
-                    .forEach(child -> searchRecursive(child, queryBox, results));
+                    .forEach(child -> searchScaledRecursive(child, queryBox, minBoundingBoxArea, results));
+        }
+    }
+
+    public List<BoundingBox> getBoundingBoxes() {
+        List<BoundingBox> boundingBoxes = new ArrayList<>();
+        int level = 0, levelsToCheck = 0;
+        getBoundingBoxesRecursive(root, boundingBoxes, level, levelsToCheck);
+        return boundingBoxes.stream().toList();
+    }
+    private void getBoundingBoxesRecursive(RTreeNode node, Collection<BoundingBox> results, int level, int levelsToCheck) {
+        results.add(node.mbr);
+        level++;
+        if (level < levelsToCheck) {
+            int finalLevel = level;
+            node.getChildren().forEach(child -> getBoundingBoxesRecursive(child, results, finalLevel, levelsToCheck));
         }
     }
 

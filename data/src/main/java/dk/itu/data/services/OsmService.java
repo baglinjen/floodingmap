@@ -39,9 +39,16 @@ public class OsmService {
         }
     }
 
-    public List<OsmElement> getOsmElementsToBeDrawnScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
+    private double percentScreen = 0.02;
+    public List<OsmElement> getOsmElementsToBeDrawnScaled(double minLon, double minLat, double maxLon, double maxLat) {
         synchronized (this.osmElementRepository) {
-            return osmElementRepository.getOsmElementsScaled(minLon, minLat, maxLon, maxLat, minBoundingBoxArea);
+            return osmElementRepository.getOsmElementsScaled(minLon, minLat, maxLon, maxLat, (maxLon - minLon) * (maxLat - minLat) * percentScreen * percentScreen);
+        }
+    }
+
+    public List<BoundingBox> getBoundingBoxes() {
+        synchronized (this.osmElementRepository) {
+            return osmElementRepository.getBoundingBoxes();
         }
     }
 

@@ -74,6 +74,11 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     }
 
     @Override
+    public synchronized List<BoundingBox> getBoundingBoxes() {
+        return rtree.getBoundingBoxes();
+    }
+
+    @Override
     public synchronized List<OsmNode> getTraversableOsmNodes() {
         return traversable.getElements();
     }

@@ -14,6 +14,7 @@ public interface OsmElementRepository {
     List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat);
     List<OsmElement> getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea);
     List<OsmNode> getTraversableOsmNodes();
+    List<BoundingBox> getBoundingBoxes();
     OsmNode getNearestTraversableOsmNode(double lon, double lat);
     void clearAll();
     BoundingBox getBounds();
