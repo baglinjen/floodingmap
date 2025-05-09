@@ -5,6 +5,7 @@ import com.almasb.fxgl.app.GameSettings;
 import dk.itu.common.models.Drawable;
 import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.heightcurve.HeightCurveElement;
+import dk.itu.data.models.db.osm.OsmElement;
 import dk.itu.data.services.Services;
 import dk.itu.ui.components.MouseEventOverlayComponent;
 import dk.itu.util.LoggerFactory;
@@ -17,6 +18,7 @@ import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 import static com.almasb.fxgl.dsl.FXGLForKtKt.*;
 import static dk.itu.util.DrawingUtils.bufferedImageToWritableImage;
@@ -38,7 +40,7 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-//            services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
+//            services.getOsmService(state.isWithDb()).loadOsmData("ky.osm");
             services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
             state.resetWindowBounds();
             state.updateMinMaxWaterLevels(services);
@@ -46,6 +48,12 @@ public class FloodingApp extends GameApplication {
 //            services.getHeightCurveService().loadGmlData(bounds[0], bounds[1], bounds[2], bounds[3]);
 
             float registeredWaterLevel = 0.0f;
+
+            CountDownLatch countDownLatch;
+
+            List<OsmElement> osmElements = new ArrayList<>();
+            List<BoundingBox> boundingBoxes = new ArrayList<>();
+            List<HeightCurveElement> heightCurves = new ArrayList<>();
 
             while (true) {
                 long start = System.nanoTime();
@@ -65,21 +73,61 @@ public class FloodingApp extends GameApplication {
                 g2d.clearRect(0, 0, WIDTH, HEIGHT);
                 g2d.setTransform(state.getSuperAffine());
 
-                var osmElements = services
-                        .getOsmService(state.isWithDb())
-                        .getOsmElementsToBeDrawnScaled(
-                                window[0],
-                                window[1],
-                                window[2],
-                                window[3]
+                countDownLatch = new CountDownLatch(3);
+
+                // Adding OSM Elements
+                CountDownLatch finalCountDownLatch = countDownLatch;
+                getExecutor().startAsyncFX(() -> {
+                    osmElements.clear();
+                    osmElements.addAll(
+                            services
+                                    .getOsmService(state.isWithDb())
+                                    .getOsmElementsToBeDrawnScaled(
+                                            window[0],
+                                            window[1],
+                                            window[2],
+                                            window[3]
+                                    )
+                    );
+                    finalCountDownLatch.countDown();
+                });
+                // Adding Bounding Boxes
+                CountDownLatch finalCountDownLatch1 = countDownLatch;
+                getExecutor().startAsyncFX(() -> {
+                    boundingBoxes.clear();
+                    if (state.shouldDrawBoundingBox()) {
+                        boundingBoxes.addAll(
+                                services
+                                        .getOsmService(state.isWithDb())
+                                        .getBoundingBoxes()
                         );
-                List<BoundingBox> boundingBoxes = state.shouldDrawBoundingBox() ? services
-                        .getOsmService(state.isWithDb())
-                        .getBoundingBoxes() : new ArrayList<>();
-                List<HeightCurveElement> heightCurves =
-                        state.shouldDrawGeoJson() ?
-                                services.getHeightCurveService().getElements()
-                                : new ArrayList<>();
+                    }
+                    finalCountDownLatch1.countDown();
+                });
+                // Adding Height Curves
+                CountDownLatch finalCountDownLatch2 = countDownLatch;
+                getExecutor().startAsyncFX(() -> {
+                    heightCurves.clear();
+                    if (state.shouldDrawGeoJson()) {
+                        heightCurves.addAll(
+                                services
+                                        .getHeightCurveService()
+                                        .searchScaled(
+                                                window[0],
+                                                window[1],
+                                                window[2],
+                                                window[3]
+                                        )
+                        );
+                    }
+                    finalCountDownLatch2.countDown();
+                });
+
+                try {
+                    countDownLatch.await();
+                } catch (InterruptedException e) {
+                    logger.error(e.getMessage(), e);
+                }
 
                 if(state.getWaterLevel() != registeredWaterLevel) {
                     if (simulationThread != null && simulationThread.isAlive()) {
@@ -152,7 +200,7 @@ public class FloodingApp extends GameApplication {
 
                 view.setImage(bufferedImageToWritableImage(image));
 
-//                logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
+                logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
             }
         });
     }
