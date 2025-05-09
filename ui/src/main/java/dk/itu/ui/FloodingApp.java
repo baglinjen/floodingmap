@@ -2,7 +2,8 @@ package dk.itu.ui;
 
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
-import dk.itu.common.configurations.CommonConfiguration;
+import dk.itu.common.models.Drawable;
+import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.heightcurve.HeightCurveElement;
 import dk.itu.data.services.Services;
 import dk.itu.ui.components.MouseEventOverlayComponent;
@@ -37,8 +38,8 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-            //services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
-            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
+//            services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
+            services.getOsmService(state.isWithDb()).loadOsmData("ky.osm");
             state.resetWindowBounds();
             state.updateMinMaxWaterLevels(services);
 //            var bounds = state.getWindowBounds();
@@ -66,13 +67,15 @@ public class FloodingApp extends GameApplication {
 
                 var osmElements = services
                         .getOsmService(state.isWithDb())
-                        .getOsmElementsToBeDrawn(
-                                state.getOsmLimit(),
+                        .getOsmElementsToBeDrawnScaled(
                                 window[0],
                                 window[1],
                                 window[2],
                                 window[3]
                         );
+                List<BoundingBox> boundingBoxes = state.shouldDrawBoundingBox() ? services
+                        .getOsmService(state.isWithDb())
+                        .getBoundingBoxes() : new ArrayList<>();
                 List<HeightCurveElement> heightCurves =
                         state.shouldDrawGeoJson() ?
                                 services.getHeightCurveService().getElements()
@@ -107,8 +110,9 @@ public class FloodingApp extends GameApplication {
                 osmElements.parallelStream().forEach(e -> e.prepareDrawing(g2d));
                 heightCurves.parallelStream().forEach(e -> e.prepareDrawing(g2d));
                 // Draw elements
-                osmElements.forEach(element -> element.draw(g2d, strokeBaseWidth));
-                heightCurves.forEach(hc -> hc.draw(g2d, strokeBaseWidth));
+                osmElements.stream().filter(Drawable::shouldDraw).forEach(element -> element.draw(g2d, strokeBaseWidth));
+                heightCurves.stream().filter(Drawable::shouldDraw).forEach(hc -> hc.draw(g2d, strokeBaseWidth));
+                boundingBoxes.forEach(bb -> bb.draw(g2d, strokeBaseWidth));
 
                 // Draw dijkstra route if there is one
                 var dijkstraRoute = state.getRoutingConfiguration().getRoute(state.isWithDb(), state.getWaterLevel());

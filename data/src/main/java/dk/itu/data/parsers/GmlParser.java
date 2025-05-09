@@ -26,7 +26,8 @@ import static dk.itu.util.CoordinateUtils.wgsToUtm;
 
 public class GmlParser {
     private static final Logger logger = LoggerFactory.getLogger();
-    private static final int TIMEOUT_SECONDS = 45, MAX_RETRIES = 8;
+    private static final int TIMEOUT_SECONDS = 60, MAX_RETRIES = 64, MAX_IO_RETRIES = 32; // Max 32 retries - 32 io retries counts for 1 retry
+    private static final double IO_MIN_DELAY_MS = 50, IO_DELAY_VARIANCE_MS = 500;
     private static final HttpClient httpClient = HttpClient
             .newBuilder()
             .connectTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
@@ -105,17 +106,25 @@ public class GmlParser {
                     .build();
 
             // Retry logic
-            int count = 0;
+            int count = 0, ioRetryCount = 0;
             while (count < MAX_RETRIES) {
                 try {
                     processCompletableFutureInputStream(httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream()).body(), result);
                     return;
-                } catch (IOException | InterruptedException | XMLStreamException e) {
-                    logger.warn("Error occurred sending request at attempt {} for bounds {} {}", count, minBounds, maxBounds);
+                } catch (IOException e) {
+                    ioRetryCount++;
+                    Thread.sleep(Math.round(IO_MIN_DELAY_MS + (Math.random() * IO_DELAY_VARIANCE_MS)));
+                    if (ioRetryCount >= MAX_IO_RETRIES) {
+                        count++;
+                        ioRetryCount = 0;
+                    }
+                } catch (InterruptedException | XMLStreamException e) {
+                    logger.warn("Error occurred sending request at attempt {} with {} io retries for bounds {} {}", count, ioRetryCount, minBounds, maxBounds);
                     count++;
+                    ioRetryCount = 0;
                 }
             }
-            logger.error("Failed sending request after {} attempts for bounds {} {}", count, minBounds, maxBounds);
+            logger.error("Failed sending request after {} attempts and {} io retries for bounds {} {}", count, ioRetryCount, minBounds, maxBounds);
         } catch (Exception e) {
             logger.error("Encountered some error trying to connect to dataforsyningen", e);
         }

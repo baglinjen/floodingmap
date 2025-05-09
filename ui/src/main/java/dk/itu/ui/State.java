@@ -28,7 +28,7 @@ public class State {
     private HeightCurveElement hcSelected = null;
     private NearestNeighbour selectedOsmElement = null;
     private boolean withDb = CommonConfiguration.getInstance().getUseDb();
-    private boolean showNearestNeighbour = false;
+    private boolean showNearestNeighbour = false, shouldDrawBoundingBox = false;
 
     public State(Services services) {
         this.routingConfiguration = new RoutingConfiguration();
@@ -176,5 +176,13 @@ public class State {
     public void setWithDb(boolean withDb) {
         // TODO: Use this in component
         this.withDb = withDb;
+    }
+
+    public boolean shouldDrawBoundingBox() {
+        return shouldDrawBoundingBox;
+    }
+
+    public void toggleShouldDrawBoundingBoxes() {
+        this.shouldDrawBoundingBox = !shouldDrawBoundingBox;
     }
 }

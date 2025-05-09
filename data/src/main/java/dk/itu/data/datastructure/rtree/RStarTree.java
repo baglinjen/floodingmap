@@ -2,18 +2,22 @@ package dk.itu.data.datastructure.rtree;
 import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.osm.OsmElement;
 import dk.itu.data.models.db.osm.OsmNode;
+import dk.itu.data.models.db.osm.OsmWay;
 import javafx.util.Pair;
 
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 /*
 * The R* Tree is based on https://infolab.usc.edu/csci599/Fall2001/paper/rstar-tree.pdf
 * Min entries and reinsert percentage are based on the report (p. 327)
 * */
 
-public class RTree {
-    private static final int MAX_ENTRIES = 500;  // Maximum entries in a node
+public class RStarTree {
+    private static final int MAX_ENTRIES = 1000;  // Maximum entries in a node
     private static final int MIN_ENTRIES = MAX_ENTRIES / 2;  // Minimum entries (40-50% of max is typical)
     private static final double REINSERT_PERCENTAGE = 0.3;  // Percentage of entries to reinsert (30% is typical)
     private static final int REINSERT_LEVELS = 5;  // Max levels for forced reinsert to prevent recursion issues
@@ -23,74 +27,22 @@ public class RTree {
 
     private RTreeNode root;
 
-    /*
-    * The root of the R tree
-    * */
-    public RTreeNode getRoot() {
-        return root;
-    }
-
-    public BoundingBox getBoundingBox() {
-        if (root == null) return null;
-        return root.getMBR();
-    }
-
     /**
-     * Find the nearest OsmNode to the specified coordinates
-     * @param lon Longitude of the query point
-     * @param lat Latitude of the query point
-     * @return The nearest OsmNode or null if tree is empty
+     * Helper class for nearest neighbor queue entries
      */
-    public OsmNode getNearest(double lon, double lat) {
-        if (root == null) {
-            return null;
+    private static class NNEntry implements Comparable<NNEntry> {
+        RTreeNode node;
+        double distance;
+
+        public NNEntry(RTreeNode node, double distance) {
+            this.node = node;
+            this.distance = distance;
         }
 
-        // Priority queue to sort by distance
-        PriorityQueue<NNEntry> queue = new PriorityQueue<>();
-
-        // Add root node to queue with its minimum destination
-        queue.add(new NNEntry(root, minDist(lon, lat, root.mbr)));
-
-        OsmNode nearest = null;
-        double nearestDist = Double.MAX_VALUE;
-
-        // Process queue until empty, or we can guarantee we found the nearest
-        while (!queue.isEmpty()) {
-            NNEntry entry = queue.poll();
-
-            // If minimum dist > nearest distance found so far, we're done
-            if (entry.distance > nearestDist) {
-                break;
-            }
-
-            if (entry.node.isLeaf()) {
-                // Check each element in the leaf
-                for (OsmElement element : entry.node.elements) {
-                    // Only consider elements that are OsmNodes
-                    if (element instanceof OsmNode node) {
-                        double dist = pointDistance(lon, lat, node.getLon(), node.getLat());
-
-                        if (dist < nearestDist) {
-                            nearest = node;
-                            nearestDist = dist;
-                        }
-                    }
-                }
-            } else {
-                // Add all children to the queue
-                for (RTreeNode child : entry.node.children) {
-                    double childDist = minDist(lon, lat, child.mbr);
-
-                    // Only add if it could contain a closer point
-                    if (childDist < nearestDist) {
-                        queue.add(new NNEntry(child, childDist));
-                    }
-                }
-            }
+        @Override
+        public int compareTo(NNEntry other) {
+            return Double.compare(this.distance, other.distance);
         }
-
-        return nearest;
     }
 
     /**
@@ -142,6 +94,7 @@ public class RTree {
      * @return List of all OsmNode elements in the tree
      */
     public List<OsmNode> getElements() {
+        // TODO: Use concurrent queue
         List<OsmNode> result = new ArrayList<>();
         if (root != null) {
             collectNodes(root, result);
@@ -162,7 +115,7 @@ public class RTree {
                 }
             }
         } else {
-            for (RTreeNode child : node.children) {
+            for (RTreeNode child : node.getChildren()) {
                 collectNodes(child, result);
             }
         }
@@ -183,7 +136,7 @@ public class RTree {
         double minEnlargement = Double.POSITIVE_INFINITY;
         double minArea = Double.POSITIVE_INFINITY;
 
-        for (RTreeNode child : node.children) {
+        for (RTreeNode child : node.getChildren()) {
             // Calculate how much the child's MBR would need to be enlarged
             double enlargement = child.mbr.getExpanded(elementBox).area() - child.mbr.area();
             double area = child.mbr.area();
@@ -401,20 +354,11 @@ public class RTree {
      * Sort elements by their center along the specified axis
      */
     private void sortElementsByAxis(List<OsmElement> elements, int axis) {
-        elements.sort((e1, e2) -> {
-            BoundingBox b1 = e1.getBoundingBox();
-            BoundingBox b2 = e2.getBoundingBox();
-
-            double center1 = (axis == 0) ?
-                    (b1.getMinLon() + b1.getMaxLon()) / 2 :
-                    (b1.getMinLat() + b1.getMaxLat()) / 2;
-
-            double center2 = (axis == 0) ?
-                    (b2.getMinLon() + b2.getMaxLon()) / 2 :
-                    (b2.getMinLat() + b2.getMaxLat()) / 2;
-
-            return Double.compare(center1, center2);
-        });
+        elements.sort(Comparator.comparingDouble(e -> (axis == 0) ?
+                // Center 1
+                (e.getBoundingBox().getMinLon() + e.getBoundingBox().getMaxLon()) / 2 :
+                // Center 2
+                (e.getBoundingBox().getMinLat() + e.getBoundingBox().getMaxLat()) / 2));
     }
 
     /**
@@ -487,7 +431,7 @@ public class RTree {
             newNode.elements = group2;
         } else {
             // Handle internal node split
-            List<RTreeNode> children = new ArrayList<>(node.children);
+            List<RTreeNode> children = new ArrayList<>(node.getChildren());
 
             // Choose split axis and distribution
             int bestAxis = chooseSplitAxisForInternal(children);
@@ -503,8 +447,8 @@ public class RTree {
                     children.subList(distribution[0], children.size()));
 
             // Update nodes
-            node.children = group1;
-            newNode.children = group2;
+            node.setChildren(group1);
+            newNode.setChildren(group2);
         }
 
         // Update MBRs
@@ -532,16 +476,16 @@ public class RTree {
             for (int i = 1; i < node.elements.size(); i++) {
                 node.mbr.expand(node.elements.get(i).getBoundingBox());
             }
-        } else if (!node.isLeaf() && !node.children.isEmpty()) {
+        } else if (!node.isLeaf() && !node.getChildren().isEmpty()) {
             // Get first child's bounding box
-            BoundingBox first = node.children.getFirst().mbr;
+            BoundingBox first = node.getChildren().getFirst().mbr;
             node.mbr = new BoundingBox(first.getMinLon(), first.getMinLat(),
                     first.getMaxLon(), first.getMaxLat());
 
             // Expand for remaining children
-            for (int i = 1; i < node.children.size(); i++) {
-                if (node.children.get(i).mbr != null) {
-                    node.mbr.expand(node.children.get(i).mbr);
+            for (int i = 1; i < node.getChildren().size(); i++) {
+                if (node.getChildren().get(i).mbr != null) {
+                    node.mbr.expand(node.getChildren().get(i).mbr);
                 }
             }
         } else {
@@ -557,7 +501,7 @@ public class RTree {
         // Check if reinsert is needed
         boolean isFull = node.isLeaf() ?
                 node.elements.size() > MAX_ENTRIES :
-                node.children.size() > MAX_ENTRIES;
+                node.getChildren().size() > MAX_ENTRIES;
 
         if (!isFull) {
             return false;
@@ -596,7 +540,7 @@ public class RTree {
             }
         } else {
             // Handle internal node - work directly with children list
-            List<RTreeNode> children = new ArrayList<>(node.children);
+            List<RTreeNode> children = new ArrayList<>(node.getChildren());
 
             // Sort by distance from center
             children.sort((c1, c2) -> {
@@ -611,7 +555,7 @@ public class RTree {
                     new ArrayList<>(children.subList(0, reinsertCount));
 
             // Keep the rest
-            node.children = new ArrayList<>(children.subList(reinsertCount, children.size()));
+            node.setChildren(new ArrayList<>(children.subList(reinsertCount, children.size())));
             node.updateBoundingBox();
 
             // Reinsert children
@@ -638,16 +582,14 @@ public class RTree {
         targetNode.addChild(nodeToInsert);
 
         // Find parent for adjustment
-        RTreeNode parent = findParent(root, targetNode);
-
         // Check if we need to split
         RTreeNode newNode = null;
-        if (targetNode.children.size() > MAX_ENTRIES) {
+        if (targetNode.getChildren().size() > MAX_ENTRIES) {
             newNode = splitInternal(targetNode);
         }
 
         // Adjust tree upward
-        adjustTree(targetNode, newNode, parent);
+        adjustTree(targetNode, newNode, targetNode.getParent());
     }
 
     /**
@@ -662,7 +604,7 @@ public class RTree {
         RTreeNode bestChild = null;
         double minEnlargement = Double.POSITIVE_INFINITY;
 
-        for (RTreeNode child : node.children) {
+        for (RTreeNode child : node.getChildren()) {
             double enlargement = child.mbr.getExpanded(mbr).area() - child.mbr.area();
             if (bestChild == null || enlargement < minEnlargement) {
                 minEnlargement = enlargement;
@@ -707,15 +649,12 @@ public class RTree {
 
         // Check if parent needs splitting
         RTreeNode splitParent = null;
-        if (parent.children.size() > MAX_ENTRIES) {
+        if (parent.getChildren().size() > MAX_ENTRIES) {
             splitParent = splitInternal(parent);
         }
 
-        // Calculate grandparent
-        RTreeNode grandparent = findParent(root, parent);
-
         // Continue adjusting up the tree
-        adjustTree(parent, splitParent, grandparent);
+        adjustTree(parent, splitParent, parent.getParent());
     }
 
     private double getDistance(BoundingBox box, Pair<Double, Double> center) {
@@ -742,7 +681,7 @@ public class RTree {
             level++;
             boolean found = false;
 
-            for (RTreeNode child : current.children) {
+            for (RTreeNode child : current.getChildren()) {
                 if (containsNode(child, node)) {
                     current = child;
                     found = true;
@@ -759,54 +698,20 @@ public class RTree {
     private boolean containsNode(RTreeNode parent, RTreeNode target) {
         if (parent == target) return true;
 
-        for (RTreeNode child : parent.children) {
+        for (RTreeNode child : parent.getChildren()) {
             if (containsNode(child, target)) return true;
         }
 
         return false;
     }
 
-    /**
-     * Find the parent of a node in the tree
-     */
-    private RTreeNode findParent(RTreeNode current, RTreeNode target) {
-        if (current == null || current == target) {
-            return null;
-        }
+    private void searchRecursive(RTreeNode node, BoundingBox queryBox, Collection<OsmElement> results) {
+        if (node == null || !node.mbr.intersects(queryBox)) return; // No intersection, skip this branch
 
-        // Check if any children are the target
-        for (RTreeNode child : current.children) {
-            if (child == target) {
-                return current;
-            }
-        }
-
-        // Recursively check in each child
-        for (RTreeNode child : current.children) {
-            RTreeNode result = findParent(child, target);
-            if (result != null) {
-                return result;
-            }
-        }
-
-        return null;
-    }
-
-    private void searchRecursive(RTreeNode node, BoundingBox queryBox, List<OsmElement> results) {
-        if (!node.mbr.intersects(queryBox)) {
-            return; // No intersection, skip this branch
-        }
-
-        if (node.isLeaf()) { // If it's a leaf, add matching elements
-            for (OsmElement element : node.elements) {
-                if (element.getBoundingBox().intersects(queryBox)) {
-                    results.add(element);
-                }
-            }
+        if (node.isLeaf()) {
+            results.addAll(node.elements);
         } else {
-            for (RTreeNode child : node.children) {   // Recurse into children
-                searchRecursive(child, queryBox, results);
-            }
+            node.getChildren().parallelStream().forEach(child -> searchRecursive(child, queryBox, results));
         }
     }
 
@@ -829,37 +734,141 @@ public class RTree {
         }
 
         // Find parent and propagate changes upward
-        RTreeNode parent = findParent(root, leaf);
-        adjustTree(leaf, newNode, parent);
+        adjustTree(leaf, newNode, leaf.getParent());
     }
 
+
     public List<OsmElement> search(double minLon, double minLat, double maxLon, double maxLat) {
-        List<OsmElement> elements = new ArrayList<>();
+        Collection<OsmElement> elementsConcurrent = new ConcurrentLinkedQueue<>();
 
-        searchRecursive(root, new BoundingBox(minLon, minLat, maxLon, maxLat), elements);
+        searchRecursive(root, new BoundingBox(minLon, minLat, maxLon, maxLat), elementsConcurrent);
 
-        return elements
+        return elementsConcurrent
                 .parallelStream()
                 .sorted(Comparator.comparingDouble(OsmElement::getArea).reversed())
                 .toList();
     }
 
+    public List<OsmElement> searchScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
+        Collection<OsmElement> elementsConcurrent = new ConcurrentLinkedQueue<>();
+
+        searchScaledRecursive(root, new BoundingBox(minLon, minLat, maxLon, maxLat), minBoundingBoxArea, elementsConcurrent);
+
+        return elementsConcurrent
+                .parallelStream()
+                .sorted(Comparator.comparing((e1) -> switch (e1) {
+                    case OsmWay way -> way.isLine() ? 0 : -way.getArea();
+                    default -> -e1.getArea();
+                }))
+                .toList();
+    }
+    private void searchScaledRecursive(RTreeNode node, BoundingBox queryBox, double minBoundingBoxArea, Collection<OsmElement> results) {
+        if (node == null || !node.mbr.intersects(queryBox)) return; // No intersection, skip this branch
+
+        if (node.isLeaf()) {
+            results.addAll(node.elements.parallelStream().filter(e -> e.getArea() >= minBoundingBoxArea).toList());
+        } else {
+            node.getChildren()
+                    .parallelStream()
+                    .filter(child -> child.mbr.area() >= minBoundingBoxArea)
+                    .forEach(child -> searchScaledRecursive(child, queryBox, minBoundingBoxArea, results));
+        }
+    }
+
+    public List<BoundingBox> getBoundingBoxes() {
+        List<BoundingBox> boundingBoxes = new ArrayList<>();
+        int level = 1, levelsToCheck = Integer.MAX_VALUE;
+        getBoundingBoxesRecursive(root, boundingBoxes, level, levelsToCheck);
+        return boundingBoxes.stream().toList();
+    }
+    private void getBoundingBoxesRecursive(RTreeNode node, Collection<BoundingBox> results, int level, int levelsToCheck) {
+        results.add(node.mbr);
+        level++;
+        if (level < levelsToCheck) {
+            int finalLevel = level;
+            node.getChildren().forEach(child -> getBoundingBoxesRecursive(child, results, finalLevel, levelsToCheck));
+        }
+    }
+
+    /*
+     * The root of the R tree
+     * */
+    public RTreeNode getRoot() {
+        return root;
+    }
+
+    /*
+    * Bounding box for the whole tree (root's bounding box)
+    * */
+    public BoundingBox getBoundingBox() {
+        if (root == null) return null;
+        return root.getMBR();
+    }
+
     /**
-     * Helper class for nearest neighbor queue entries
+     * Find the nearest OsmNode to the specified coordinates
+     * @param lon Longitude of the query point
+     * @param lat Latitude of the query point
+     * @return The nearest OsmNode or null if tree is empty
      */
-    private static class NNEntry implements Comparable<NNEntry> {
-        RTreeNode node;
-        double distance;
-
-        public NNEntry(RTreeNode node, double distance) {
-            this.node = node;
-            this.distance = distance;
+    public OsmNode getNearest(double lon, double lat) {
+        if (root == null) {
+            return null;
         }
 
-        @Override
-        public int compareTo(NNEntry other) {
-            return Double.compare(this.distance, other.distance);
+        // Priority queue to sort by distance
+        PriorityQueue<NNEntry> queue = new PriorityQueue<>();
+
+        // Add root node to queue with its minimum destination
+        queue.add(new NNEntry(root, minDist(lon, lat, root.mbr)));
+
+        OsmNode nearest = null;
+        double nearestDist = Double.MAX_VALUE;
+
+        // Process queue until empty, or we can guarantee we found the nearest
+        while (!queue.isEmpty()) {
+            NNEntry entry = queue.poll();
+
+            // If minimum dist > nearest distance found so far, we're done
+            if (entry.distance > nearestDist) {
+                break;
+            }
+
+            if (entry.node.isLeaf()) {
+                // Check each element in the leaf
+                for (OsmElement element : entry.node.elements) {
+                    // Only consider elements that are OsmNodes
+                    if (element instanceof OsmNode node) {
+                        double dist = pointDistance(lon, lat, node.getLon(), node.getLat());
+
+                        if (dist < nearestDist) {
+                            nearest = node;
+                            nearestDist = dist;
+                        }
+                    }
+                }
+            } else {
+                // Add all children to the queue
+                for (RTreeNode child : entry.node.getChildren()) {
+                    double childDist = minDist(lon, lat, child.mbr);
+
+                    // Only add if it could contain a closer point
+                    if (childDist < nearestDist) {
+                        queue.add(new NNEntry(child, childDist));
+                    }
+                }
+            }
         }
+
+        return nearest;
+    }
+
+    /**
+     * Clears all elements from the R-tree.
+     */
+    public void clear() {
+        root = null;
+        reinsertLevels.clear();
     }
 }
 

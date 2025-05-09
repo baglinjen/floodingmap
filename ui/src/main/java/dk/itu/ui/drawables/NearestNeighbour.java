@@ -19,6 +19,11 @@ public class NearestNeighbour extends Colored {
     public OsmNode getSelectedOsmElement() {
         return selectedOsmElement;
     }
+
+    @Override
+    public boolean shouldDraw() {
+        return true;
+    }
     
     @Override
     public void prepareDrawing(Graphics2D g2d) { /* Nothing to prepare */ }

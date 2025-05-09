@@ -31,7 +31,7 @@ public class OsmWay extends OsmElement {
         var osmWay = new OsmWay(
                 parserOsmWay.getId(),
                 parserOsmWay.isLine(), boundingBox,
-                parserOsmWay.isLine() ? 0 : parserOsmWay.getArea(),
+                parserOsmWay.getArea(),
                 parserOsmWay.getCoordinates()
         );
 
@@ -46,10 +46,23 @@ public class OsmWay extends OsmElement {
         return way;
     }
 
+    public boolean isLine() {
+        return isLine;
+    }
+
+    @Override
+    public boolean shouldDraw() {
+        return path != null;
+    }
 
     @Override
     public void prepareDrawing(Graphics2D g2d) {
         path = isLine ? prepareLinePath(g2d, outerCoordinates, DRAWING_TOLERANCE) : preparePolygonPath(g2d, outerCoordinates, DRAWING_TOLERANCE);
+//        if (this.getBoundingBox() != null && this.getBoundingBox().minimumLength() * g2d.getTransform().getScaleX() >= DRAWING_AREA_TOLERANCE) {
+//            path = isLine ? prepareLinePath(g2d, outerCoordinates, DRAWING_TOLERANCE) : preparePolygonPath(g2d, outerCoordinates, DRAWING_TOLERANCE);
+//        } else {
+//            path = null;
+//        }
     }
 
     @Override

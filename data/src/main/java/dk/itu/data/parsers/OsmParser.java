@@ -6,8 +6,8 @@ import dk.itu.data.dto.OsmElementBuilder;
 import dk.itu.data.dto.OsmParserResult;
 import dk.itu.util.LoggerFactory;
 import org.apache.logging.log4j.Logger;
+import org.codehaus.stax2.XMLInputFactory2;
 
-import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import java.io.IOException;
@@ -18,12 +18,14 @@ public class OsmParser {
 
     public static void parse(String fileName, OsmParserResult osmParserResult) {
         logger.info("Starting parsing file {}", fileName);
+        long startTime = System.nanoTime();
 
         OsmElementBuilder elementBuilder = new OsmElementBuilder(osmParserResult);
 
         try (InputStream is = CommonConfiguration.class.getClassLoader().getResourceAsStream("osm/"+fileName)) {
             // Reading utils
-            XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
+            XMLInputFactory2 xmlInputFactory = (XMLInputFactory2) XMLInputFactory2.newInstance();
+            xmlInputFactory.configureForSpeed();
             XMLStreamReader reader = xmlInputFactory.createXMLStreamReader(is);
 
             while (reader.hasNext()) {
@@ -69,7 +71,7 @@ public class OsmParser {
                 }
             }
 
-            logger.info("Finished parsing file {}", fileName);
+            logger.info("Finished parsing file {} in {}ms", fileName, String.format("%.3f", (System.nanoTime() - startTime) / 1_000_000d));
 
         } catch (IOException | XMLStreamException e) {
             logger.error("Failed to parse file", e);

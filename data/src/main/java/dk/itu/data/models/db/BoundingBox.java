@@ -1,16 +1,23 @@
 package dk.itu.data.models.db;
 
-import java.awt.geom.Point2D;
+import dk.itu.common.configurations.DrawingConfiguration;
+import dk.itu.common.models.Colored;
+
+import java.awt.*;
+import java.awt.geom.Rectangle2D;
 import java.io.Serializable;
 
-public class BoundingBox implements Serializable {
-    private double minLon, minLat, maxLon, maxLat;
+public class BoundingBox extends Colored implements Serializable {
+    private static final DrawingConfiguration.Style STYLE = new DrawingConfiguration.Style(Color.BLACK, 1);
+    private double minLon, minLat, maxLon, maxLat, area;
 
     public BoundingBox(double minLon, double minLat, double maxLon, double maxLat) {
         this.minLon = minLon;
         this.minLat = minLat;
         this.maxLon = maxLon;
         this.maxLat = maxLat;
+        setStyle(STYLE);
+        calculateArea();
     }
 
     public void expand(BoundingBox other) {
@@ -18,14 +25,12 @@ public class BoundingBox implements Serializable {
         minLat = Math.min(this.minLat, other.minLat);
         maxLon = Math.max(this.maxLon, other.maxLon);
         maxLat = Math.max(this.maxLat, other.maxLat);
+        calculateArea();
     }
 
     public boolean intersects(BoundingBox other) {
         return !(this.minLon > other.maxLon || this.maxLon < other.minLon ||
                 this.minLat > other.maxLat || this.maxLat < other.minLat);
-    }
-    public boolean contains(Point2D.Double point) {
-        return point.x >= minLon && point.x <= maxLon && point.y >= minLat && point.y <= maxLat;
     }
 
     public double intersectionArea(BoundingBox other) {
@@ -38,7 +43,10 @@ public class BoundingBox implements Serializable {
     }
 
     public double area() {
-        return (maxLon - minLon) * (maxLat - minLat);
+        return this.area;
+    }
+    private void calculateArea() {
+        this.area = (maxLon - minLon) * (maxLat - minLat);
     }
 
     public BoundingBox getExpanded(BoundingBox other) {
@@ -48,12 +56,6 @@ public class BoundingBox implements Serializable {
                 Math.max(this.maxLon, other.maxLon),
                 Math.max(this.maxLat, other.maxLat)
         );
-    }
-
-    public double distanceTo(Point2D.Double p) {
-        double bestDx = Math.min(Math.abs(minLon - p.x), Math.abs(maxLon - p.x));
-        double bestDy = Math.min(Math.abs(minLat - p.y), Math.abs(maxLat - p.y));
-        return Math.sqrt(Math.pow(bestDx, 2) + Math.pow(bestDy, 2));
     }
 
     public double distanceToBoundingBox(BoundingBox other) {
@@ -84,5 +86,22 @@ public class BoundingBox implements Serializable {
 
     public double getMaxLat() {
         return maxLat;
+    }
+
+    @Override
+    public void prepareDrawing(Graphics2D g2d) {
+
+    }
+
+    @Override
+    public boolean shouldDraw() {
+        return true;
+    }
+
+    @Override
+    public void draw(Graphics2D g2d, float strokeBaseWidth) {
+        g2d.setColor(getRgbaColor());
+        g2d.setStroke(new BasicStroke(strokeBaseWidth * getStroke()));
+        g2d.draw(new Rectangle2D.Double(0.56*minLon, -maxLat, 0.56*(maxLon - minLon), maxLat - minLat));
     }
 }

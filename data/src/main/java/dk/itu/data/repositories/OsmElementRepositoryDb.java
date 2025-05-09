@@ -202,6 +202,16 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
     }
 
     @Override
+    public List<OsmElement> getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
+        return List.of();
+    }
+
+    @Override
+    public List<BoundingBox> getBoundingBoxes() {
+        return List.of();
+    }
+
+    @Override
     public List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
         String condWays = String.format("COALESCE(w.line, w.polygon) && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
         String condRelations = String.format("r.shape && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);

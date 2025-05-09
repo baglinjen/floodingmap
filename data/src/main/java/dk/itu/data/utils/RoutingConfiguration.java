@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class RoutingConfiguration {
     private static final Logger logger = LoggerFactory.getLogger();
@@ -87,16 +88,19 @@ public class RoutingConfiguration {
         nodes.put(startNode.getId(), startNode);
         nodes.put(endNode.getId(), endNode);
 
-        Map<OsmNode, OsmNode> previousNodes = new HashMap<>();
-        Map<OsmNode, Double> distances = new HashMap<>();
-        Map<OsmNode, Double> heuristicDistances = new HashMap<>();
+        Map<OsmNode, OsmNode> previousNodes = new ConcurrentHashMap<>();
+        Map<OsmNode, Double> distances = new ConcurrentHashMap<>();
+        Map<OsmNode, Double> heuristicDistances = new ConcurrentHashMap<>();
 
         PriorityQueue<OsmNode> pq = new PriorityQueue<>(Comparator.comparingDouble(n -> heuristicDistances.getOrDefault(n, Double.MAX_VALUE)));
 
-        nodes.forEach((k,v) -> {
-            distances.put(v, v == startNode ? 0.0 : Double.MAX_VALUE);
-            heuristicDistances.put(v, v == endNode ? 0.0 : Double.MAX_VALUE);
-        });
+        nodes
+                .values()
+                .parallelStream()
+                .forEach(v -> {
+                    distances.put(v, v == startNode ? 0.0 : Double.MAX_VALUE);
+                    heuristicDistances.put(v, v == endNode ? 0.0 : Double.MAX_VALUE);
+                });
 
         pq.offer(startNode);
 
