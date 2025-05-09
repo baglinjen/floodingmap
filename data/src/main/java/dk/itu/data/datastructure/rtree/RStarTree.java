@@ -709,7 +709,10 @@ public class RStarTree {
         if (node == null || !node.mbr.intersects(queryBox)) return; // No intersection, skip this branch
 
         if (node.isLeaf()) {
-            results.addAll(node.elements);
+                node.elements.parallelStream().forEach(element -> {
+                    if (element.getBoundingBox().intersects(queryBox))
+                        results.add(element);
+                    });
         } else {
             node.getChildren().parallelStream().forEach(child -> searchRecursive(child, queryBox, results));
         }
