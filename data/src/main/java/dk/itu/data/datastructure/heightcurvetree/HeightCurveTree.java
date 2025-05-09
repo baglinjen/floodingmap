@@ -1,6 +1,10 @@
 package dk.itu.data.datastructure.heightcurvetree;
 
+import dk.itu.data.datastructure.rtree.RTreeNode;
+import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.heightcurve.HeightCurveElement;
+import dk.itu.data.models.db.osm.OsmElement;
+import dk.itu.data.models.db.osm.OsmWay;
 import dk.itu.data.models.parser.ParserHeightCurveElement;
 import dk.itu.util.PolygonUtils;
 
@@ -42,6 +46,25 @@ public class HeightCurveTree {
     private void getElements(HeightCurveTreeNode node, Queue<HeightCurveElement> elements) {
         elements.add(node.heightCurveElement);
         node.children.parallelStream().forEach(child -> getElements(child, elements));
+    }
+
+    public List<HeightCurveElement> searchScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
+        Collection<HeightCurveElement> elementsConcurrent = new ConcurrentLinkedQueue<>();
+
+        searchScaledRecursive(root, new BoundingBox(minLon, minLat, maxLon, maxLat), minBoundingBoxArea, elementsConcurrent);
+
+        return elementsConcurrent
+                .parallelStream()
+                .filter(e -> e.getArea() >= minBoundingBoxArea)
+                .toList();
+    }
+    private void searchScaledRecursive(HeightCurveTreeNode node, BoundingBox queryBox, double minBoundingBoxArea, Collection<HeightCurveElement> results) {
+        // If heightCurveElement intersects => add to list => Run with children
+        if (queryBox.intersects(node.heightCurveElement.getBounds())) {
+            results.add(node.heightCurveElement);
+            node.children.parallelStream().forEach(child -> searchScaledRecursive(child, queryBox, minBoundingBoxArea, results));
+        }
+        // Else => nothing
     }
 
     public List<List<HeightCurveElement>> getFloodingStepsConcurrent(float waterLevel) {
@@ -113,9 +136,9 @@ public class HeightCurveTree {
             // Candidates are children which are bigger than element => might contain so sort by biggest first
             var candidateNodes = node.children
                     .parallelStream()
-                    .filter(e -> e.getArea() > heightCurveElement.getArea())
+                    .filter(e -> e.getArea() > heightCurveElement.getArea()) // TODO: This filter is slow
                     .sorted(Comparator.comparing(HeightCurveTreeNode::getArea).reversed())
-                    .toList();
+                    .toList(); // TODO: This toList is slow
 
             if (candidateNodes.isEmpty()) {
                 // No child contains element => try to find children which the element contains
@@ -144,6 +167,7 @@ public class HeightCurveTree {
                 node.heightCurveElement.addInnerPolygon(newNode.heightCurveElement.getCoordinates());
             } else {
                 // Get the biggest child which contains element
+                // TODO: Remove this search
                 var shouldUseConcurrent = (
                                 candidateNodes
                                         .parallelStream()
@@ -211,13 +235,12 @@ public class HeightCurveTree {
         }
 
         public boolean contains(HeightCurveElement element) {
-            var containsBbox =
+            if (
                     element.getBounds()[0] >= heightCurveElement.getBounds()[0] &&
                     element.getBounds()[1] >= heightCurveElement.getBounds()[1] &&
                     element.getBounds()[2] <= heightCurveElement.getBounds()[2] &&
-                    element.getBounds()[3] <= heightCurveElement.getBounds()[3];
-
-            if (containsBbox) {
+                    element.getBounds()[3] <= heightCurveElement.getBounds()[3]
+            ) {
                 return PolygonUtils.contains(this.heightCurveElement.getCoordinates(), element.getCoordinates());
             } else {
                 return false;
@@ -225,13 +248,12 @@ public class HeightCurveTree {
         }
 
         public boolean contains(double lon, double lat) {
-            var containsBbox =
+            if (
                     lon >= heightCurveElement.getBounds()[0] &&
                     lat >= heightCurveElement.getBounds()[1] &&
                     lon <= heightCurveElement.getBounds()[2] &&
-                    lat <= heightCurveElement.getBounds()[3];
-
-            if (containsBbox) {
+                    lat <= heightCurveElement.getBounds()[3]
+            ) {
                 return PolygonUtils.isPointInPolygon(this.heightCurveElement.getCoordinates(), lon, lat);
             } else {
                 return false;

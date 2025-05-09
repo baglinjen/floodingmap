@@ -756,6 +756,7 @@ public class RStarTree {
 
         return elementsConcurrent
                 .parallelStream()
+                .filter(e -> e.getArea() >= minBoundingBoxArea)
                 .sorted(Comparator.comparing((e1) -> switch (e1) {
                     case OsmWay way -> way.isLine() ? 0 : -way.getArea();
                     default -> -e1.getArea();
@@ -766,7 +767,7 @@ public class RStarTree {
         if (node == null || !node.mbr.intersects(queryBox)) return; // No intersection, skip this branch
 
         if (node.isLeaf()) {
-            results.addAll(node.elements.parallelStream().filter(e -> e.getArea() >= minBoundingBoxArea).toList());
+            results.addAll(node.elements);
         } else {
             node.getChildren()
                     .parallelStream()

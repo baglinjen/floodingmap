@@ -13,6 +13,7 @@ import java.util.stream.Stream;
 import static dk.itu.util.CoordinateUtils.wgsToUtm;
 
 public class HeightCurveService {
+    private static final double HC_ELEMENT_PERCENT_SCREEN = 0.02 * 0.02;
     private final HeightCurveRepository repository;
 
     public HeightCurveService() {
@@ -22,6 +23,12 @@ public class HeightCurveService {
     public List<HeightCurveElement> getElements() {
         synchronized (this.repository) {
             return this.repository.getElements();
+        }
+    }
+
+    public List<HeightCurveElement> searchScaled(double minLon, double minLat, double maxLon, double maxLat) {
+        synchronized (this.repository) {
+            return this.repository.searchScaled(minLon, minLat, maxLon, maxLat, (maxLon - minLon) * (maxLat - minLat) * HC_ELEMENT_PERCENT_SCREEN);
         }
     }
 

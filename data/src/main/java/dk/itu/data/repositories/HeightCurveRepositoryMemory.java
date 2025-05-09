@@ -77,6 +77,13 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
     }
 
     @Override
+    public synchronized List<HeightCurveElement> searchScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
+        synchronized (heightCurveTree) {
+            return heightCurveTree.searchScaled(minLon, minLat, maxLon, maxLat, minBoundingBoxArea);
+        }
+    }
+
+    @Override
     public synchronized List<List<HeightCurveElement>> getFloodingSteps(float waterLevel) {
         return heightCurveTree.getFloodingStepsConcurrent(waterLevel);
     }

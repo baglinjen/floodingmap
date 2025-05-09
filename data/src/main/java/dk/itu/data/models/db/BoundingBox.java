@@ -32,6 +32,10 @@ public class BoundingBox extends Colored implements Serializable {
         return !(this.minLon > other.maxLon || this.maxLon < other.minLon ||
                 this.minLat > other.maxLat || this.maxLat < other.minLat);
     }
+    public boolean intersects(double[] other) {
+        return !(this.minLon > other[2] || this.maxLon < other[0] ||
+                this.minLat > other[3] || this.maxLat < other[1]);
+    }
 
     public double intersectionArea(BoundingBox other) {
         if (!intersects(other)) return 0;
