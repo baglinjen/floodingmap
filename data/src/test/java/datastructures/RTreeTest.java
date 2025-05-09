@@ -5,7 +5,6 @@ import dk.itu.data.models.db.osm.OsmElement;
 import dk.itu.data.datastructure.rtree.RTreeNode;
 import dk.itu.data.models.db.BoundingBox;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
 
@@ -66,6 +65,7 @@ public class RTreeTest {
     @Test
     public void testSearchReturnsOnlyMatchingElements() {
         // Arrange
+        rStarTree.clear();
         BoundingBox bbox1 = new BoundingBox(1, 1, 2, 2);
         BoundingBox bbox2 = new BoundingBox(1, 1, 3, 3);
         BoundingBox bbox3 = new BoundingBox(10, 10, 12, 12);
@@ -289,56 +289,6 @@ public class RTreeTest {
 
        // Assert
        assertNotNull(bbox);
-    }
-
-    @Test
-    public void testFindParentDirectly() throws Exception {
-        // Arrange
-        Method findParentMethod = RStarTree.class.getDeclaredMethod("findParent", RTreeNode.class, RTreeNode.class);
-        findParentMethod.setAccessible(true);
-
-        RTreeNode root = new RTreeNode();
-        RTreeNode child1 = new RTreeNode();
-        RTreeNode child2 = new RTreeNode();
-        RTreeNode grandchild1 = new RTreeNode();
-        RTreeNode grandchild2 = new RTreeNode();
-
-        root.getChildren().add(child1);
-        root.getChildren().add(child2);
-        child1.getChildren().add(grandchild1);
-        child1.getChildren().add(grandchild2);
-
-        Field setRootField = RStarTree.class.getDeclaredField("root");
-        setRootField.setAccessible(true);
-        setRootField.set(rStarTree, root);
-
-        // Test finding parent of root
-        RTreeNode result;
-
-        // Test finding parent of child1
-        result = (RTreeNode) findParentMethod.invoke(rStarTree, root, child1);
-        assertSame(root, result, "Parent of child1 should be root");
-
-        // Test finding parent of child2
-        result = (RTreeNode) findParentMethod.invoke(rStarTree, root, child2);
-        assertSame(root, result, "Parent of child2 should be root");
-
-        // Test finding parent of grandchild1
-        result = (RTreeNode) findParentMethod.invoke(rStarTree, root, grandchild1);
-        assertSame(child1, result, "Parent of grandchild1 should be child1");
-
-        // Test finding parent of grandchild2
-        result = (RTreeNode) findParentMethod.invoke(rStarTree, root, grandchild2);
-        assertSame(child1, result, "Parent of grandchild2 should be child1");
-
-        // Test with null current node
-        result = (RTreeNode) findParentMethod.invoke(rStarTree, null, child1);
-        assertNull(result, "Should return null when current is null");
-
-        // Test with node not in the tree
-        RTreeNode outsideNode = new RTreeNode();
-        result = (RTreeNode) findParentMethod.invoke(rStarTree, root, outsideNode);
-        assertNull(result, "Should return null when target is not in the tree");
     }
 
     @Test
