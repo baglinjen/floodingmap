@@ -1,4 +1,5 @@
 package dk.itu.data.utils;
+import dk.itu.data.enums.RoutingType;
 import dk.itu.data.models.db.osm.OsmElement;
 import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.models.db.osm.OsmWay;
@@ -9,15 +10,21 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 
 public class RoutingConfiguration {
     private static final Logger logger = LoggerFactory.getLogger();
-    private boolean shouldVisualize, isAStar;
+    private boolean shouldVisualize;
+    private RoutingType routingType = RoutingType.Dijkstra;
     private OsmNode startNode, endNode;
     private double waterLevel = 0.0;
     private Pair<OsmElement, Double> route;
     private final List<OsmNode> touchedNodes = new ArrayList<>();
+    private final List<OsmNode> safeTouchedNodes = Collections.synchronizedList(new ArrayList<>());
+
+    //TODO: Describe
+    private final Map<OsmNode, Pair<Boolean, Boolean>> markedMap = Collections.synchronizedMap(new HashMap<>());
+
     private Thread calculationThread;
 
     public OsmNode getStartNode() {
@@ -41,11 +48,8 @@ public class RoutingConfiguration {
         shouldVisualize = !shouldVisualize;
     }
 
-    public boolean getIsAStar(){
-        return this.isAStar;
-    }
-    public void setIsAStar(boolean isAStar){
-        this.isAStar = isAStar;
+    public void setRoutingMethod(RoutingType routingType){
+        this.routingType = routingType;
     }
 
     public OsmElement getRoute(boolean isWithDb, double currentWaterLevel){
@@ -57,10 +61,11 @@ public class RoutingConfiguration {
     }
 
     public List<OsmNode> getTouchedNodes(){
-        return List.copyOf(touchedNodes);
+        //return List.copyOf(touchedNodes);
+        return List.copyOf(safeTouchedNodes);
     }
 
-    public Thread calculateRoute(boolean isWithDb) {
+    public Thread calculateRoute(boolean isWithDb){
         calculationThread = new Thread(() -> {
             Services.withServices(services -> {
                 var nodes = services.getOsmService(isWithDb).getTraversableOsmNodes();
@@ -69,8 +74,14 @@ public class RoutingConfiguration {
                 if (startNode.getId() == endNode.getId()) throw new IllegalArgumentException("Start node and end node can not be the same");
 
                 touchedNodes.clear();
+                safeTouchedNodes.clear();
 
-                var route = createDijkstra(startNode, endNode, nodes, services);
+                nodes.remove(startNode.getId());
+                nodes.remove(endNode.getId());
+                nodes.put(startNode.getId(), startNode);
+                nodes.put(endNode.getId(), endNode);
+
+                var route = routingType == RoutingType.AStarBidirectional ? createAStarBidirectional(startNode, endNode, nodes, services) : createPath(createRoute(startNode, endNode, nodes, services, null));
 
                 if (route == null) logger.warn("No possible route could be found between: {}, {}", startNode.getId(), endNode.getId());
 
@@ -82,6 +93,95 @@ public class RoutingConfiguration {
         return calculationThread;
     }
 
+    private OsmElement createAStarBidirectional(OsmNode startNode, OsmNode endNode, Map<Long, OsmNode> nodes, Services services){
+        try{
+            var forwardSet = Collections.synchronizedSet(new HashSet<OsmNode>());
+            var backwardSet = Collections.synchronizedSet(new HashSet<OsmNode>());
+
+            ExecutorService executorService = Executors.newFixedThreadPool(2);
+
+            Callable<double[]> forwardTask = () -> createRoute(startNode, endNode, nodes, services, new Pair<>(forwardSet, backwardSet));
+            Callable<double[]> backwardTask = () -> createRoute(endNode, startNode, nodes, services, new Pair<>(backwardSet, forwardSet));
+
+            Future<double[]> forwardFuture = executorService.submit(forwardTask);
+            Future<double[]> backwardFuture = executorService.submit(backwardTask);
+
+            var forwardsRoute = forwardFuture.get();
+            var backwardsRoute = backwardFuture.get();
+
+            assert forwardsRoute != null;
+            assert backwardsRoute != null;
+
+            backwardsRoute = reverseCoordinateList(backwardsRoute);
+
+            executorService.shutdown();
+
+            return createPath(stitchCoordinates(forwardsRoute, backwardsRoute));
+        } catch (InterruptedException | ExecutionException e){
+            logger.error("A-Star bidirectional could not calculate a route successfully", e);
+            return null;
+        }
+    }
+
+    private double[] createRoute(OsmNode startNode, OsmNode endNode, Map<Long, OsmNode> nodes, Services services, Pair<Set<OsmNode>, Set<OsmNode>> connectionSet){
+        Map<OsmNode, OsmNode> previousConnections = new ConcurrentHashMap<>();
+        Map<OsmNode, Double> knownDistances = new ConcurrentHashMap<>();
+        Map<OsmNode, Double> heuristicDistances = new ConcurrentHashMap<>();
+
+        PriorityQueue<OsmNode> pq = new PriorityQueue<>(Comparator.comparingDouble(n -> heuristicDistances.getOrDefault(n, Double.MAX_VALUE)));
+
+        nodes.values().parallelStream().forEach(n -> {
+            knownDistances.putIfAbsent(n, n == startNode ? 0.0 : Double.MAX_VALUE);
+            heuristicDistances.putIfAbsent(n, n == endNode ? 0.0 : Double.MAX_VALUE);
+        });
+
+        pq.offer(startNode);
+
+        while(!pq.isEmpty()){
+            OsmNode node = pq.poll();
+            safeTouchedNodes.add(node);
+
+            if(connectionSet != null){
+                //This will happen if createRoute is called as an A* bidirectional multithreaded
+                connectionSet.getFirst().add(node);
+
+                if(connectionSet.getFirst().contains(node) && connectionSet.getSecond().contains(node)) {
+                    return createCoordinateList(previousConnections, startNode, node);
+                }
+            } else if (node == endNode){
+                //This will happen if createRoute is called as a normal dijkstra / A*
+                return createCoordinateList(previousConnections, startNode, endNode);
+            }
+
+            var nodeDistance = knownDistances.get(node);
+
+            for(var conn : node.getConnectionMap().entrySet()){
+                OsmNode nextNode;
+                try{
+                    nextNode = nodes.get(conn.getKey());
+                    if(nextNode == null) throw new NoSuchElementException("No next node with chosen ID");
+                } catch(NoSuchElementException e){
+                    continue;
+                }
+
+                var nextNodeHeight = services.getHeightCurveService().getHeightCurveForPoint(nextNode.getLon(), nextNode.getLat()).getHeight();
+                if(nextNodeHeight < waterLevel) continue; // Road is flooded
+
+                double connDistance = conn.getValue();
+                double distance = connDistance + nodeDistance;
+                if(distance < knownDistances.get(nextNode)){
+                    knownDistances.put(nextNode, distance);
+                    previousConnections.put(nextNode, node);
+                    heuristicDistances.put(nextNode, distance + (routingType == RoutingType.Dijkstra ? 0.0 : RoutingUtils.distanceMeters(nextNode.getLat(), nextNode.getLon(), endNode.getLat(), endNode.getLon())));
+                    pq.offer(nextNode);
+                }
+            }
+        }
+
+        return null;//No route found
+    }
+
+    /*
     private OsmElement createDijkstra(OsmNode startNode, OsmNode endNode, Map<Long, OsmNode> nodes, Services services){
         nodes.remove(startNode.getId());
         nodes.remove(endNode.getId());
@@ -140,14 +240,23 @@ public class RoutingConfiguration {
 
         return null; // No path found
     }
+    */
 
     private OsmElement createPath(Map<OsmNode, OsmNode> previousNodes, OsmNode startNode, OsmNode endNode){
+        return OsmWay.createWayForRouting(createCoordinateList(previousNodes, startNode, endNode));
+    }
+
+    private OsmElement createPath(double[] coordinateList){
+        return OsmWay.createWayForRouting(coordinateList);
+    }
+
+    private double[] createCoordinateList(Map<OsmNode, OsmNode> previousConnections, OsmNode startNode, OsmNode endNode){
         List<OsmNode> path = new ArrayList<>();
         var curNode = endNode;
 
         while(curNode != startNode){
             path.addFirst(curNode);
-            curNode = previousNodes.get(curNode);
+            curNode = previousConnections.get(curNode);
         }
 
         path.addFirst(startNode);
@@ -160,6 +269,35 @@ public class RoutingConfiguration {
             count = count + 2;
         }
 
-        return OsmWay.createWayForRouting(coordinateList);
+        return coordinateList;
+    }
+
+    //TODO: This could be optimized
+    private double[] reverseCoordinateList(double[] coordinates){
+        var result = new double[coordinates.length];
+
+        List<List<Double>> pairs = new ArrayList<>();
+        for(int i = 0; i < coordinates.length; i += 2){
+            pairs.add(Arrays.asList(coordinates[i], coordinates[i+1]));
+        }
+
+        var list = new ArrayList<Double>();
+        for(int i = pairs.size() - 1; i >=0; i--){
+            list.addAll(pairs.get(i));
+        }
+
+        for(int i = 0; i < list.size(); i++){
+            result[i] = list.get(i);
+        }
+
+        return result;
+    }
+
+    private double[] stitchCoordinates(double[] firstList, double[] secondList){
+        var result = new double[firstList.length + secondList.length];
+        System.arraycopy(firstList, 0, result, 0, firstList.length);
+        System.arraycopy(secondList, 0, result, firstList.length, result.length - firstList.length);
+
+        return result;
     }
 }

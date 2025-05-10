@@ -1,5 +1,6 @@
 package dk.itu.ui.components;
 
+import dk.itu.data.enums.RoutingType;
 import dk.itu.ui.State;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ContextMenu;
@@ -21,16 +22,30 @@ public class MapMenu extends ContextMenu {
                 state.getRoutingConfiguration().setEndNode(state.getNearestNeighbour().getSelectedOsmElement());
             }
         });
-        getItems().addAll(routeStart, routeEnd, createRoutingButton(state, false), createRoutingButton(state, true));
+
+        getItems().addAll(
+                routeStart,
+                routeEnd,
+                createRoutingButton(state, RoutingType.Dijkstra),
+                createRoutingButton(state, RoutingType.AStar),
+                createRoutingButton(state, RoutingType.AStarBidirectional)
+        );
     }
 
-    private MenuItem createRoutingButton(State state, boolean isAStar){
-        MenuItem item = new MenuItem("Route with " + (isAStar ? "A-Star" : "Dijkstra"));
+    private MenuItem createRoutingButton(State state, RoutingType routeType){
+        var displayMethod = switch (routeType) {
+            case Dijkstra -> "Dijkstra";
+            case AStar -> "A-Star";
+            case AStarBidirectional -> "A-Star bidirectional";
+        };
+
+        MenuItem item = new MenuItem("Route with: " + displayMethod);
+
         item.setOnAction(_ -> {
             if (state.getRoutingConfiguration().getStartNode() == null || state.getRoutingConfiguration().getEndNode() == null){
                 displayAlert("Both start and end for route must be selected");
             } else{
-                state.getRoutingConfiguration().setIsAStar(isAStar);
+                state.getRoutingConfiguration().setRoutingMethod(routeType);
                 state.getRoutingConfiguration().calculateRoute(state.isWithDb());
             }
         });
