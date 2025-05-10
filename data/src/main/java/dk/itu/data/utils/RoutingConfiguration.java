@@ -41,7 +41,7 @@ public class RoutingConfiguration {
         shouldVisualize = !shouldVisualize;
     }
 
-    public boolean getIsAStart(){
+    public boolean getIsAStar(){
         return this.isAStar;
     }
     public void setIsAStar(boolean isAStar){

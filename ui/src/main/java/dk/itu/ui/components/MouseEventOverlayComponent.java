@@ -88,7 +88,7 @@ public class MouseEventOverlayComponent extends BorderPane {
                     }
                     break;
                 case "A":
-                    state.getRoutingConfiguration().setIsAStar(!state.getRoutingConfiguration().getIsAStart());
+                    state.getRoutingConfiguration().setIsAStar(!state.getRoutingConfiguration().getIsAStar());
                     break;
                 case "D":
                     state.toggleShouldDrawGeoJson();
