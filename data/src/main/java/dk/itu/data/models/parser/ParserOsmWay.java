@@ -62,11 +62,6 @@ public class ParserOsmWay extends ParserOsmElement {
     }
 
     @Override
-    public boolean shouldDraw() {
-        return path != null;
-    }
-
-    @Override
     public void prepareDrawing(Graphics2D g2d) {
         path = isLine ? prepareLinePath(g2d, coordinates, 1) : preparePolygonPath(g2d, coordinates, 1);
     }
@@ -75,7 +70,7 @@ public class ParserOsmWay extends ParserOsmElement {
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
         if (path == null) return;
 
-        g2d.setColor(getRgbaColor());
+        g2d.setColor(getColor());
         if (isLine) {
             g2d.setStroke(new BasicStroke(strokeBaseWidth * getStroke()));
             g2d.draw(path);

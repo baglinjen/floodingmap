@@ -25,6 +25,7 @@ import java.util.stream.IntStream;
 import static dk.itu.util.CoordinateUtils.wgsToUtm;
 
 public class GmlParser {
+    private static final Set<String> quadrantsProcessed = new HashSet<>();
     private static final Logger logger = LoggerFactory.getLogger();
     private static final int TIMEOUT_SECONDS = 60, MAX_RETRIES = 64, MAX_IO_RETRIES = 32; // Max 32 retries - 32 io retries counts for 1 retry
     private static final double IO_MIN_DELAY_MS = 50, IO_DELAY_VARIANCE_MS = 500;
@@ -39,18 +40,23 @@ public class GmlParser {
 
         // Thread pool executor
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            // Futures to process
-            CompletableFuture<Void>[] futures = new CompletableFuture[quadrants.size()];
+            var quadrantsFiltered = quadrants.parallelStream().filter(q -> !quadrantsProcessed.contains(Arrays.toString(q))).toList();
 
-            IntStream.range(0, quadrants.size()).forEach(i -> futures[i] =
-                    CompletableFuture.runAsync(() -> {
-                        try {
-                            processQuadrant(quadrants.get(i), result);
-                        } catch (Exception e) {
-                            logger.error("Error processing quadrant", e);
-                        }
-                    }, executor)
-            );
+            // Futures to process
+            CompletableFuture<Void>[] futures = new CompletableFuture[quadrantsFiltered.size()];
+
+            IntStream.range(0, quadrantsFiltered.size()).forEach(i -> {
+                futures[i] =
+                        CompletableFuture.runAsync(() -> {
+                            try {
+                                processQuadrant(quadrantsFiltered.get(i), result);
+                            } catch (Exception e) {
+                                logger.error("Error processing quadrant", e);
+                            }
+                        }, executor);
+            });
+
+            logger.info("Prepared and starting {} futures", futures.length);
 
             // Wait for all tasks to complete
             CompletableFuture.allOf(futures)
@@ -80,15 +86,6 @@ public class GmlParser {
                 return;
             }
 
-            // Converting EPSG4326 lat/lon bounds to UTM
-            var bl = wgsToUtm(quadrant[0], quadrant[1]);
-            var br = wgsToUtm(quadrant[2], quadrant[1]);
-            var tl = wgsToUtm(quadrant[0], quadrant[3]);
-            var tr = wgsToUtm(quadrant[2], quadrant[3]);
-
-            var minBounds = new double[]{Math.min(bl[0], tl[0]), Math.min(bl[1], br[1])};
-            var maxBounds = new double[]{Math.max(br[0], tr[0]), Math.max(tl[1], tr[1])};
-
             // Building request
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(
@@ -99,7 +96,7 @@ public class GmlParser {
                                     "&version=2.0.0" +
                                     "&typenames=Formkurve2_5" +
                                     "&SRSNAME=EPSG:25832" +
-                                    "&BBOX=" + minBounds[0] + "," + minBounds[1] + "," + maxBounds[0] + "," + maxBounds[1]
+                                    "&BBOX=" + quadrant[0] + "," + quadrant[1] + "," + quadrant[2] + "," + quadrant[3]
                     ))
                     .timeout(Duration.ofSeconds(TIMEOUT_SECONDS))
                     .GET()
@@ -110,6 +107,7 @@ public class GmlParser {
             while (count < MAX_RETRIES) {
                 try {
                     processCompletableFutureInputStream(httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream()).body(), result);
+                    quadrantsProcessed.add(Arrays.toString(quadrant));
                     return;
                 } catch (IOException e) {
                     ioRetryCount++;
@@ -119,12 +117,12 @@ public class GmlParser {
                         ioRetryCount = 0;
                     }
                 } catch (InterruptedException | XMLStreamException e) {
-                    logger.warn("Error occurred sending request at attempt {} with {} io retries for bounds {} {}", count, ioRetryCount, minBounds, maxBounds);
+                    logger.warn("Error occurred sending request at attempt {} with {} io retries for bounds {}", count, ioRetryCount, Arrays.toString(quadrant));
                     count++;
                     ioRetryCount = 0;
                 }
             }
-            logger.error("Failed sending request after {} attempts and {} io retries for bounds {} {}", count, ioRetryCount, minBounds, maxBounds);
+            logger.error("Failed sending request after {} attempts and {} io retries for bounds {}", count, ioRetryCount, Arrays.toString(quadrant));
         } catch (Exception e) {
             logger.error("Encountered some error trying to connect to dataforsyningen", e);
         }

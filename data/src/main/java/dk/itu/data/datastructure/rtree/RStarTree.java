@@ -8,8 +8,6 @@ import javafx.util.Pair;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 /*
 * The R* Tree is based on https://infolab.usc.edu/csci599/Fall2001/paper/rstar-tree.pdf
@@ -138,8 +136,8 @@ public class RStarTree {
 
         for (RTreeNode child : node.getChildren()) {
             // Calculate how much the child's MBR would need to be enlarged
-            double enlargement = child.mbr.getExpanded(elementBox).area() - child.mbr.area();
-            double area = child.mbr.area();
+            double enlargement = child.mbr.getExpanded(elementBox).getArea() - child.mbr.getArea();
+            double area = child.mbr.getArea();
 
             // Choose the child that requires the least enlargement
             if (enlargement < minEnlargement ||
@@ -223,7 +221,7 @@ public class RStarTree {
 
             // Calculate overlap
             double overlap = mbr1.intersectionArea(mbr2);
-            double area = mbr1.area() + mbr2.area();
+            double area = mbr1.getArea() + mbr2.getArea();
 
             // Choose distribution with minimum overlap, breaking ties with minimum area
             if (overlap < minOverlap || (Math.abs(overlap - minOverlap) < 1e-10 && area < minArea)) {
@@ -337,7 +335,7 @@ public class RStarTree {
 
             // Calculate overlap
             double overlap = mbr1.intersectionArea(mbr2);
-            double area = mbr1.area() + mbr2.area();
+            double area = mbr1.getArea() + mbr2.getArea();
 
             // Choose distribution with minimum overlap, breaking ties with minimum area
             if (overlap < minOverlap || (Math.abs(overlap - minOverlap) < 1e-10 && area < minArea)) {
@@ -605,7 +603,7 @@ public class RStarTree {
         double minEnlargement = Double.POSITIVE_INFINITY;
 
         for (RTreeNode child : node.getChildren()) {
-            double enlargement = child.mbr.getExpanded(mbr).area() - child.mbr.area();
+            double enlargement = child.mbr.getExpanded(mbr).getArea() - child.mbr.getArea();
             if (bestChild == null || enlargement < minEnlargement) {
                 minEnlargement = enlargement;
                 bestChild = child;
@@ -756,8 +754,9 @@ public class RStarTree {
 
         return elementsConcurrent
                 .parallelStream()
+                .filter(e -> e.getArea() >= minBoundingBoxArea)
                 .sorted(Comparator.comparing((e1) -> switch (e1) {
-                    case OsmWay way -> way.isLine() ? 0 : -way.getArea();
+                    case OsmWay way -> way.isLine() ? way.getId() : -way.getArea();
                     default -> -e1.getArea();
                 }))
                 .toList();
@@ -766,11 +765,11 @@ public class RStarTree {
         if (node == null || !node.mbr.intersects(queryBox)) return; // No intersection, skip this branch
 
         if (node.isLeaf()) {
-            results.addAll(node.elements.parallelStream().filter(e -> e.getArea() >= minBoundingBoxArea).toList());
+            results.addAll(node.elements);
         } else {
             node.getChildren()
                     .parallelStream()
-                    .filter(child -> child.mbr.area() >= minBoundingBoxArea)
+                    .filter(child -> child.mbr.getArea() >= minBoundingBoxArea)
                     .forEach(child -> searchScaledRecursive(child, queryBox, minBoundingBoxArea, results));
         }
     }

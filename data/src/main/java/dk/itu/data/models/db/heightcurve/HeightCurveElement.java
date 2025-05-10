@@ -80,16 +80,11 @@ public class HeightCurveElement extends Colored {
     }
 
     @Override
-    public boolean shouldDraw() {
-        return path != null;
-    }
-
-    @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
         if (path == null) return;
-        if (getRgbaColor() == null) setAboveWater();
+        if (getColor() == null) setAboveWater();
 
-        g2d.setColor(getRgbaColor());
+        g2d.setColor(getColor());
         if (getStroke() == null) {
             g2d.fill(path);
         } else {

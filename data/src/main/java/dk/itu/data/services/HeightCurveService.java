@@ -10,9 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static dk.itu.util.CoordinateUtils.haversineDistance;
+import static dk.itu.util.CoordinateUtils.wgsToUtm;
 
 public class HeightCurveService {
+    private static final double HC_ELEMENT_PERCENT_SCREEN = 0.02 * 0.02;
     private final HeightCurveRepository repository;
 
     public HeightCurveService() {
@@ -22,6 +23,12 @@ public class HeightCurveService {
     public List<HeightCurveElement> getElements() {
         synchronized (this.repository) {
             return this.repository.getElements();
+        }
+    }
+
+    public List<HeightCurveElement> searchScaled(double minLon, double minLat, double maxLon, double maxLat) {
+        synchronized (this.repository) {
+            return this.repository.searchScaled(minLon, minLat, maxLon, maxLat, (maxLon - minLon) * (maxLat - minLat) * HC_ELEMENT_PERCENT_SCREEN);
         }
     }
 
@@ -65,49 +72,74 @@ public class HeightCurveService {
         }
     }
 
-    private static final double MAX_AREA_PRE_QUADRANT = 10, OVERLAP = 0.0001;
-    private static boolean isQuadrantSmallEnough(double[] quadrant) {
-        double width = haversineDistance(quadrant[0], quadrant[1], quadrant[2], quadrant[1]);
-        double height = haversineDistance(quadrant[0], quadrant[1], quadrant[0], quadrant[3]);
-        double areaKm2 = width * height;
-        return areaKm2 <= MAX_AREA_PRE_QUADRANT;
-    }
-    private static Stream<double[]> splitQuadrant(double[] quadrant) {
-        double minLon = quadrant[0];
-        double minLat = quadrant[1];
-        double maxLon = quadrant[2];
-        double maxLat = quadrant[3];
-        double width = haversineDistance(minLon, minLat, maxLon, minLat);
-        double height = haversineDistance(minLon, minLat, minLon, maxLat);
-        double areaKm2 = width * height;
+    private List<double[]> splitBoundingBoxInUTMQuadrants(double minLon, double minLat, double maxLon, double maxLat) {
+        var blUtm = wgsToUtm(minLon, minLat);
+        var tlUtm = wgsToUtm(minLon, maxLat);
+        var trUtm = wgsToUtm(maxLon, maxLat);
+        var brUtm = wgsToUtm(maxLon, minLat);
 
-        if (areaKm2 >= MAX_AREA_PRE_QUADRANT) {
-            // Split
-            if (width > height) {
-                // Split on width
-                return Stream.of(
-                        new double[]{minLon - OVERLAP, minLat - OVERLAP, OVERLAP + (minLon + (maxLon - minLon) / 2), OVERLAP + maxLat},
-                        new double[]{(minLon + (maxLon - minLon) / 2) - OVERLAP, minLat - OVERLAP, OVERLAP + maxLon, OVERLAP + maxLat}
-                );
-            } else {
-                // Split on height
-                return Stream.of(
-                        new double[]{minLon - OVERLAP, minLat - OVERLAP, OVERLAP + maxLon, OVERLAP + (minLat + (maxLat - minLat) / 2)},
-                        new double[]{minLon - OVERLAP, (minLat + (maxLat - minLat) / 2) - OVERLAP, OVERLAP + maxLon, OVERLAP + maxLat}
-                );
-            }
+        // Find floor utm rounded at 10km
+        var minLonRounded = Math.floor(Math.min(blUtm[0], tlUtm[0]) / 10_000) * 10_000;
+        var minLatRounded = Math.floor(Math.min(blUtm[1], brUtm[1]) / 10_000) * 10_000;
+        // Find ceil utm rounded at 10km
+        var maxLonRounded = Math.ceil(Math.max(brUtm[0], trUtm[0]) / 10_000) * 10_000;
+        var maxLatRounded = Math.ceil(Math.max(tlUtm[1], trUtm[1]) / 10_000) * 10_000;
+
+        List<double[]> quadrants = new ArrayList<>();
+        quadrants.add(new double[] {minLonRounded, minLatRounded, maxLonRounded, maxLatRounded});
+
+        while (!quadrants.parallelStream().allMatch(HeightCurveService::isQuadrant10Km)) {
+            quadrants = quadrants.parallelStream().flatMap(HeightCurveService::split10KmQuadrants).toList();
+        }
+
+        return quadrants;
+    }
+    private static boolean isQuadrant10Km(double[] quadrant) {
+        return
+                quadrant[2] - quadrant[0] <= 10_000 &&
+                quadrant[3] - quadrant[1] <= 10_000;
+    }
+    private static Stream<double[]> split10KmQuadrants(double[] quadrant) {
+        var shouldSplitHorizontally = quadrant[2] - quadrant[0] > 10_000;
+        var shouldSplitVertically = quadrant[3] - quadrant[1] > 10_000;
+
+        if (shouldSplitHorizontally) {
+            return Stream.of(
+                    new double[] {
+                            quadrant[0],
+                            quadrant[1],
+                            quadrant[0] + 10_000,
+                            quadrant[3]
+                    },
+                    new double[] {
+                            quadrant[0] + 10_000,
+                            quadrant[1],
+                            quadrant[2],
+                            quadrant[3]
+                    }
+            );
+        } else if (shouldSplitVertically) {
+            return Stream.of(
+                    new double[] {
+                            quadrant[0],
+                            quadrant[1],
+                            quadrant[2],
+                            quadrant[1] + 10_000,
+                    },
+                    new double[] {
+                            quadrant[0],
+                            quadrant[1] + 10_000,
+                            quadrant[2],
+                            quadrant[3]
+                    }
+            );
         } else {
             return Stream.of(quadrant);
         }
     }
 
     public void loadGmlData(double minLon, double minLat, double maxLon, double maxLat) {
-        List<double[]> quadrants = new ArrayList<>();
-        quadrants.add(new double[]{minLon - OVERLAP, minLat - OVERLAP, OVERLAP + maxLon, OVERLAP + maxLat});
-
-        while (!quadrants.parallelStream().allMatch(HeightCurveService::isQuadrantSmallEnough)) {
-            quadrants = quadrants.parallelStream().flatMap(HeightCurveService::splitQuadrant).toList();
-        }
+        List<double[]> quadrants = splitBoundingBoxInUTMQuadrants(minLon, minLat, maxLon, maxLat);
 
         synchronized (this.repository) {
             HeightCurveParserResult heightCurveParserResult = new HeightCurveParserResult(this.repository);

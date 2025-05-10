@@ -40,14 +40,9 @@ public class RTreeTest {
     public void testInsertSingleElementCreatesRoot() {
         // Arrange
         BoundingBox bbox = new BoundingBox(1, 1, 2, 2);
-        OsmElement element = new OsmElement(1, bbox, bbox.area()) {
+        OsmElement element = new OsmElement(1, bbox, bbox.getArea()) {
             @Override
             public void prepareDrawing(Graphics2D g2d) {}
-
-            @Override
-            public boolean shouldDraw() {
-                return false;
-            }
 
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {}
@@ -59,7 +54,7 @@ public class RTreeTest {
         // Assert
         assertNotNull(rStarTree.getRoot(), "Root should not be null after first insert");
         assertEquals(1, rStarTree.getRoot().getElements().size(), "Root should contain one element");
-        assertEquals(bbox.area(), rStarTree.getRoot().getMBR().area(), "Root MBR should match inserted element's bounding box area");
+        assertEquals(bbox.getArea(), rStarTree.getRoot().getMBR().getArea(), "Root MBR should match inserted element's bounding box area");
         assertTrue(rStarTree.getRoot().getElements().contains(element), "Inserted element should be in the root");
     }
 
@@ -70,33 +65,24 @@ public class RTreeTest {
         BoundingBox bbox2 = new BoundingBox(1, 1, 3, 3);
         BoundingBox bbox3 = new BoundingBox(10, 10, 12, 12);
         // Elements to insert
-        OsmElement inside1 = new OsmElement(1, bbox1, bbox1.area()) {
+        OsmElement inside1 = new OsmElement(1, bbox1, bbox1.getArea()) {
             @Override
             public void prepareDrawing(Graphics2D g2d) {}
-            @Override
-            public boolean shouldDraw() {
-                return false;
-            }
+
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         }; // Area = 1
-        OsmElement inside2 = new OsmElement(2, bbox2, bbox2.area()) {
+        OsmElement inside2 = new OsmElement(2, bbox2, bbox2.getArea()) {
             @Override
             public void prepareDrawing(Graphics2D g2d) {}
-            @Override
-            public boolean shouldDraw() {
-                return false;
-            }
+
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         }; // Area = 4
-        OsmElement outside = new OsmElement(3, bbox3, bbox3.area()) {
+        OsmElement outside = new OsmElement(3, bbox3, bbox3.getArea()) {
             @Override
             public void prepareDrawing(Graphics2D g2d) {}
-            @Override
-            public boolean shouldDraw() {
-                return false;
-            }
+
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         };

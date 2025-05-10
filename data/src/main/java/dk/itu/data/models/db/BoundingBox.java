@@ -32,6 +32,10 @@ public class BoundingBox extends Colored implements Serializable {
         return !(this.minLon > other.maxLon || this.maxLon < other.minLon ||
                 this.minLat > other.maxLat || this.maxLat < other.minLat);
     }
+    public boolean intersects(double[] other) {
+        return !(this.minLon > other[2] || this.maxLon < other[0] ||
+                this.minLat > other[3] || this.maxLat < other[1]);
+    }
 
     public double intersectionArea(BoundingBox other) {
         if (!intersects(other)) return 0;
@@ -42,7 +46,7 @@ public class BoundingBox extends Colored implements Serializable {
         return difLon * difLat;
     }
 
-    public double area() {
+    public double getArea() {
         return this.area;
     }
     private void calculateArea() {
@@ -89,18 +93,11 @@ public class BoundingBox extends Colored implements Serializable {
     }
 
     @Override
-    public void prepareDrawing(Graphics2D g2d) {
-
-    }
-
-    @Override
-    public boolean shouldDraw() {
-        return true;
-    }
+    public void prepareDrawing(Graphics2D g2d) {}
 
     @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
-        g2d.setColor(getRgbaColor());
+        g2d.setColor(getColor());
         g2d.setStroke(new BasicStroke(strokeBaseWidth * getStroke()));
         g2d.draw(new Rectangle2D.Double(0.56*minLon, -maxLat, 0.56*(maxLon - minLon), maxLat - minLat));
     }

@@ -1,6 +1,7 @@
 package datastructures;
 
 import dk.itu.data.datastructure.heightcurvetree.HeightCurveTree;
+import dk.itu.data.datastructure.heightcurvetree.HeightCurveTreeNode;
 import dk.itu.data.models.db.heightcurve.HeightCurveElement;
 import dk.itu.data.models.parser.ParserHeightCurveElement;
 import org.junit.jupiter.api.Test;
@@ -18,15 +19,19 @@ public class HeightCurveTreeTest {
     public void testWaterLevelMinMaxIsUpdatedCorrectly() {
         // Arrange
         HeightCurveTree heightCurveTree = new HeightCurveTree();
-        ParserHeightCurveElement heightCurveElementMin = new ParserHeightCurveElement(
-                0,
-                new double[] {0, 0, 5, 5, 5, 0},
-                -5
+        HeightCurveElement heightCurveElementMin = HeightCurveElement.mapToHeightCurveElement(
+                new ParserHeightCurveElement(
+                        0,
+                        new double[] {0, 0, 5, 5, 5, 0},
+                        -5
+                )
         );
-        ParserHeightCurveElement heightCurveElementMax = new ParserHeightCurveElement(
-                0,
-                new double[] {1, 1, 4, 4, 4, 1},
-                5
+        HeightCurveElement heightCurveElementMax = HeightCurveElement.mapToHeightCurveElement(
+                new ParserHeightCurveElement(
+                    0,
+                    new double[] {1, 1, 4, 4, 4, 1},
+                    5
+                )
         );
 
         // Act
@@ -42,26 +47,32 @@ public class HeightCurveTreeTest {
     public void testGetElementsReturnsAllElementsInTree() {
         // Arrange
         HeightCurveTree heightCurveTree = new HeightCurveTree();
-        List<ParserHeightCurveElement> elements = List.of(
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {0, 0, 1, 1, 1, 0},
-                        1
+        List<HeightCurveElement> elements = List.of(
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {0, 0, 1, 1, 1, 0},
+                                1
+                        )
                 ),
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {2, 2, 3, 3, 3, 2},
-                        2
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {2, 2, 3, 3, 3, 2},
+                                2
+                        )
                 ),
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {4, 4, 5, 5, 5, 4},
-                        3
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {4, 4, 5, 5, 5, 4},
+                                3
+                        )
                 )
         );
 
         // Act
-        for (ParserHeightCurveElement element : elements) { heightCurveTree.put(element); }
+        for (HeightCurveElement element : elements) { heightCurveTree.put(element); }
 
         // Assert
         assertThat(heightCurveTree.getElements().size()).isEqualTo(elements.size() + 1); // +1 for root
@@ -70,30 +81,36 @@ public class HeightCurveTreeTest {
     @Test
     public void testFloodingStepsReturnsAllElements() {
         HeightCurveTree heightCurveTree = new HeightCurveTree();
-        List<ParserHeightCurveElement> elements = List.of(
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {0, 0, 1, 1, 1, 0},
-                        1
+        List<HeightCurveElement> elements = List.of(
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {0, 0, 1, 1, 1, 0},
+                                1
+                        )
                 ),
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {2, 2, 3, 3, 3, 2},
-                        2
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {2, 2, 3, 3, 3, 2},
+                                2
+                        )
                 ),
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {4, 4, 5, 5, 5, 4},
-                        3
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {4, 4, 5, 5, 5, 4},
+                                3
+                        )
                 )
         );
 
 
         // Act
-        for (ParserHeightCurveElement element : elements) { heightCurveTree.put(element); }
+        for (HeightCurveElement element : elements) { heightCurveTree.put(element); }
 
         // Assert
-        var floodingSteps = heightCurveTree.getFloodingStepsConcurrent(4);
+        var floodingSteps = heightCurveTree.getFloodingSteps(4);
         var floodingStepsFlat = floodingSteps.stream().flatMap(Collection::stream).toList();
         assertThat(floodingStepsFlat.size()).isEqualTo(elements.size() + 1); // +1 for root
     }
@@ -101,30 +118,36 @@ public class HeightCurveTreeTest {
     @Test
     public void testFloodingStepsReturnsAllElementsBelowWaterLevel() {
         HeightCurveTree heightCurveTree = new HeightCurveTree();
-        List<ParserHeightCurveElement> elements = List.of(
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {0, 0, 1, 1, 1, 0},
-                        1
+        List<HeightCurveElement> elements = List.of(
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {0, 0, 1, 1, 1, 0},
+                                1
+                        )
                 ),
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {2, 2, 3, 3, 3, 2},
-                        2
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {2, 2, 3, 3, 3, 2},
+                                2
+                        )
                 ),
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {4, 4, 5, 5, 5, 4},
-                        5
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {4, 4, 5, 5, 5, 4},
+                                5
+                        )
                 )
         );
 
 
         // Act
-        for (ParserHeightCurveElement element : elements) { heightCurveTree.put(element); }
+        for (HeightCurveElement element : elements) { heightCurveTree.put(element); }
 
         // Assert
-        var floodingSteps = heightCurveTree.getFloodingStepsConcurrent(4);
+        var floodingSteps = heightCurveTree.getFloodingSteps(4);
         var floodingStepsFlat = floodingSteps.stream().flatMap(Collection::stream).toList();
 
         // +1 for root -1 for last element above water level
@@ -134,87 +157,107 @@ public class HeightCurveTreeTest {
     @Test
     public void testFloodingStepsReturnsCorrectNumberOfSteps() {
         HeightCurveTree heightCurveTree = new HeightCurveTree();
-        List<ParserHeightCurveElement> elements = List.of(
+        List<HeightCurveElement> elements = List.of(
                 // #1 Big element containing => should be flooded on step 2
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {0, 0, 100, 100, 100, 0},
-                        1
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {0, 0, 100, 100, 100, 0},
+                                1
+                        )
                 ),
                 // #2 Element in #1 => should be flooded on step 3
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {1, 1, 6, 6, 6, 1},
-                        2
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {1, 1, 6, 6, 6, 1},
+                                2
+                        )
                 ),
                 // #3 Element in #2 but lower => should be flooded on step 3
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {2, 2, 3, 3, 3, 2},
-                        1
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {2, 2, 3, 3, 3, 2},
+                                1
+                        )
                 ),
                 // #4 Element in #2 => should be flooded on step 4
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {4, 4, 5, 5, 5, 4},
-                        3
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {4, 4, 5, 5, 5, 4},
+                                3
+                        )
                 ),
                 // #5 Element in #1 => should not be flooded because it is higher that water level
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {101, 101, 102, 102, 102, 101},
-                        10
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {101, 101, 102, 102, 102, 101},
+                                10
+                        )
                 )
         );
 
 
         // Act
-        for (ParserHeightCurveElement element : elements) { heightCurveTree.put(element); }
+        for (HeightCurveElement element : elements) { heightCurveTree.put(element); }
 
         // Assert correct number of steps => 4
-        assertThat(heightCurveTree.getFloodingStepsConcurrent(5).size()).isEqualTo(4);
+        assertThat(heightCurveTree.getFloodingSteps(5).size()).isEqualTo(4);
     }
 
     @Test
     public void testFloodingStepsEachStepContainsCorrectNumberOfElements() {
         HeightCurveTree heightCurveTree = new HeightCurveTree();
-        List<ParserHeightCurveElement> elements = List.of(
+        List<HeightCurveElement> elements = List.of(
                 // #1 Big element containing => should be flooded on step 2
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {0, 0, 100, 100, 100, 0},
-                        1
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {0, 0, 100, 100, 100, 0},
+                                1
+                        )
                 ),
                 // #2 Element in #1 => should be flooded on step 3
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {1, 1, 6, 6, 6, 1},
-                        2
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {1, 1, 6, 6, 6, 1},
+                                2
+                        )
                 ),
                 // #3 Element in #2 but lower => should be flooded on step 3
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {2, 2, 3, 3, 3, 2},
-                        1
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {2, 2, 3, 3, 3, 2},
+                                1
+                        )
                 ),
                 // #4 Element in #2 => should be flooded on step 4
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {4, 4, 5, 5, 5, 4},
-                        3
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {4, 4, 5, 5, 5, 4},
+                                3
+                        )
                 ),
                 // #5 Element in #1 => should not be flooded because it is higher that water level
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {101, 101, 102, 102, 102, 101},
-                        10
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {101, 101, 102, 102, 102, 101},
+                                10
+                        )
                 )
         );
 
 
         // Act
-        for (ParserHeightCurveElement element : elements) { heightCurveTree.put(element); }
-        var floodingSteps = heightCurveTree.getFloodingStepsConcurrent(5);
+        for (HeightCurveElement element : elements) { heightCurveTree.put(element); }
+        var floodingSteps = heightCurveTree.getFloodingSteps(5);
 
         // Assert that step max height is increasing
         var floodingSteps1MaxHeight = floodingSteps.getFirst().stream().max(Comparator.comparing(HeightCurveElement::getHeight)).orElseThrow().getHeight();
@@ -231,43 +274,53 @@ public class HeightCurveTreeTest {
     @Test
     public void testFloodingStepsMaxWaterLevelIncreases() {
         HeightCurveTree heightCurveTree = new HeightCurveTree();
-        List<ParserHeightCurveElement> elements = List.of(
+        List<HeightCurveElement> elements = List.of(
                 // #1 Big element containing => should be flooded on step 2
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {0, 0, 100, 100, 100, 0},
-                        1
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {0, 0, 100, 100, 100, 0},
+                                1
+                        )
                 ),
                 // #2 Element in #1 => should be flooded on step 3
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {1, 1, 6, 6, 6, 1},
-                        2
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {1, 1, 6, 6, 6, 1},
+                                2
+                        )
                 ),
                 // #3 Element in #2 but lower => should be flooded on step 3
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {2, 2, 3, 3, 3, 2},
-                        1
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {2, 2, 3, 3, 3, 2},
+                                1
+                        )
                 ),
                 // #4 Element in #2 => should be flooded on step 4
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {4, 4, 5, 5, 5, 4},
-                        3
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {4, 4, 5, 5, 5, 4},
+                                3
+                        )
                 ),
                 // #5 Element in #1 => should not be flooded because it is higher that water level
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {101, 101, 102, 102, 102, 101},
-                        10
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {101, 101, 102, 102, 102, 101},
+                                10
+                        )
                 )
         );
 
 
         // Act
-        for (ParserHeightCurveElement element : elements) { heightCurveTree.put(element); }
-        var floodingSteps = heightCurveTree.getFloodingStepsConcurrent(5);
+        for (HeightCurveElement element : elements) { heightCurveTree.put(element); }
+        var floodingSteps = heightCurveTree.getFloodingSteps(5);
 
         // Assert that step max height is increasing
         var floodingSteps1MaxHeight = floodingSteps.getFirst().stream().max(Comparator.comparing(HeightCurveElement::getHeight)).orElseThrow().getHeight();
@@ -285,23 +338,27 @@ public class HeightCurveTreeTest {
     public void testGetHeightCurveForPointReturnsCorrectHeightCurve() {
         // Arrange
         HeightCurveTree heightCurveTree = new HeightCurveTree();
-        List<ParserHeightCurveElement> elements = List.of(
+        List<HeightCurveElement> elements = List.of(
                 // #1 Element with height 1 as ID
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {0, 0, 10, 10, 10, 0},
-                        1
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {0, 0, 10, 10, 10, 0},
+                                1
+                        )
                 ),
                 // #2 Element with height 2 as ID
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {20, 20, 30, 30, 30, 20},
-                        2
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {20, 20, 30, 30, 30, 20},
+                                2
+                        )
                 )
         );
 
         // Act
-        for (ParserHeightCurveElement element : elements) { heightCurveTree.put(element); }
+        for (HeightCurveElement element : elements) { heightCurveTree.put(element); }
         var heightCurve = heightCurveTree.getHeightCurveForPoint(25, 25);
 
         // Assert
@@ -312,23 +369,27 @@ public class HeightCurveTreeTest {
     public void testGetHeightCurveForPointReturnsRootIfNoneFound() {
         // Arrange
         HeightCurveTree heightCurveTree = new HeightCurveTree();
-        List<ParserHeightCurveElement> elements = List.of(
+        List<HeightCurveElement> elements = List.of(
                 // #1 Element with height 1 as ID
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {0, 0, 10, 10, 10, 0},
-                        1
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {0, 0, 10, 10, 10, 0},
+                                1
+                        )
                 ),
                 // #2 Element with height 2 as ID
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {20, 20, 30, 30, 30, 20},
-                        2
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {20, 20, 30, 30, 30, 20},
+                                2
+                        )
                 )
         );
 
         // Act
-        for (ParserHeightCurveElement element : elements) { heightCurveTree.put(element); }
+        for (HeightCurveElement element : elements) { heightCurveTree.put(element); }
         var heightCurve = heightCurveTree.getHeightCurveForPoint(35, 35);
 
         // Assert
@@ -339,21 +400,25 @@ public class HeightCurveTreeTest {
     public void testInsertWithNonIntersectingElementsHasDepth1() {
         // Arrange
         HeightCurveTree heightCurveTree = new HeightCurveTree();
-        List<ParserHeightCurveElement> elements = List.of(
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {0, 0, 10, 10, 10, 0},
-                        1
+        List<HeightCurveElement> elements = List.of(
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {0, 0, 10, 10, 10, 0},
+                                1
+                        )
                 ),
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {20, 20, 30, 30, 30, 20},
-                        1
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {20, 20, 30, 30, 30, 20},
+                                1
+                        )
                 )
         );
 
         // Act
-        for (ParserHeightCurveElement element : elements) { heightCurveTree.put(element); }
+        for (HeightCurveElement element : elements) { heightCurveTree.put(element); }
 
         // Assert
         var rootChildren = getChildren(getRoot(heightCurveTree));
@@ -365,23 +430,27 @@ public class HeightCurveTreeTest {
     public void testInsertWithElementContainedInElementHasDepth2AndRootHasOneChild() {
         // Arrange
         HeightCurveTree heightCurveTree = new HeightCurveTree();
-        List<ParserHeightCurveElement> elements = List.of(
+        List<HeightCurveElement> elements = List.of(
                 // #1 Containing element
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {0, 0, 10, 10, 10, 0},
-                        1
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {0, 0, 10, 10, 10, 0},
+                                1
+                        )
                 ),
                 // #2 Contained element
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {4, 4, 5, 5, 5, 4},
-                        2
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {4, 4, 5, 5, 5, 4},
+                                2
+                        )
                 )
         );
 
         // Act
-        for (ParserHeightCurveElement element : elements) { heightCurveTree.put(element); }
+        for (HeightCurveElement element : elements) { heightCurveTree.put(element); }
 
         // Assert
         var rootChildren = getChildren(getRoot(heightCurveTree));
@@ -397,23 +466,27 @@ public class HeightCurveTreeTest {
     public void testInsertWithElementContainingElementHasDepth2AndRootHasOneChild() {
         // Arrange
         HeightCurveTree heightCurveTree = new HeightCurveTree();
-        List<ParserHeightCurveElement> elements = List.of(
+        List<HeightCurveElement> elements = List.of(
                 // #1 Contained element
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {4, 4, 5, 5, 5, 4},
-                        2
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {4, 4, 5, 5, 5, 4},
+                                2
+                        )
                 ),
                 // #2 Containing element
-                new ParserHeightCurveElement(
-                        0,
-                        new double[] {0, 0, 10, 10, 10, 0},
-                        1
+                HeightCurveElement.mapToHeightCurveElement(
+                        new ParserHeightCurveElement(
+                                0,
+                                new double[] {0, 0, 10, 10, 10, 0},
+                                1
+                        )
                 )
         );
 
         // Act
-        for (ParserHeightCurveElement element : elements) { heightCurveTree.put(element); }
+        for (HeightCurveElement element : elements) { heightCurveTree.put(element); }
 
         // Assert
         var rootChildren = getChildren(getRoot(heightCurveTree));
@@ -425,22 +498,22 @@ public class HeightCurveTreeTest {
         assertThat(elementOneChildren.getFirst().getHeightCurveElement().getHeight()).isEqualTo(2); // #2 Child contained
     }
 
-    private HeightCurveTree.HeightCurveTreeNode getRoot(HeightCurveTree heightCurveTree) {
+    private HeightCurveTreeNode getRoot(HeightCurveTree heightCurveTree) {
         try {
             var rootAccessor = HeightCurveTree.class.getDeclaredField("root");
             rootAccessor.setAccessible(true);
-            return (HeightCurveTree.HeightCurveTreeNode) rootAccessor.get(heightCurveTree);
+            return (HeightCurveTreeNode) rootAccessor.get(heightCurveTree);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             fail();
             throw new TestAbortedException("Could not get root from Height Curve Tree", e);
         }
     }
 
-    private List<HeightCurveTree.HeightCurveTreeNode> getChildren(HeightCurveTree.HeightCurveTreeNode heightCurveTreeNode) {
+    private List<HeightCurveTreeNode> getChildren(HeightCurveTreeNode heightCurveTreeNode) {
         try {
-            var nodeChildrenAccessor = HeightCurveTree.HeightCurveTreeNode.class.getDeclaredField("children");
+            var nodeChildrenAccessor = HeightCurveTreeNode.class.getDeclaredField("children");
             nodeChildrenAccessor.setAccessible(true);
-            return (List<HeightCurveTree.HeightCurveTreeNode>) nodeChildrenAccessor.get(heightCurveTreeNode);
+            return (List<HeightCurveTreeNode>) nodeChildrenAccessor.get(heightCurveTreeNode);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             fail();
             throw new TestAbortedException("Could not get children from Height Curve Tree Node", e);

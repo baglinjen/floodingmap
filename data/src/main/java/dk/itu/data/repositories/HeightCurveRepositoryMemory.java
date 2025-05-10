@@ -1,6 +1,7 @@
 package dk.itu.data.repositories;
 
 import dk.itu.data.datastructure.heightcurvetree.HeightCurveTree;
+import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.heightcurve.HeightCurveElement;
 import dk.itu.data.models.parser.ParserHeightCurveElement;
 import dk.itu.util.LoggerFactory;
@@ -47,7 +48,7 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
             if (!element.getGmlIds().parallelStream().allMatch(parsedIds::contains)) {
                 logger.error("Found height curve element where not all gml ids have yet been added : {}", element.getGmlIds());
             }
-            heightCurveTree.put(element);
+            heightCurveTree.put(HeightCurveElement.mapToHeightCurveElement(element));
             elementsAdded++;
             if (elementsAdded % 100 == 0) logger.debug("Added {}/{} height curve elements", elementsAdded, elements.size());
         }
@@ -77,8 +78,15 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
     }
 
     @Override
+    public synchronized List<HeightCurveElement> searchScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
+        synchronized (heightCurveTree) {
+            return heightCurveTree.searchScaled(new BoundingBox(minLon, minLat, maxLon, maxLat), minBoundingBoxArea);
+        }
+    }
+
+    @Override
     public synchronized List<List<HeightCurveElement>> getFloodingSteps(float waterLevel) {
-        return heightCurveTree.getFloodingStepsConcurrent(waterLevel);
+        return heightCurveTree.getFloodingSteps(waterLevel);
     }
 
     @Override

@@ -21,11 +21,6 @@ public class NearestNeighbour extends Colored {
     }
 
     @Override
-    public boolean shouldDraw() {
-        return true;
-    }
-    
-    @Override
     public void prepareDrawing(Graphics2D g2d) { /* Nothing to prepare */ }
 
     @Override

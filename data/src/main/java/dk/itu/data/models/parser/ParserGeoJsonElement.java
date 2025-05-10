@@ -81,11 +81,6 @@ public class ParserGeoJsonElement extends ParserDrawable implements GeoJsonEleme
     }
 
     @Override
-    public boolean shouldDraw() {
-        return path != null;
-    }
-
-    @Override
     public void prepareDrawing(Graphics2D g2d) {
         path = prepareComplexPolygon(g2d, List.of(outerPolygon), innerPolygons, DRAWING_TOLERANCE);
     }
@@ -95,7 +90,7 @@ public class ParserGeoJsonElement extends ParserDrawable implements GeoJsonEleme
         if (path == null) return;
 
         adjustStyles();
-        var rgba = (belowWater || selected) ? getRgbaColor() : Color.BLACK;
+        var rgba = (belowWater || selected) ? getColor() : Color.BLACK;
 
         if(rgba != null){
             g2d.setColor(rgba);

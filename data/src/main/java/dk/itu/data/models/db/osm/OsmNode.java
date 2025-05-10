@@ -25,7 +25,7 @@ public class OsmNode extends OsmElement {
                 parserOsmNode.getLat()
         );
         var osmNode = new OsmNode(parserOsmNode.getId(), parserOsmNode.getLon(), parserOsmNode.getLat(), boundingBox, RoutingUtils.buildConnectionMap(parserOsmNode));
-        osmNode.setStyle(parserOsmNode.getRgbaColor(), parserOsmNode.getStroke());
+        osmNode.setStyle(parserOsmNode.getColor(), parserOsmNode.getStroke());
 
         return osmNode;
     }
@@ -38,11 +38,6 @@ public class OsmNode extends OsmElement {
     }
     public Map<Long, Double> getConnectionMap() {
         return connectionMap;
-    }
-
-    @Override
-    public boolean shouldDraw() {
-        return false;
     }
 
     @Override

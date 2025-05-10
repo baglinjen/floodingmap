@@ -39,11 +39,6 @@ public class ParserOsmNode extends ParserOsmElement {
     }
 
     @Override
-    public boolean shouldDraw() {
-        return false;
-    }
-
-    @Override
     public void prepareDrawing(Graphics2D g2d) { /* Nothing to prepare */ }
 
     @Override
