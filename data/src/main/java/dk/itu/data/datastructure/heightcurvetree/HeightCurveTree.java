@@ -12,15 +12,15 @@ public class HeightCurveTree {
     private final HeightCurveTreeNode root = new HeightCurveTreeNode(
             new HeightCurveElement(
                     new double[] {
-                            Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, // BL SW
-                            Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, // TL NW
-                            Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, // TR NE
-                            Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY,  // BR SE
-                            Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, // BL SW => To close itself
+                            -180, -90, // BL SW
+                            -180, 90, // TL NW
+                            180, 90, // TR NE
+                            180, -90,  // BR SE
+                            -180, -90 // BL SW
                     },
                     0,
-                    Double.POSITIVE_INFINITY,
-                    new double[] {Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY}
+                    Double.MAX_VALUE,
+                    new double[] {-180, -90, 180, 90}
             )
     );
     private float minWaterLevel = 0, maxWaterLevel = 1;

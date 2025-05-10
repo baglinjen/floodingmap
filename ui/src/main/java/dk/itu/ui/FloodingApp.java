@@ -2,7 +2,6 @@ package dk.itu.ui;
 
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
-import dk.itu.common.models.Drawable;
 import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.heightcurve.HeightCurveElement;
 import dk.itu.data.models.db.osm.OsmElement;
@@ -113,13 +112,19 @@ public class FloodingApp extends GameApplication {
                         heightCurves.addAll(
                                 services
                                         .getHeightCurveService()
-                                        .searchScaled(
-                                                window[0],
-                                                window[1],
-                                                window[2],
-                                                window[3]
-                                        )
+                                        .getElements()
                         );
+                        // Potential TODO: Better height curve flooded state tracking to enable scaled window queries
+//                        heightCurves.addAll(
+//                                services
+//                                        .getHeightCurveService()
+//                                        .searchScaled(
+//                                                window[0],
+//                                                window[1],
+//                                                window[2],
+//                                                window[3]
+//                                        )
+//                        );
                     }
                     finalCountDownLatch2.countDown();
                 });
