@@ -89,6 +89,7 @@ public class FloodingApp extends GameApplication {
                                             window[3]
                                     )
                     );
+                    osmElements.parallelStream().forEach(e -> e.prepareDrawing(g2d));
                     finalCountDownLatch.countDown();
                 });
                 // Adding Bounding Boxes
@@ -155,11 +156,10 @@ public class FloodingApp extends GameApplication {
                 }
 
                 // Prepare drawable elements
-                osmElements.parallelStream().forEach(e -> e.prepareDrawing(g2d));
                 heightCurves.parallelStream().forEach(e -> e.prepareDrawing(g2d));
                 // Draw elements
-                osmElements.stream().filter(Drawable::shouldDraw).forEach(element -> element.draw(g2d, strokeBaseWidth));
-                heightCurves.stream().filter(Drawable::shouldDraw).forEach(hc -> hc.draw(g2d, strokeBaseWidth));
+                osmElements.forEach(element -> element.draw(g2d, strokeBaseWidth));
+                heightCurves.forEach(hc -> hc.draw(g2d, strokeBaseWidth));
                 boundingBoxes.forEach(bb -> bb.draw(g2d, strokeBaseWidth));
 
                 // Draw dijkstra route if there is one

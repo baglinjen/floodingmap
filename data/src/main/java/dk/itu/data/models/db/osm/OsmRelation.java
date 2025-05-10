@@ -32,14 +32,9 @@ public class OsmRelation extends OsmElement {
                 parserOsmRelation.getInnerPolygons()
         );
 
-        osmRelation.setStyle(parserOsmRelation.getRgbaColor(), parserOsmRelation.getStroke());
+        osmRelation.setStyle(parserOsmRelation.getColor(), parserOsmRelation.getStroke());
 
         return osmRelation;
-    }
-
-    @Override
-    public boolean shouldDraw() {
-        return path != null;
     }
 
     @Override
@@ -51,7 +46,7 @@ public class OsmRelation extends OsmElement {
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
         if (path == null) return;
 
-        g2d.setColor(getRgbaColor());
+        g2d.setColor(getColor());
         g2d.fill(path);
     }
 }
