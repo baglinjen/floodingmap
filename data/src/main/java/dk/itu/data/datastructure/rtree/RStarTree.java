@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 * */
 
 public class RStarTree {
-    private static final int MAX_ENTRIES = 1000;  // Maximum entries in a node
+    private static final int MAX_ENTRIES = 100;  // Maximum entries in a node
     private static final int MIN_ENTRIES = MAX_ENTRIES / 2;  // Minimum entries (40-50% of max is typical)
     private static final double REINSERT_PERCENTAGE = 0.3;  // Percentage of entries to reinsert (30% is typical)
     private static final int REINSERT_LEVELS = 5;  // Max levels for forced reinsert to prevent recursion issues
@@ -738,23 +738,26 @@ public class RStarTree {
 
     public List<OsmElement> search(double minLon, double minLat, double maxLon, double maxLat) {
         Collection<OsmElement> elementsConcurrent = new ConcurrentLinkedQueue<>();
+        BoundingBox box = new BoundingBox(minLon, minLat, maxLon, maxLat);
 
-        searchRecursive(root, new BoundingBox(minLon, minLat, maxLon, maxLat), elementsConcurrent);
+        searchRecursive(root, box, elementsConcurrent);
 
         return elementsConcurrent
                 .parallelStream()
+                .filter(e -> e.getBoundingBox().intersects(box))
                 .sorted(Comparator.comparingDouble(OsmElement::getArea).reversed())
                 .toList();
     }
 
     public List<OsmElement> searchScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
         Collection<OsmElement> elementsConcurrent = new ConcurrentLinkedQueue<>();
+        BoundingBox box = new BoundingBox(minLon, minLat, maxLon, maxLat);
 
-        searchScaledRecursive(root, new BoundingBox(minLon, minLat, maxLon, maxLat), minBoundingBoxArea, elementsConcurrent);
+        searchScaledRecursive(root, box, minBoundingBoxArea, elementsConcurrent);
 
         return elementsConcurrent
                 .parallelStream()
-                .filter(e -> e.getArea() >= minBoundingBoxArea)
+                .filter(e -> e.getBoundingBox().intersects(box) && e.getArea() >= minBoundingBoxArea)
                 .sorted(Comparator.comparing((e1) -> switch (e1) {
                     case OsmWay way -> way.isLine() ? way.getId() : -way.getArea();
                     default -> -e1.getArea();
