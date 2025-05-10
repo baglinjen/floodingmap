@@ -17,7 +17,6 @@ import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 
 import static com.almasb.fxgl.dsl.FXGLForKtKt.*;
 import static dk.itu.util.DrawingUtils.bufferedImageToWritableImage;
@@ -48,8 +47,6 @@ public class FloodingApp extends GameApplication {
 
             float registeredWaterLevel = 0.0f;
 
-            CountDownLatch countDownLatch;
-
             List<OsmElement> osmElements = new ArrayList<>();
             List<BoundingBox> boundingBoxes = new ArrayList<>();
             List<HeightCurveElement> heightCurves = new ArrayList<>();
@@ -72,67 +69,49 @@ public class FloodingApp extends GameApplication {
                 g2d.clearRect(0, 0, WIDTH, HEIGHT);
                 g2d.setTransform(state.getSuperAffine());
 
-                countDownLatch = new CountDownLatch(3);
+                // Adding OSM Elements{
+                osmElements.clear();
+                osmElements.addAll(
+                        services
+                                .getOsmService(state.isWithDb())
+                                .getOsmElementsToBeDrawnScaled(
+                                        window[0],
+                                        window[1],
+                                        window[2],
+                                        window[3]
+                                )
+                );
+                osmElements.parallelStream().forEach(e -> e.prepareDrawing(g2d));
 
-                // Adding OSM Elements
-                CountDownLatch finalCountDownLatch = countDownLatch;
-                getExecutor().startAsyncFX(() -> {
-                    osmElements.clear();
-                    osmElements.addAll(
+                // Adding Bounding Boxes
+                boundingBoxes.clear();
+                if (state.shouldDrawBoundingBox()) {
+                    boundingBoxes.addAll(
                             services
                                     .getOsmService(state.isWithDb())
-                                    .getOsmElementsToBeDrawnScaled(
-                                            window[0],
-                                            window[1],
-                                            window[2],
-                                            window[3]
-                                    )
+                                    .getBoundingBoxes()
                     );
-                    osmElements.parallelStream().forEach(e -> e.prepareDrawing(g2d));
-                    finalCountDownLatch.countDown();
-                });
-                // Adding Bounding Boxes
-                CountDownLatch finalCountDownLatch1 = countDownLatch;
-                getExecutor().startAsyncFX(() -> {
-                    boundingBoxes.clear();
-                    if (state.shouldDrawBoundingBox()) {
-                        boundingBoxes.addAll(
-                                services
-                                        .getOsmService(state.isWithDb())
-                                        .getBoundingBoxes()
-                        );
-                    }
-                    finalCountDownLatch1.countDown();
-                });
-                // Adding Height Curves
-                CountDownLatch finalCountDownLatch2 = countDownLatch;
-                getExecutor().startAsyncFX(() -> {
-                    heightCurves.clear();
-                    if (state.shouldDrawGeoJson()) {
-                        heightCurves.addAll(
-                                services
-                                        .getHeightCurveService()
-                                        .getElements()
-                        );
-                        // Potential TODO: Better height curve flooded state tracking to enable scaled window queries
-//                        heightCurves.addAll(
-//                                services
-//                                        .getHeightCurveService()
-//                                        .searchScaled(
-//                                                window[0],
-//                                                window[1],
-//                                                window[2],
-//                                                window[3]
-//                                        )
-//                        );
-                    }
-                    finalCountDownLatch2.countDown();
-                });
+                }
 
-                try {
-                    countDownLatch.await();
-                } catch (InterruptedException e) {
-                    logger.error(e.getMessage(), e);
+                // Adding Height Curves
+                heightCurves.clear();
+                if (state.shouldDrawGeoJson()) {
+                    heightCurves.addAll(
+                            services
+                                    .getHeightCurveService()
+                                    .getElements()
+                    );
+                    // Potential TODO: Better height curve flooded state tracking to enable scaled window queries
+//                    heightCurves.addAll(
+//                            services
+//                                    .getHeightCurveService()
+//                                    .searchScaled(
+//                                            window[0],
+//                                            window[1],
+//                                            window[2],
+//                                            window[3]
+//                                    )
+//                    );
                 }
 
                 if(state.getWaterLevel() != registeredWaterLevel) {

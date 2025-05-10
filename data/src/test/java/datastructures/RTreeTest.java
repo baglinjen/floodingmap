@@ -227,7 +227,7 @@ public class RTreeTest {
         rStarTree.insert(node1);
         rStarTree.insert(node2);
 
-        List<OsmNode> elements = rStarTree.getElements();
+        List<OsmNode> elements = rStarTree.getNodes();
         assertEquals(2, elements.size(), "Should return all added nodes");
         assertTrue(elements.stream().anyMatch(n -> n.getId() == 1), "Should contain node1");
         assertTrue(elements.stream().anyMatch(n -> n.getId() == 2), "Should contain node2");
@@ -237,7 +237,7 @@ public class RTreeTest {
     public void testEmptyElements()
     {
         // Elements should be empty at initialization, before insertion.
-        assertTrue(rStarTree.getElements().isEmpty(), "Empty tree should return empty list");
+        assertTrue(rStarTree.getNodes().isEmpty(), "Empty tree should return empty list");
     }
 
     @Test

@@ -18,6 +18,8 @@ public class RStarTree {
     private static final int MAX_ENTRIES = 100;  // Maximum entries in a node
     private static final int MIN_ENTRIES = MAX_ENTRIES / 2;  // Minimum entries (40-50% of max is typical)
     private static final double REINSERT_PERCENTAGE = 0.3;  // Percentage of entries to reinsert (30% is typical)
+    private static final int MAX_CHILDREN = 10;
+    private static final int MIN_CHILDREN = MAX_CHILDREN / 2;
     private static final int REINSERT_LEVELS = 5;  // Max levels for forced reinsert to prevent recursion issues
 
     // Track levels for forced reinsert to prevent excessive reinsertion
@@ -50,7 +52,7 @@ public class RStarTree {
      * @param box The bounding box
      * @return The minimum possible Euclidean distance
      */
-    private double minDist(double px, double py, BoundingBox box) {
+    private double minDist(double px, double py, BoundingBox box) { //TODO: Make method in BoundingBox class
         double dx = 0.0;
         double dy = 0.0;
 
@@ -88,10 +90,10 @@ public class RStarTree {
     }
 
     /**
-     * Get all elements in the R-tree
+     * Get all elements in the R-tree. Used for routing
      * @return List of all OsmNode elements in the tree
      */
-    public List<OsmNode> getElements() {
+    public List<OsmNode> getNodes() {
         // TODO: Use concurrent queue
         List<OsmNode> result = new ArrayList<>();
         if (root != null) {
@@ -160,7 +162,7 @@ public class RStarTree {
         int level = calculateLevel(leaf);
 
         // Check if we should do a forced reinsert instead of splitting
-        if (!reinsertLevels.contains(level) && level <= REINSERT_LEVELS) {
+        if (!reinsertLevels.contains(level)) {
             boolean didReinsert = forcedReinsert(leaf, level);
             if (didReinsert && leaf.elements.size() < MAX_ENTRIES) {
                 return null; // No split needed after reinsert
@@ -214,7 +216,7 @@ public class RStarTree {
         int splitIndex = MIN_ENTRIES;
 
         // Try distributions and pick the one with minimum overlap
-        for (int i = MIN_ENTRIES; i <= children.size() - MIN_ENTRIES; i++) {
+        for (int i = MIN_CHILDREN; i <= children.size() - MIN_CHILDREN; i++) {
             // Create two groups
             BoundingBox mbr1 = computeMBRForChildren(children.subList(0, i));
             BoundingBox mbr2 = computeMBRForChildren(children.subList(i, children.size()));
@@ -499,7 +501,7 @@ public class RStarTree {
         // Check if reinsert is needed
         boolean isFull = node.isLeaf() ?
                 node.elements.size() > MAX_ENTRIES :
-                node.getChildren().size() > MAX_ENTRIES;
+                node.getChildren().size() > MAX_CHILDREN;
 
         if (!isFull) {
             return false;
@@ -582,7 +584,7 @@ public class RStarTree {
         // Find parent for adjustment
         // Check if we need to split
         RTreeNode newNode = null;
-        if (targetNode.getChildren().size() > MAX_ENTRIES) {
+        if (targetNode.getChildren().size() > MAX_CHILDREN) {
             newNode = splitInternal(targetNode);
         }
 
@@ -647,7 +649,7 @@ public class RStarTree {
 
         // Check if parent needs splitting
         RTreeNode splitParent = null;
-        if (parent.getChildren().size() > MAX_ENTRIES) {
+        if (parent.getChildren().size() > MAX_CHILDREN) {
             splitParent = splitInternal(parent);
         }
 

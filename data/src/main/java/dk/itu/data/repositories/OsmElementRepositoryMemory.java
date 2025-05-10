@@ -79,7 +79,7 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
 
     @Override
     public synchronized List<OsmNode> getTraversableOsmNodes() {
-        return traversable.getElements();
+        return traversable.getNodes();
     }
 
     @Override
