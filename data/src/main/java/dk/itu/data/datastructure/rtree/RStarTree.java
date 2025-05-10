@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 * */
 
 public class RStarTree {
-    private static final int MAX_ENTRIES = 1000;  // Maximum entries in a node
+    private static final int MAX_ENTRIES = 100;  // Maximum entries in a node
     private static final int MIN_ENTRIES = MAX_ENTRIES / 2;  // Minimum entries (40-50% of max is typical)
     private static final double REINSERT_PERCENTAGE = 0.3;  // Percentage of entries to reinsert (30% is typical)
     private static final int REINSERT_LEVELS = 5;  // Max levels for forced reinsert to prevent recursion issues

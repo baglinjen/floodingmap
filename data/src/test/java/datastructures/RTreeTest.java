@@ -1,11 +1,13 @@
 package datastructures;
 
+import com.google.common.base.Stopwatch;
 import dk.itu.data.datastructure.rtree.RStarTree;
 import dk.itu.data.models.db.osm.OsmElement;
 import dk.itu.data.datastructure.rtree.RTreeNode;
 import dk.itu.data.models.db.BoundingBox;
 
 import java.lang.reflect.Method;
+import java.sql.Time;
 import java.util.List;
 
 import dk.itu.data.models.db.osm.OsmNode;
@@ -22,15 +24,15 @@ import static org.junit.jupiter.api.Assertions.*;
 public class RTreeTest {
     private static final Log log = LogFactory.getLog(RTreeTest.class);
     List<OsmNode> nodes;
-    RStarTree rStarTree;
+    List<OsmElement> elements;
+    RStarTree rStarTree = new RStarTree();
 
     @BeforeEach
     public void setUp() {
-        rStarTree = new RStarTree();
-
+        rStarTree.clear();
         Services.withServices(services -> {
             services.getOsmService(false).loadOsmData("bornholm.osm");
-            services.getHeightCurveService().loadGmlFileData("tuna-dijkstra.gml");
+            elements = services.getOsmService(false).getOsmElementsToBeDrawn(9999999, 54.8687, 14.1202, 55.4165, 15.7159);
             nodes = services.getOsmService(false).getTraversableOsmNodes().values().stream().toList();
         });
     }
