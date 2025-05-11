@@ -160,13 +160,13 @@ public class RoutingTest {
         //Assert
         assertThat(dijkstraRoute).isNotNull();
         assertThat(dijkstraCoordinates).isNotNull();
+        assertThat(dijkstraCoordinates).isEqualTo(expectedRouteCoordinates);
 
         assertThat(aStarRoute).isNotNull();
         assertThat(aStarCoordinates).isNotNull();
 
-        assertThat(dijkstraCoordinates).isEqualTo(aStarCoordinates);
-        assertThat(dijkstraCoordinates).isEqualTo(aStarBidirectionalCoordinates);
-        assertThat(dijkstraCoordinates).isEqualTo(expectedRouteCoordinates);
+        assertThat(aStarCoordinates).isEqualTo(dijkstraCoordinates);
+        assertThat(aStarBidirectionalCoordinates).isEqualTo(dijkstraCoordinates);
     }
 
     @Test

@@ -21,7 +21,9 @@ public class RoutingConfiguration {
     private RoutingType routingType = RoutingType.Dijkstra;
     private OsmNode startNode, endNode;
     private Pair<OsmElement, Double> route;
-    private final List<OsmNode> touchedNodes = Collections.synchronizedList(new ArrayList<>());
+    private volatile List<OsmNode> touchedNodes = Collections.synchronizedList(new ArrayList<>());
+    private OsmNode sharedNode = null;
+    private Thread calculationThread;
 
     public OsmNode getStartNode() {
         return startNode;
@@ -65,7 +67,7 @@ public class RoutingConfiguration {
     }
 
     public Thread calculateRoute(boolean isWithDb) throws RuntimeException{
-        Thread calculationThread = new Thread(() -> {
+        calculationThread = new Thread(() -> {
             Services.withServices(services -> {
                 var nodes = services.getOsmService(isWithDb).getTraversableOsmNodes();
 
@@ -74,7 +76,7 @@ public class RoutingConfiguration {
                 if (startNode.getId() == endNode.getId())
                     throw new IllegalArgumentException("Start node and end node can not be the same");
 
-                touchedNodes.clear();
+                touchedNodes = Collections.synchronizedList(new ArrayList<>());
 
                 nodes.remove(startNode.getId());
                 nodes.remove(endNode.getId());
@@ -83,7 +85,7 @@ public class RoutingConfiguration {
 
                 var route = routingType == RoutingType.AStarBidirectional ?
                         createAStarBidirectional(startNode, endNode, nodes, services) :
-                        createPath(createRoute(startNode, endNode, nodes, services, null));
+                        createPath(createCoordinateList(createRoute(startNode, endNode, nodes, services, null), startNode, endNode));
 
                 if (route == null)
                     logger.warn("No possible route could be found between: {}, {}", startNode.getId(), endNode.getId());
@@ -103,19 +105,20 @@ public class RoutingConfiguration {
 
             ExecutorService executorService = Executors.newFixedThreadPool(2);
 
-            Callable<double[]> forwardTask = () -> createRoute(startNode, endNode, nodes, services, new Pair<>(forwardSet, backwardSet));
-            Callable<double[]> backwardTask = () -> createRoute(endNode, startNode, nodes, services, new Pair<>(backwardSet, forwardSet));
+            Callable<Map<OsmNode, OsmNode>> forwardTask = () -> createRoute(startNode, endNode, nodes, services, new Pair<>(forwardSet, backwardSet));
+            Callable<Map<OsmNode, OsmNode>> backwardTask = () -> createRoute(endNode, startNode, nodes, services, new Pair<>(backwardSet, forwardSet));
 
-            Future<double[]> forwardFuture = executorService.submit(forwardTask);
-            Future<double[]> backwardFuture = executorService.submit(backwardTask);
+            Future<Map<OsmNode, OsmNode>> forwardFuture = executorService.submit(forwardTask);
+            Future<Map<OsmNode, OsmNode>> backwardFuture = executorService.submit(backwardTask);
 
-            var forwardsRoute = forwardFuture.get();
-            var backwardsRoute = backwardFuture.get();
+            var forwardsRouteMap = forwardFuture.get();
+            var backwardsRouteMap = backwardFuture.get();
 
-            assert forwardsRoute != null;
-            assert backwardsRoute != null;
+            assert forwardsRouteMap != null;
+            assert backwardsRouteMap != null;
 
-            backwardsRoute = reverseCoordinateList(backwardsRoute);
+            var forwardsRoute = createCoordinateList(forwardsRouteMap, startNode, sharedNode);
+            var backwardsRoute = reverseCoordinateList(createCoordinateList(backwardsRouteMap, endNode, sharedNode));
 
             executorService.shutdown();
 
@@ -126,7 +129,7 @@ public class RoutingConfiguration {
         }
     }
 
-    private double[] createRoute(OsmNode startNode, OsmNode endNode, Map<Long, OsmNode> nodes, Services services, Pair<Set<OsmNode>, Set<OsmNode>> connectionSet){
+    private Map<OsmNode, OsmNode> createRoute(OsmNode startNode, OsmNode endNode, Map<Long, OsmNode> nodes, Services services, Pair<Set<OsmNode>, Set<OsmNode>> connectionSet){
         Map<OsmNode, OsmNode> previousConnections = new ConcurrentHashMap<>();
         Map<OsmNode, Double> knownDistances = new ConcurrentHashMap<>();
         Map<OsmNode, Double> heuristicDistances = new ConcurrentHashMap<>();
@@ -155,15 +158,21 @@ public class RoutingConfiguration {
 
             if(connectionSet != null){
                 //This will happen if createRoute is called as an A* bidirectional multithreaded
+                if(sharedNode != null) return previousConnections;
+
                 connectionSet.getFirst().add(node);
 
                 if(connectionSet.getFirst().contains(node) && connectionSet.getSecond().contains(node)) {
                     //TODO: Ensure both threads stop at the same node
-                    return createCoordinateList(previousConnections, startNode, node);
+                    //return createCoordinateList(previousConnections, startNode, node);
+                    sharedNode = node;
+                    return previousConnections;
+
                 }
             } else if (node == endNode){
                 //This will happen if createRoute is called as a normal dijkstra / A*
-                return createCoordinateList(previousConnections, startNode, endNode);
+                //return createCoordinateList(previousConnections, startNode, endNode);
+                return previousConnections;
             }
 
             var nodeDistance = knownDistances.get(node);
@@ -242,9 +251,17 @@ public class RoutingConfiguration {
     }
 
     private double[] stitchCoordinates(double[] firstList, double[] secondList){
-        var result = new double[firstList.length + secondList.length];
+        boolean removeDuplicate = (firstList[firstList.length - 2] == secondList[0] && firstList[firstList.length - 1] == secondList[1]);
+
+        var result = new double[
+                removeDuplicate ? firstList.length + secondList.length - 2 :
+                firstList.length + secondList.length
+        ];
+
         System.arraycopy(firstList, 0, result, 0, firstList.length);
-        System.arraycopy(secondList, 0, result, firstList.length, result.length - firstList.length);
+        System.arraycopy(secondList, removeDuplicate ? 2 : 0, result, firstList.length, result.length - firstList.length);
+
+        //System.arraycopy(secondList, 0, result, firstList.length, result.length - firstList.length);
 
         return result;
     }
