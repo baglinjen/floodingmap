@@ -2,9 +2,6 @@ package dk.itu.data.datastructure.heightcurvetree;
 
 import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.heightcurve.HeightCurveElement;
-import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
-import it.unimi.dsi.fastutil.objects.ReferenceList;
-import it.unimi.dsi.fastutil.objects.ReferenceLists;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,23 +34,21 @@ public class HeightCurveTree {
     }
 
     public List<HeightCurveElement> getElements() {
-        ReferenceList<HeightCurveElement> elements = ReferenceLists.synchronize(new ReferenceArrayList<>());
+        Queue<HeightCurveElement> elements = new ConcurrentLinkedQueue<>();
         getElements(root, elements);
         return elements.parallelStream().toList();
     }
     private void getElements(HeightCurveTreeNode node, Collection<HeightCurveElement> elements) {
-        synchronized (elements) {
-            elements.add(node.getHeightCurveElement());
-        }
+        elements.add(node.getHeightCurveElement());
         node.getChildren().parallelStream().forEach(child -> getElements(child, elements));
     }
 
     public List<HeightCurveElement> searchScaled(BoundingBox boundingBox, double minBoundingBoxArea) {
-        ReferenceList<HeightCurveElement> elements = ReferenceLists.synchronize(new ReferenceArrayList<>());
+        Collection<HeightCurveElement> elementsConcurrent = new ConcurrentLinkedQueue<>();
 
-        searchScaled(root, boundingBox, elements);
+        searchScaled(root, boundingBox, elementsConcurrent);
 
-        return elements
+        return elementsConcurrent
                 .parallelStream()
                 .filter(e -> e.getArea() >= minBoundingBoxArea)
                 .toList();
@@ -61,9 +56,7 @@ public class HeightCurveTree {
     private void searchScaled(HeightCurveTreeNode node, BoundingBox queryBox, Collection<HeightCurveElement> results) {
         // If heightCurveElement intersects => add to list => Run with children
         if (queryBox.intersects(node.getHeightCurveElement().getBounds())) {
-            synchronized (results) {
-                results.add(node.getHeightCurveElement());
-            }
+            results.add(node.getHeightCurveElement());
             node.getChildren().parallelStream().forEach(child -> searchScaled(child, queryBox, results));
         }
         // Else => nothing

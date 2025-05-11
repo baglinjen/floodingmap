@@ -1,7 +1,6 @@
 package dk.itu.data.utils;
 
 import dk.itu.data.models.parser.ParserOsmNode;
-import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,7 +9,7 @@ public class RoutingUtils {
     private static final double EARTH_RADIUS_KM = 6371;
 
     public static Map<Long, Double> buildConnectionMap(ParserOsmNode node){
-        Map<Long, Double> result = new Long2DoubleOpenHashMap();
+        var result = new HashMap<Long, Double>();
 
         for (ParserOsmNode connection : node.getConnections()) {
             result.put(connection.getId(), distanceMeters(node.getLat(), node.getLon(), connection.getLat(), connection.getLon()));

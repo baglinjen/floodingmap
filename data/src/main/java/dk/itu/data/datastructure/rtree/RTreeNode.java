@@ -2,7 +2,6 @@ package dk.itu.data.datastructure.rtree;
 
 import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.osm.OsmElement;
-import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 
 import java.util.Comparator;
 import java.util.List;
@@ -11,8 +10,8 @@ import java.util.ArrayList;
 public class RTreeNode {
     BoundingBox mbr;
     RTreeNode parent;
-    List<OsmElement> elements = new ReferenceArrayList<>();    // For leaf nodes
-    private List<RTreeNode> children = new ReferenceArrayList<>();           // For internal nodes
+    List<OsmElement> elements = new ArrayList<>();    // For leaf nodes
+    private List<RTreeNode> children = new ArrayList<>();           // For internal nodes
     public RTreeNode()  {
         this.mbr = null;
     }
@@ -60,6 +59,8 @@ public class RTreeNode {
         if (children.isEmpty()) {
             return;
         }
+
+        // TODO: Check with parallel stream for children (not per value min/max)
 
         double minX = Double.MAX_VALUE, minY = Double.MAX_VALUE;
         double maxX = Double.MIN_VALUE, maxY = Double.MIN_VALUE;

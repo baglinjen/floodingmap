@@ -17,4 +17,8 @@ public abstract class OsmElement extends Colored {
     public long getId() { return id; }
     public double getArea() { return area; }
     public BoundingBox getBoundingBox() { return boundingBox; }
+
+    public double distance(OsmElement other) {
+        return this.boundingBox.distanceToBoundingBox(other.boundingBox);
+    }
 }
