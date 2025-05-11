@@ -752,7 +752,7 @@ public class RStarTree {
     }
 
     public List<OsmElement> searchScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
-        Collection<OsmElement> elementsConcurrent = new ConcurrentLinkedQueue<>();
+        List<OsmElement> elementsConcurrent = Collections.synchronizedList(new ArrayList<>());
         BoundingBox box = new BoundingBox(minLon, minLat, maxLon, maxLat);
 
         searchScaledRecursive(root, box, minBoundingBoxArea, elementsConcurrent);
@@ -770,7 +770,9 @@ public class RStarTree {
         if (node == null || !node.mbr.intersects(queryBox)) return; // No intersection, skip this branch
 
         if (node.isLeaf()) {
-            results.addAll(node.elements);
+            synchronized (results) {
+                results.addAll(node.elements);
+            }
         } else {
             node.getChildren()
                     .parallelStream()

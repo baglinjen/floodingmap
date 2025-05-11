@@ -17,6 +17,9 @@ import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static com.almasb.fxgl.dsl.FXGLForKtKt.*;
 import static dk.itu.util.DrawingUtils.bufferedImageToWritableImage;
@@ -38,8 +41,8 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-//            services.getOsmService(state.isWithDb()).loadOsmData("ky.osm");
-            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
+            services.getOsmService(state.isWithDb()).loadOsmData("denmark.osm");
+//            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
             state.resetWindowBounds();
             state.updateMinMaxWaterLevels(services);
 //            var bounds = state.getWindowBounds();
@@ -47,61 +50,72 @@ public class FloodingApp extends GameApplication {
 
             float registeredWaterLevel = 0.0f;
 
-            List<OsmElement> osmElements = new ArrayList<>();
-            List<BoundingBox> boundingBoxes = new ArrayList<>();
-            List<HeightCurveElement> heightCurves = new ArrayList<>();
+            CompletableFuture<Void>[] dataFetchFutures = new CompletableFuture[3];
 
-            while (true) {
-                long start = System.nanoTime();
+            ArrayList<OsmElement> osmElements = new ArrayList<>();
+            ArrayList<BoundingBox> boundingBoxes = new ArrayList<>();
+            ArrayList<HeightCurveElement> heightCurves = new ArrayList<>();
 
-                var window = state.getWindowBounds();
-                float strokeBaseWidth = state.getSuperAffine().getStrokeBaseWidth();
+            try (ExecutorService executor = Executors.newCachedThreadPool()) {
 
-                image.flush();
+                while (true) {
+                    long start = System.nanoTime();
 
-                Graphics2D g2d = image.createGraphics();
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
-                g2d.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
-                g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED);
+                    var window = state.getWindowBounds();
+                    float strokeBaseWidth = state.getSuperAffine().getStrokeBaseWidth();
 
-                g2d.setBackground(Color.decode("#a9d3de"));
-                g2d.clearRect(0, 0, WIDTH, HEIGHT);
-                g2d.setTransform(state.getSuperAffine());
+                    image.flush();
 
-                // Adding OSM Elements{
-                osmElements.clear();
-                osmElements.addAll(
-                        services
-                                .getOsmService(state.isWithDb())
-                                .getOsmElementsToBeDrawnScaled(
-                                        window[0],
-                                        window[1],
-                                        window[2],
-                                        window[3]
-                                )
-                );
-                osmElements.parallelStream().forEach(e -> e.prepareDrawing(g2d));
+                    Graphics2D g2d = image.createGraphics();
+                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
+                    g2d.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
+                    g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED);
 
-                // Adding Bounding Boxes
-                boundingBoxes.clear();
-                if (state.shouldDrawBoundingBox()) {
-                    boundingBoxes.addAll(
-                            services
-                                    .getOsmService(state.isWithDb())
-                                    .getBoundingBoxes()
-                    );
-                }
+                    g2d.setBackground(Color.decode("#a9d3de"));
+                    g2d.clearRect(0, 0, WIDTH, HEIGHT);
+                    g2d.setTransform(state.getSuperAffine());
 
-                // Adding Height Curves
-                heightCurves.clear();
-                if (state.shouldDrawGeoJson()) {
-                    heightCurves.addAll(
-                            services
-                                    .getHeightCurveService()
-                                    .getElements()
-                    );
-                    // Potential TODO: Better height curve flooded state tracking to enable scaled window queries
+                    // Adding OSM Elements
+                    dataFetchFutures[0] = CompletableFuture.runAsync(() -> {
+                        osmElements.clear();
+                        osmElements.addAll(
+                                services
+                                        .getOsmService(state.isWithDb())
+                                        .getOsmElementsToBeDrawnScaled(
+                                                window[0],
+                                                window[1],
+                                                window[2],
+                                                window[3]
+                                        )
+                        );
+                        osmElements.trimToSize();
+                        osmElements.parallelStream().forEach(e -> e.prepareDrawing(g2d));
+                    }, executor);
+
+                    // Adding Bounding Boxes
+                    dataFetchFutures[1] = CompletableFuture.runAsync(() -> {
+                        boundingBoxes.clear();
+                        if (state.shouldDrawBoundingBox()) {
+                            boundingBoxes.addAll(
+                                    services
+                                            .getOsmService(state.isWithDb())
+                                            .getBoundingBoxes()
+                            );
+                        }
+                        boundingBoxes.trimToSize();
+                    }, executor);
+
+                    // Adding Height Curves
+                    dataFetchFutures[2] = CompletableFuture.runAsync(() -> {
+                        heightCurves.clear();
+                        if (state.shouldDrawGeoJson()) {
+                            heightCurves.addAll(
+                                    services
+                                            .getHeightCurveService()
+                                            .getElements()
+                            );
+                            // Potential TODO: Better height curve flooded state tracking to enable scaled window queries
 //                    heightCurves.addAll(
 //                            services
 //                                    .getHeightCurveService()
@@ -112,79 +126,84 @@ public class FloodingApp extends GameApplication {
 //                                            window[3]
 //                                    )
 //                    );
-                }
-
-                if(state.getWaterLevel() != registeredWaterLevel) {
-                    if (simulationThread != null && simulationThread.isAlive()) {
-                        simulationThread.interrupt();
-                    }
-
-                    heightCurves.parallelStream().forEach(HeightCurveElement::setAboveWater);
-
-                    simulationThread = new Thread(() -> {
-                        try {
-                            var floodingSteps = services.getHeightCurveService().getFloodingSteps(state.getWaterLevel());
-
-                            for (List<HeightCurveElement> floodingStep : floodingSteps) {
-                                Thread.sleep(500);
-                                floodingStep.parallelStream().forEach(HeightCurveElement::setBelowWater);
-                            }
-                        } catch (Exception ex){
-                            Thread.currentThread().interrupt();
                         }
-                    });
+                        heightCurves.trimToSize();
+                    }, executor);
 
-                    simulationThread.start();
+                    CompletableFuture.allOf(dataFetchFutures).join();
 
-                    registeredWaterLevel = state.getWaterLevel();
-                }
+                    if (state.getWaterLevel() != registeredWaterLevel) {
+                        if (simulationThread != null && simulationThread.isAlive()) {
+                            simulationThread.interrupt();
+                        }
 
-                // Prepare drawable elements
-                heightCurves.parallelStream().forEach(e -> e.prepareDrawing(g2d));
-                // Draw elements
-                osmElements.forEach(element -> element.draw(g2d, strokeBaseWidth));
-                heightCurves.forEach(hc -> hc.draw(g2d, strokeBaseWidth));
-                boundingBoxes.forEach(bb -> bb.draw(g2d, strokeBaseWidth));
+                        heightCurves.parallelStream().forEach(HeightCurveElement::setAboveWater);
 
-                // Draw dijkstra route if there is one
-                var dijkstraRoute = state.getRoutingConfiguration().getRoute(state.isWithDb(), state.getWaterLevel());
-                if (dijkstraRoute != null){
-                    dijkstraRoute.prepareDrawing(g2d);
-                    dijkstraRoute.draw(g2d, strokeBaseWidth);
-                }
+                        simulationThread = new Thread(() -> {
+                            try {
+                                var floodingSteps = services.getHeightCurveService().getFloodingSteps(state.getWaterLevel());
 
-                if(state.getRoutingConfiguration().getShouldVisualize()){
-                    var nodes = state.getRoutingConfiguration().getTouchedNodes();
-                    for(var n : nodes){
-                        g2d.setColor(Color.MAGENTA);
-                        g2d.fill(new Ellipse2D.Double(0.56*n.getLon() - strokeBaseWidth*8/2, -n.getLat() - strokeBaseWidth*8/2, strokeBaseWidth*8, strokeBaseWidth*8));
+                                for (List<HeightCurveElement> floodingStep : floodingSteps) {
+                                    Thread.sleep(500);
+                                    floodingStep.parallelStream().forEach(HeightCurveElement::setBelowWater);
+                                }
+                            } catch (Exception ex) {
+                                Thread.currentThread().interrupt();
+                            }
+                        });
+
+                        simulationThread.start();
+
+                        registeredWaterLevel = state.getWaterLevel();
                     }
-                }
 
-                var startNode = state.getRoutingConfiguration().getStartNode();
-                if (startNode != null) {
-                    g2d.setColor(Color.GREEN);
-                    g2d.fill(new Ellipse2D.Double(0.56*startNode.getLon() - strokeBaseWidth*8/2, -startNode.getLat() - strokeBaseWidth*8/2, strokeBaseWidth*8, strokeBaseWidth*8));
-                }
-                var endNode = state.getRoutingConfiguration().getEndNode();
-                if (endNode != null) {
-                    g2d.setColor(Color.RED);
-                    g2d.fill(new Ellipse2D.Double(0.56*endNode.getLon() - strokeBaseWidth*8/2, -endNode.getLat() - strokeBaseWidth*8/2, strokeBaseWidth*8, strokeBaseWidth*8));
-                }
+                    // Prepare drawable elements
+                    heightCurves.parallelStream().forEach(e -> e.prepareDrawing(g2d));
+                    // Draw elements
+                    osmElements.forEach(element -> element.draw(g2d, strokeBaseWidth));
+                    heightCurves.forEach(hc -> hc.draw(g2d, strokeBaseWidth));
+                    boundingBoxes.forEach(bb -> bb.draw(g2d, strokeBaseWidth));
 
-                // Draw nearest neighbour if there is one
-                if (state.getShowNearestNeighbour()) {
-                    var nn = state.getNearestNeighbour();
-                    if (nn != null) {
-                        nn.draw(g2d, strokeBaseWidth);
+                    // Draw dijkstra route if there is one
+                    var dijkstraRoute = state.getRoutingConfiguration().getRoute(state.isWithDb(), state.getWaterLevel());
+                    if (dijkstraRoute != null) {
+                        dijkstraRoute.prepareDrawing(g2d);
+                        dijkstraRoute.draw(g2d, strokeBaseWidth);
                     }
+
+                    if (state.getRoutingConfiguration().getShouldVisualize()) {
+                        var nodes = state.getRoutingConfiguration().getTouchedNodes();
+                        for (var n : nodes) {
+                            g2d.setColor(Color.MAGENTA);
+                            g2d.fill(new Ellipse2D.Double(0.56 * n.getLon() - strokeBaseWidth * 8 / 2, -n.getLat() - strokeBaseWidth * 8 / 2, strokeBaseWidth * 8, strokeBaseWidth * 8));
+                        }
+                    }
+
+                    var startNode = state.getRoutingConfiguration().getStartNode();
+                    if (startNode != null) {
+                        g2d.setColor(Color.GREEN);
+                        g2d.fill(new Ellipse2D.Double(0.56 * startNode.getLon() - strokeBaseWidth * 8 / 2, -startNode.getLat() - strokeBaseWidth * 8 / 2, strokeBaseWidth * 8, strokeBaseWidth * 8));
+                    }
+                    var endNode = state.getRoutingConfiguration().getEndNode();
+                    if (endNode != null) {
+                        g2d.setColor(Color.RED);
+                        g2d.fill(new Ellipse2D.Double(0.56 * endNode.getLon() - strokeBaseWidth * 8 / 2, -endNode.getLat() - strokeBaseWidth * 8 / 2, strokeBaseWidth * 8, strokeBaseWidth * 8));
+                    }
+
+                    // Draw nearest neighbour if there is one
+                    if (state.getShowNearestNeighbour()) {
+                        var nn = state.getNearestNeighbour();
+                        if (nn != null) {
+                            nn.draw(g2d, strokeBaseWidth);
+                        }
+                    }
+
+                    g2d.dispose();
+
+                    view.setImage(bufferedImageToWritableImage(image));
+
+                    logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
                 }
-
-                g2d.dispose();
-
-                view.setImage(bufferedImageToWritableImage(image));
-
-                logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
             }
         });
     }

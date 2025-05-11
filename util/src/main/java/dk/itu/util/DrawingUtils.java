@@ -25,11 +25,10 @@ public class DrawingUtils {
 
         IntStream.range(0, pixels.length).parallel().forEach(i -> {
             var pixel = pixels[i];
-            int baseIndex = i * 4;
-            pixelData[baseIndex] = (byte) ((pixel) & 0xFF);         // Blue
-            pixelData[baseIndex + 1] = (byte) ((pixel >> 8) & 0xFF);  // Green
-            pixelData[baseIndex + 2] = (byte) ((pixel >> 16) & 0xFF); // Red
-            pixelData[baseIndex + 3] = (byte) ((pixel >> 24) & 0xFF); // Alpha
+            pixelData[i * 4] = (byte) ((pixel) & 0xFF);         // Blue
+            pixelData[i * 4 + 1] = (byte) ((pixel >> 8) & 0xFF);  // Green
+            pixelData[i * 4 + 2] = (byte) ((pixel >> 16) & 0xFF); // Red
+            pixelData[i * 4 + 3] = (byte) ((pixel >> 24) & 0xFF); // Alpha
         });
 
         PixelBuffer<ByteBuffer> pixelBuffer = new PixelBuffer<>(
