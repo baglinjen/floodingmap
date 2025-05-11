@@ -163,15 +163,12 @@ public class RoutingConfiguration {
                 connectionSet.getFirst().add(node);
 
                 if(connectionSet.getFirst().contains(node) && connectionSet.getSecond().contains(node)) {
-                    //TODO: Ensure both threads stop at the same node
-                    //return createCoordinateList(previousConnections, startNode, node);
                     sharedNode = node;
                     return previousConnections;
 
                 }
             } else if (node == endNode){
                 //This will happen if createRoute is called as a normal dijkstra / A*
-                //return createCoordinateList(previousConnections, startNode, endNode);
                 return previousConnections;
             }
 
@@ -260,8 +257,6 @@ public class RoutingConfiguration {
 
         System.arraycopy(firstList, 0, result, 0, firstList.length);
         System.arraycopy(secondList, removeDuplicate ? 2 : 0, result, firstList.length, result.length - firstList.length);
-
-        //System.arraycopy(secondList, 0, result, firstList.length, result.length - firstList.length);
 
         return result;
     }
