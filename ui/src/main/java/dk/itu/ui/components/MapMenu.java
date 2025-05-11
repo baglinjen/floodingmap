@@ -8,31 +8,36 @@ import javafx.scene.control.MenuItem;
 
 public class MapMenu extends ContextMenu {
     public MapMenu(State state) {
-        MenuItem routeStart = new MenuItem("Set Route Start");
-        routeStart.setOnAction(_ -> {
-            var neighbour = state.getNearestNeighbour();
-            if (neighbour != null) {
-                state.getRoutingConfiguration().setStartNode(state.getNearestNeighbour().getSelectedOsmElement());
-            }
-        });
-        MenuItem routeEnd = new MenuItem("Set Route End");
-        routeEnd.setOnAction(_ -> {
-            var neighbour = state.getNearestNeighbour();
-            if (neighbour != null) {
-                state.getRoutingConfiguration().setEndNode(state.getNearestNeighbour().getSelectedOsmElement());
-            }
-        });
+        try{
+            MenuItem routeStart = new MenuItem("Set Route Start");
+            routeStart.setOnAction(_ -> {
+                var neighbour = state.getNearestNeighbour();
+                if (neighbour != null) {
+                    state.getRoutingConfiguration().setStartNode(state.getNearestNeighbour().getSelectedOsmElement());
+                }
+            });
+            MenuItem routeEnd = new MenuItem("Set Route End");
+            routeEnd.setOnAction(_ -> {
+                var neighbour = state.getNearestNeighbour();
+                if (neighbour != null) {
+                    state.getRoutingConfiguration().setEndNode(state.getNearestNeighbour().getSelectedOsmElement());
+                }
+            });
 
-        getItems().addAll(
-                routeStart,
-                routeEnd,
-                createRoutingButton(state, RoutingType.Dijkstra),
-                createRoutingButton(state, RoutingType.AStar),
-                createRoutingButton(state, RoutingType.AStarBidirectional)
-        );
+            getItems().addAll(
+                    routeStart,
+                    routeEnd,
+                    createRoutingButton(state, RoutingType.Dijkstra),
+                    createRoutingButton(state, RoutingType.AStar),
+                    createRoutingButton(state, RoutingType.AStarBidirectional)
+            );
+        } catch(RuntimeException ex){
+            displayAlert(ex.getMessage());
+        }
+
     }
 
-    private MenuItem createRoutingButton(State state, RoutingType routeType){
+    private MenuItem createRoutingButton(State state, RoutingType routeType) throws RuntimeException{
         var displayMethod = switch (routeType) {
             case Dijkstra -> "Dijkstra";
             case AStar -> "A-Star";

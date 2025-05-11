@@ -39,7 +39,8 @@ public class FloodingApp extends GameApplication {
 
             // Temporary whilst using in-memory
 //            services.getOsmService(state.isWithDb()).loadOsmData("ky.osm");
-            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
+            //services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
+            services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
             state.resetWindowBounds();
             state.updateMinMaxWaterLevels(services);
 //            var bounds = state.getWindowBounds();
@@ -146,7 +147,7 @@ public class FloodingApp extends GameApplication {
                 heightCurves.forEach(hc -> hc.draw(g2d, strokeBaseWidth));
                 boundingBoxes.forEach(bb -> bb.draw(g2d, strokeBaseWidth));
 
-                // Draw dijkstra route if there is one
+                // Draw routing if there is one
                 var dijkstraRoute = state.getRoutingConfiguration().getRoute(state.isWithDb(), state.getWaterLevel());
                 if (dijkstraRoute != null){
                     dijkstraRoute.prepareDrawing(g2d);

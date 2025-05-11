@@ -17,11 +17,13 @@ public class CommonConfiguration {
     }
 
     private final String dataForsyningenToken;
+    private final int routingDelay;
     private final boolean useDb;
 
     private CommonConfiguration() {
         this.dataForsyningenToken = System.getenv("dataForsyningenToken");
         this.useDb = Boolean.parseBoolean(Objects.requireNonNullElse(System.getenv("useDb"), "false"));
+        this.routingDelay = Integer.parseInt(Objects.requireNonNullElse(System.getenv("routingDelay"), "0"));
     }
 
     public String getDataForsyningenToken() {
@@ -30,6 +32,7 @@ public class CommonConfiguration {
     public boolean getUseDb() {
         return this.useDb;
     }
+    public int getRoutingDelay(){return this.routingDelay;}
 
     public List<String> getDataFiles() {
         try {

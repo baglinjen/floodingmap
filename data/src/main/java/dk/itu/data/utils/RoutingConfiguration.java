@@ -1,4 +1,5 @@
 package dk.itu.data.utils;
+import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.data.enums.RoutingType;
 import dk.itu.data.models.db.osm.OsmElement;
 import dk.itu.data.models.db.osm.OsmNode;
@@ -11,21 +12,16 @@ import org.apache.logging.log4j.Logger;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RoutingConfiguration {
     private static final Logger logger = LoggerFactory.getLogger();
     private boolean shouldVisualize;
+    private double waterLevel = 0.0;
     private RoutingType routingType = RoutingType.Dijkstra;
     private OsmNode startNode, endNode;
-    private double waterLevel = 0.0;
     private Pair<OsmElement, Double> route;
-    private final List<OsmNode> touchedNodes = new ArrayList<>();
-    private final List<OsmNode> safeTouchedNodes = Collections.synchronizedList(new ArrayList<>());
-
-    //TODO: Describe
-    private final Map<OsmNode, Pair<Boolean, Boolean>> markedMap = Collections.synchronizedMap(new HashMap<>());
-
-    private Thread calculationThread;
+    private final List<OsmNode> touchedNodes = Collections.synchronizedList(new ArrayList<>());
 
     public OsmNode getStartNode() {
         return startNode;
@@ -52,6 +48,10 @@ public class RoutingConfiguration {
         this.routingType = routingType;
     }
 
+    public RoutingType getRoutingMethod(){
+        return routingType;
+    }
+
     public OsmElement getRoute(boolean isWithDb, double currentWaterLevel){
         if (route == null) return null;
 
@@ -61,29 +61,32 @@ public class RoutingConfiguration {
     }
 
     public List<OsmNode> getTouchedNodes(){
-        //return List.copyOf(touchedNodes);
-        return List.copyOf(safeTouchedNodes);
+        return List.copyOf(touchedNodes);
     }
 
-    public Thread calculateRoute(boolean isWithDb){
-        calculationThread = new Thread(() -> {
+    public Thread calculateRoute(boolean isWithDb) throws RuntimeException{
+        Thread calculationThread = new Thread(() -> {
             Services.withServices(services -> {
                 var nodes = services.getOsmService(isWithDb).getTraversableOsmNodes();
 
-                if (startNode == null || endNode == null) throw new IllegalArgumentException("Start node and end node must be selected");
-                if (startNode.getId() == endNode.getId()) throw new IllegalArgumentException("Start node and end node can not be the same");
+                if (startNode == null || endNode == null)
+                    throw new IllegalArgumentException("Start node and end node must be selected");
+                if (startNode.getId() == endNode.getId())
+                    throw new IllegalArgumentException("Start node and end node can not be the same");
 
                 touchedNodes.clear();
-                safeTouchedNodes.clear();
 
                 nodes.remove(startNode.getId());
                 nodes.remove(endNode.getId());
                 nodes.put(startNode.getId(), startNode);
                 nodes.put(endNode.getId(), endNode);
 
-                var route = routingType == RoutingType.AStarBidirectional ? createAStarBidirectional(startNode, endNode, nodes, services) : createPath(createRoute(startNode, endNode, nodes, services, null));
+                var route = routingType == RoutingType.AStarBidirectional ?
+                        createAStarBidirectional(startNode, endNode, nodes, services) :
+                        createPath(createRoute(startNode, endNode, nodes, services, null));
 
-                if (route == null) logger.warn("No possible route could be found between: {}, {}", startNode.getId(), endNode.getId());
+                if (route == null)
+                    logger.warn("No possible route could be found between: {}, {}", startNode.getId(), endNode.getId());
 
                 this.route = new Pair<>(route, waterLevel);
             });
@@ -137,15 +140,25 @@ public class RoutingConfiguration {
 
         pq.offer(startNode);
 
+        int delay = CommonConfiguration.getInstance().getRoutingDelay();
+        boolean shouldDelay = delay > 0;
+
         while(!pq.isEmpty()){
+            try{
+                if(shouldDelay) Thread.sleep(delay);
+            } catch(InterruptedException e){
+                logger.error("An interruption occurred when using route delaying");
+            }
+
             OsmNode node = pq.poll();
-            safeTouchedNodes.add(node);
+            touchedNodes.add(node);
 
             if(connectionSet != null){
                 //This will happen if createRoute is called as an A* bidirectional multithreaded
                 connectionSet.getFirst().add(node);
 
                 if(connectionSet.getFirst().contains(node) && connectionSet.getSecond().contains(node)) {
+                    //TODO: Ensure both threads stop at the same node
                     return createCoordinateList(previousConnections, startNode, node);
                 }
             } else if (node == endNode){
@@ -179,71 +192,6 @@ public class RoutingConfiguration {
         }
 
         return null;//No route found
-    }
-
-    /*
-    private OsmElement createDijkstra(OsmNode startNode, OsmNode endNode, Map<Long, OsmNode> nodes, Services services){
-        nodes.remove(startNode.getId());
-        nodes.remove(endNode.getId());
-        nodes.put(startNode.getId(), startNode);
-        nodes.put(endNode.getId(), endNode);
-
-        Map<OsmNode, OsmNode> previousNodes = new ConcurrentHashMap<>();
-        Map<OsmNode, Double> distances = new ConcurrentHashMap<>();
-        Map<OsmNode, Double> heuristicDistances = new ConcurrentHashMap<>();
-
-        PriorityQueue<OsmNode> pq = new PriorityQueue<>(Comparator.comparingDouble(n -> heuristicDistances.getOrDefault(n, Double.MAX_VALUE)));
-
-        nodes
-                .values()
-                .parallelStream()
-                .forEach(v -> {
-                    distances.put(v, v == startNode ? 0.0 : Double.MAX_VALUE);
-                    heuristicDistances.put(v, v == endNode ? 0.0 : Double.MAX_VALUE);
-                });
-
-        pq.offer(startNode);
-
-        while(!pq.isEmpty()){
-            OsmNode curNode = pq.poll();
-            touchedNodes.add(curNode);
-
-                if (curNode == endNode) {
-                    return createPath(previousNodes, startNode, endNode);
-                }
-
-                double currDistance = distances.get(curNode);
-
-                for(var connection : curNode.getConnectionMap().entrySet()){
-                    OsmNode nextNode;
-                    try{
-                        nextNode = nodes.get(connection.getKey());
-                        if(nextNode == null) throw new NoSuchElementException("No next node with chosen ID");
-                    } catch(NoSuchElementException e){
-                        continue;
-                    }
-
-                    var height = services.getHeightCurveService().getHeightCurveForPoint(nextNode.getLon(), nextNode.getLat()).getHeight();
-                    if (height < waterLevel) continue; // Road is flooded
-
-                    double connectionDistance = connection.getValue();
-                    double distance = connectionDistance + currDistance;
-                    if(distance < distances.get(nextNode)){
-                        //A new shorter way has been found
-                        distances.put(nextNode, distance);
-                        previousNodes.put(nextNode, curNode);
-                        heuristicDistances.put(nextNode, distance + (isAStar ? RoutingUtils.distanceMeters(nextNode.getLat(), nextNode.getLon(), endNode.getLat(), endNode.getLon()) : 0.0));
-                        pq.offer(nextNode);
-                    }
-                }
-        }
-
-        return null; // No path found
-    }
-    */
-
-    private OsmElement createPath(Map<OsmNode, OsmNode> previousNodes, OsmNode startNode, OsmNode endNode){
-        return OsmWay.createWayForRouting(createCoordinateList(previousNodes, startNode, endNode));
     }
 
     private OsmElement createPath(double[] coordinateList){
