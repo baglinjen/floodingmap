@@ -63,17 +63,12 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     }
 
     @Override
-    public synchronized List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
-        return rtree.search(minLon, minLat, maxLon, maxLat);
-    }
-
-    @Override
-    public synchronized List<OsmElement> getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
+    public List<OsmElement> getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
         return rtree.searchScaled(minLon, minLat, maxLon, maxLat, minBoundingBoxArea);
     }
 
     @Override
-    public synchronized List<BoundingBox> getBoundingBoxes() {
+    public List<BoundingBox> getBoundingBoxes() {
         return rtree.getBoundingBoxes();
     }
 

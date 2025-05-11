@@ -3,11 +3,13 @@ import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.osm.OsmElement;
 import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.models.db.osm.OsmWay;
+import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
+import it.unimi.dsi.fastutil.objects.ReferenceList;
+import it.unimi.dsi.fastutil.objects.ReferenceLists;
 import javafx.util.Pair;
 
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 /*
 * The R* Tree is based on https://infolab.usc.edu/csci599/Fall2001/paper/rstar-tree.pdf
@@ -670,49 +672,19 @@ public class RStarTree {
         return new Pair<>(x, y);
     }
 
-
     private int calculateLevel(RTreeNode node) {
-        if (node == root) return 0;
-
-        RTreeNode current = root;
-        int level = 0;
-
-        while (!current.isLeaf()) {
-            level++;
-            boolean found = false;
-
-            for (RTreeNode child : current.getChildren()) {
-                if (containsNode(child, node)) {
-                    current = child;
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) return -1; // Node not found
-        }
-
-        return level;
+        return calculateLevel(root, node, 0);
     }
+    private int calculateLevel(RTreeNode node, RTreeNode nodeToFind, int level) {
+        if (node == nodeToFind) return level;
 
-    private boolean containsNode(RTreeNode parent, RTreeNode target) {
-        if (parent == target) return true;
-
-        for (RTreeNode child : parent.getChildren()) {
-            if (containsNode(child, target)) return true;
-        }
-
-        return false;
-    }
-
-    private void searchRecursive(RTreeNode node, BoundingBox queryBox, Collection<OsmElement> results) {
-        if (node == null || !node.mbr.intersects(queryBox)) return; // No intersection, skip this branch
-
-        if (node.isLeaf()) {
-            results.addAll(node.elements);
-        } else {
-            node.getChildren().parallelStream().forEach(child -> searchRecursive(child, queryBox, results));
-        }
+        return node
+                .getChildren()
+                .parallelStream()
+                .filter(c -> c.mbr.intersects(nodeToFind.mbr))
+                .map(c -> calculateLevel(c, nodeToFind, level+1))
+                .max(Integer::compareTo)
+                .orElse(level);
     }
 
     public void insert(OsmElement element) {
@@ -739,25 +711,36 @@ public class RStarTree {
 
 
     public List<OsmElement> search(double minLon, double minLat, double maxLon, double maxLat) {
-        Collection<OsmElement> elementsConcurrent = new ConcurrentLinkedQueue<>();
         BoundingBox box = new BoundingBox(minLon, minLat, maxLon, maxLat);
+        ReferenceList<OsmElement> osmElements = ReferenceLists.synchronize(new ReferenceArrayList<>());
 
-        searchRecursive(root, box, elementsConcurrent);
+        search(root, box, osmElements);
 
-        return elementsConcurrent
+        return osmElements
                 .parallelStream()
                 .filter(e -> e.getBoundingBox().intersects(box))
                 .sorted(Comparator.comparingDouble(OsmElement::getArea).reversed())
                 .toList();
     }
+    private void search(RTreeNode node, BoundingBox queryBox, Collection<OsmElement> results) {
+        if (node == null || !node.mbr.intersects(queryBox)) return; // No intersection, skip this branch
+
+        if (node.isLeaf()) {
+            synchronized(results) {
+                results.addAll(node.elements);
+            }
+        } else {
+            node.getChildren().parallelStream().forEach(child -> search(child, queryBox, results));
+        }
+    }
 
     public List<OsmElement> searchScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
-        List<OsmElement> elementsConcurrent = Collections.synchronizedList(new ArrayList<>());
         BoundingBox box = new BoundingBox(minLon, minLat, maxLon, maxLat);
+        ReferenceList<OsmElement> osmElements = ReferenceLists.synchronize(new ReferenceArrayList<>());
 
-        searchScaledRecursive(root, box, minBoundingBoxArea, elementsConcurrent);
+        searchScaledRecursive(root, box, minBoundingBoxArea, osmElements);
 
-        return elementsConcurrent
+        return osmElements
                 .parallelStream()
                 .filter(e -> e.getBoundingBox().intersects(box) && e.getArea() >= minBoundingBoxArea)
                 .sorted(Comparator.comparing((e1) -> switch (e1) {
@@ -782,17 +765,17 @@ public class RStarTree {
     }
 
     public List<BoundingBox> getBoundingBoxes() {
-        List<BoundingBox> boundingBoxes = new ArrayList<>();
+        ReferenceList<BoundingBox> boundingBoxes = new ReferenceArrayList<>();
         int level = 1, levelsToCheck = Integer.MAX_VALUE;
-        getBoundingBoxesRecursive(root, boundingBoxes, level, levelsToCheck);
+        getBoundingBoxes(root, boundingBoxes, level, levelsToCheck);
         return boundingBoxes.stream().toList();
     }
-    private void getBoundingBoxesRecursive(RTreeNode node, Collection<BoundingBox> results, int level, int levelsToCheck) {
+    private void getBoundingBoxes(RTreeNode node, Collection<BoundingBox> results, int level, int levelsToCheck) {
         results.add(node.mbr);
         level++;
         if (level < levelsToCheck) {
             int finalLevel = level;
-            node.getChildren().forEach(child -> getBoundingBoxesRecursive(child, results, finalLevel, levelsToCheck));
+            node.getChildren().forEach(child -> getBoundingBoxes(child, results, finalLevel, levelsToCheck));
         }
     }
 

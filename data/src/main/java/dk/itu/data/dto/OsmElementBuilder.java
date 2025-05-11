@@ -19,9 +19,9 @@ public class OsmElementBuilder {
     private static final Logger logger = LoggerFactory.getLogger();
     // Parsed so far
     private final OsmParserResult osmParserResult;
-    // Fields
-    private Long currentId = null;
-    private Double lat = null, lon = null;
+    private long currentId;
+    private double lat, lon;
+    private boolean idAdded, latLonAdded;
     private OsmElementType type = null;
     private final Map<String, String> tags = new HashMap<>();
     // Ways
@@ -41,9 +41,8 @@ public class OsmElementBuilder {
         switch (type) {
             case NODE:
                 if (
-                        currentId != null &&
-                        lat != null &&
-                        lon != null &&
+                        idAdded &&
+                        latLonAdded &&
                         !invalidElement
                 ) {
                     var newNode = new ParserOsmNode(currentId, lat, lon);
@@ -56,7 +55,7 @@ public class OsmElementBuilder {
                 break;
             case WAY:
                 if (
-                        currentId != null &&
+                        idAdded &&
                         !wayNodes.isEmpty() &&
                         !invalidElement
                 ) {
@@ -81,7 +80,7 @@ public class OsmElementBuilder {
                 break;
             case RELATION:
                 if (
-                        currentId != null &&
+                        idAdded &&
                         !members.isEmpty() &&
                         !invalidElement
                 ) {
@@ -99,8 +98,8 @@ public class OsmElementBuilder {
         }
 
         // Reset fields
-        currentId = null;
-        lat = lon = null;
+        idAdded = false;
+        latLonAdded = false;
         type = null;
         tags.clear();
         wayNodes.clear();
@@ -111,6 +110,7 @@ public class OsmElementBuilder {
     // ALL
     public void withId(Long currentId) {
         this.currentId = currentId;
+        this.idAdded = true;
     }
     public void withTag(String k, String v) {
         this.tags.put(k, v);
@@ -124,6 +124,7 @@ public class OsmElementBuilder {
     public OsmElementBuilder withCoordinates(double lat, double lon) {
         this.lat = lat;
         this.lon = lon;
+        this.latLonAdded = true;
         return this;
     }
 

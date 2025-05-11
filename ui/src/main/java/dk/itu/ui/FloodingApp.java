@@ -8,6 +8,7 @@ import dk.itu.data.models.db.osm.OsmElement;
 import dk.itu.data.services.Services;
 import dk.itu.ui.components.MouseEventOverlayComponent;
 import dk.itu.util.LoggerFactory;
+import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import org.apache.logging.log4j.Logger;
@@ -15,7 +16,6 @@ import org.apache.logging.log4j.Logger;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -52,9 +52,9 @@ public class FloodingApp extends GameApplication {
 
             CompletableFuture<Void>[] dataFetchFutures = new CompletableFuture[3];
 
-            ArrayList<OsmElement> osmElements = new ArrayList<>();
-            ArrayList<BoundingBox> boundingBoxes = new ArrayList<>();
-            ArrayList<HeightCurveElement> heightCurves = new ArrayList<>();
+            List<OsmElement> osmElements = new ReferenceArrayList<>();
+            List<BoundingBox> boundingBoxes = new ReferenceArrayList<>();
+            List<HeightCurveElement> heightCurves = new ReferenceArrayList<>();
 
             try (ExecutorService executor = Executors.newCachedThreadPool()) {
 
@@ -89,7 +89,6 @@ public class FloodingApp extends GameApplication {
                                                 window[3]
                                         )
                         );
-                        osmElements.trimToSize();
                         osmElements.parallelStream().forEach(e -> e.prepareDrawing(g2d));
                     }, executor);
 
@@ -103,7 +102,6 @@ public class FloodingApp extends GameApplication {
                                             .getBoundingBoxes()
                             );
                         }
-                        boundingBoxes.trimToSize();
                     }, executor);
 
                     // Adding Height Curves
@@ -127,7 +125,6 @@ public class FloodingApp extends GameApplication {
 //                                    )
 //                    );
                         }
-                        heightCurves.trimToSize();
                     }, executor);
 
                     CompletableFuture.allOf(dataFetchFutures).join();

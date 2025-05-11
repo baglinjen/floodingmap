@@ -4,6 +4,8 @@ import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.models.db.osm.OsmWay;
 import dk.itu.data.services.Services;
 import dk.itu.util.LoggerFactory;
+import it.unimi.dsi.fastutil.objects.ObjectArrayPriorityQueue;
+import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import kotlin.Pair;
 import org.apache.logging.log4j.Logger;
 
@@ -17,7 +19,7 @@ public class RoutingConfiguration {
     private OsmNode startNode, endNode;
     private double waterLevel = 0.0;
     private Pair<OsmElement, Double> route;
-    private final List<OsmNode> touchedNodes = new ArrayList<>();
+    private final List<OsmNode> touchedNodes = new ReferenceArrayList<>();
     private Thread calculationThread;
 
     public OsmNode getStartNode() {
@@ -57,7 +59,7 @@ public class RoutingConfiguration {
     }
 
     public List<OsmNode> getTouchedNodes(){
-        return List.copyOf(touchedNodes);
+        return List.copyOf(touchedNodes); // Test without making copy
     }
 
     public Thread calculateRoute(boolean isWithDb) {
@@ -92,7 +94,10 @@ public class RoutingConfiguration {
         Map<OsmNode, Double> distances = new ConcurrentHashMap<>();
         Map<OsmNode, Double> heuristicDistances = new ConcurrentHashMap<>();
 
-        PriorityQueue<OsmNode> pq = new PriorityQueue<>(Comparator.comparingDouble(n -> heuristicDistances.getOrDefault(n, Double.MAX_VALUE)));
+//        ObjectArrayPriorityQueue
+//        ObjectHeapPriorityQueue
+
+        ObjectArrayPriorityQueue<OsmNode> pq = new ObjectArrayPriorityQueue<>(Comparator.comparingDouble(n -> heuristicDistances.getOrDefault(n, Double.MAX_VALUE)));
 
         nodes
                 .values()
@@ -102,10 +107,10 @@ public class RoutingConfiguration {
                     heuristicDistances.put(v, v == endNode ? 0.0 : Double.MAX_VALUE);
                 });
 
-        pq.offer(startNode);
+        pq.enqueue(startNode);
 
         while(!pq.isEmpty()){
-            OsmNode curNode = pq.poll();
+            OsmNode curNode = pq.dequeue(); // Find out if it is dequeue or first
             touchedNodes.add(curNode);
 
                 if (curNode == endNode) {
@@ -133,7 +138,7 @@ public class RoutingConfiguration {
                         distances.put(nextNode, distance);
                         previousNodes.put(nextNode, curNode);
                         heuristicDistances.put(nextNode, distance + (isAStar ? RoutingUtils.distanceMeters(nextNode.getLat(), nextNode.getLon(), endNode.getLat(), endNode.getLon()) : 0.0));
-                        pq.offer(nextNode);
+                        pq.enqueue(nextNode);
                     }
                 }
         }

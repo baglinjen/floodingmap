@@ -9,10 +9,10 @@ import dk.itu.data.repositories.OsmElementRepository;
 import dk.itu.data.repositories.OsmElementRepositoryDb;
 import dk.itu.data.repositories.OsmElementRepositoryMemory;
 import dk.itu.util.LoggerFactory;
+import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
 import org.apache.logging.log4j.Logger;
 
 import java.sql.Connection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -34,32 +34,23 @@ public class OsmService {
         }
     }
 
-    public List<OsmElement> getOsmElementsToBeDrawn(int limit, double minLon, double minLat, double maxLon, double maxLat) {
-        synchronized (this.osmElementRepository) {
-            return osmElementRepository.getOsmElements(limit, minLon, minLat, maxLon, maxLat);
-        }
-    }
-
     public List<OsmElement> getOsmElementsToBeDrawnScaled(double minLon, double minLat, double maxLon, double maxLat) {
-        synchronized (this.osmElementRepository) {
-            return osmElementRepository.getOsmElementsScaled(minLon, minLat, maxLon, maxLat, (maxLon - minLon) * (maxLat - minLat) * OSM_ELEMENT_PERCENT_SCREEN);
-        }
+        //  If we start getting concurrent errors => re-add synchronized
+        return osmElementRepository.getOsmElementsScaled(minLon, minLat, maxLon, maxLat, (maxLon - minLon) * (maxLat - minLat) * OSM_ELEMENT_PERCENT_SCREEN);
     }
 
     public List<BoundingBox> getBoundingBoxes() {
-        synchronized (this.osmElementRepository) {
-            return osmElementRepository.getBoundingBoxes();
-        }
+        //  If we start getting concurrent errors => re-add synchronized
+        return osmElementRepository.getBoundingBoxes();
     }
 
-    public Map<Long, OsmNode> getTraversableOsmNodes(){
-        synchronized (this.osmElementRepository) {
-            var nodes = osmElementRepository.getTraversableOsmNodes();
-            var result = new HashMap<Long, OsmNode>();
+    public Map<Long, OsmNode> getTraversableOsmNodes() {
+        //  If we start getting concurrent errors => re-add synchronized
+        var nodes = osmElementRepository.getTraversableOsmNodes();
+        Map<Long, OsmNode> results = new Long2ReferenceOpenHashMap<>();
 
-            nodes.forEach(node -> result.put(node.getId(), node));
-            return result;
-        }
+        nodes.forEach(node -> results.put(node.getId(), node));
+        return results;
     }
 
     public void loadOsmData(String osmFileName) {
@@ -74,11 +65,13 @@ public class OsmService {
         synchronized (this.osmElementRepository) {
             // Add to Database
             logger.info("Started inserting drawable elements to repository");
+            long startTime = System.currentTimeMillis();
             osmElementRepository.add(osmParserResult.getElementsToBeDrawn());
-            logger.info("Finished inserting drawable elements to repository");
+            logger.info("Finished inserting drawable elements to repository in {} ms", System.currentTimeMillis() - startTime);
             logger.info("Started inserting traversable elements to repository");
+            startTime = System.currentTimeMillis();
             osmElementRepository.addTraversable(osmParserResult.getTraversableNodes());
-            logger.info("Finished inserting traversable elements to repository");
+            logger.info("Finished inserting traversable elements to repository in {} ms", System.currentTimeMillis() - startTime);
         }
     }
 

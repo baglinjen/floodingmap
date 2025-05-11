@@ -11,7 +11,6 @@ import java.util.List;
 public interface OsmElementRepository {
     void add(List<ParserOsmElement> osmElements);
     void addTraversable(List<ParserOsmNode> nodes);
-    List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat);
     List<OsmElement> getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea);
     List<OsmNode> getTraversableOsmNodes();
     List<BoundingBox> getBoundingBoxes();
