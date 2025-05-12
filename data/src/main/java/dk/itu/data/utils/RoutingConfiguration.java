@@ -183,7 +183,8 @@ public class RoutingConfiguration {
                     continue;
                 }
 
-                var nextNodeHeight = services.getHeightCurveService().getHeightCurveForPoint(nextNode.getLon(), nextNode.getLat()).getHeight();
+                //var nextNodeHeight = services.getHeightCurveService().getHeightCurveForPoint(nextNode.getLon(), nextNode.getLat()).getHeight();
+                var nextNodeHeight = nextNode.getHeight();
                 if(nextNodeHeight < waterLevel) continue; // Road is flooded
 
                 double connDistance = conn.getValue();

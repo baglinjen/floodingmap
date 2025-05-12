@@ -6,12 +6,16 @@ import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.services.Services;
 import dk.itu.data.utils.RoutingConfiguration;
 import dk.itu.ui.drawables.NearestNeighbour;
+import dk.itu.util.LoggerFactory;
 import kotlin.Pair;
+import org.apache.logging.log4j.Logger;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static dk.itu.ui.FloodingApp.HEIGHT;
 
@@ -29,6 +33,7 @@ public class State {
     private NearestNeighbour selectedOsmElement = null;
     private boolean withDb = CommonConfiguration.getInstance().getUseDb();
     private boolean showNearestNeighbour = false, shouldDrawBoundingBox = false;
+    private static final Logger logger = LoggerFactory.getLogger();
 
     public State(Services services) {
         this.routingConfiguration = new RoutingConfiguration();
@@ -153,6 +158,50 @@ public class State {
         for (var listener : minMaxWaterLevelListeners) {
             listener.accept(new Pair<>(this.minWaterLevel, this.maxWaterLevel));
         }
+    }
+
+    /// This method will efficiently determine each traversable node's containing height curve.
+    /// This is called when loading height curves, and will spawn threads that process the nodes
+    public void recalculateNodeHeight(){
+        Services.withServices(s -> {
+            var nodes = s.getOsmService(isWithDb()).getTraversableOsmNodes().values().stream().toList();
+
+            //Distribute workload across N threads
+            int threadPool = Runtime.getRuntime().availableProcessors();
+            var workload = splitNodes(nodes, threadPool);
+
+            List<Thread> threads = new ArrayList<>();
+
+            for(int i = 0; i < threadPool; i++){
+                List<OsmNode> threadNodes = workload.get(i);
+                int threadIndex = i;
+
+                Runnable task = () -> {
+                    logger.info("Calculating node height for batch: " + threadIndex);
+                    for(var n : threadNodes){
+                        n.setContainingCurve(
+                                s.getHeightCurveService().getHeightCurveForPoint(n.getLon(), n.getLat())
+                        );
+                    }
+                    logger.info("Completed node height calculation for batch: " + threadIndex);
+                };
+
+                Thread thread = new Thread(task);
+                threads.add(thread);
+                thread.start();
+            }
+        });
+    }
+
+    private List<List<OsmNode>> splitNodes(List<OsmNode> nodes, int threadPool){
+        int baseSize = nodes.size() / threadPool;
+        int remainder = nodes.size() % threadPool;
+
+        return IntStream.range(0, threadPool).mapToObj(i -> {
+            int arrayStart = i * baseSize + Math.min(i, remainder);
+            int arrayEnd = arrayStart + baseSize + (i < remainder ? 1 : 0);
+            return nodes.subList(arrayStart, Math.min(arrayEnd, nodes.size()));
+        }).collect(Collectors.toList());
     }
 
     public void resetWindowBounds(Services services) {

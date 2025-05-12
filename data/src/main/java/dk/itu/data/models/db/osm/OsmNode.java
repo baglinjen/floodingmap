@@ -1,6 +1,7 @@
 package dk.itu.data.models.db.osm;
 
 import dk.itu.data.models.db.BoundingBox;
+import dk.itu.data.models.db.heightcurve.HeightCurveElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.utils.RoutingUtils;
 
@@ -10,6 +11,8 @@ import java.util.Map;
 public class OsmNode extends OsmElement {
     private final double lat, lon;
     private final Map<Long, Double> connectionMap;
+    private HeightCurveElement containingCurve = null;
+
     public OsmNode(long id, double lon, double lat, BoundingBox boundingBox, Map<Long, Double> connectionMap) {
         super(id, boundingBox, 0);
         this.lon = lon;
@@ -28,6 +31,16 @@ public class OsmNode extends OsmElement {
         osmNode.setStyle(parserOsmNode.getColor(), parserOsmNode.getStroke());
 
         return osmNode;
+    }
+
+    public void setContainingCurve(HeightCurveElement containingCurve){
+        this.containingCurve = containingCurve;
+    }
+
+    public double getHeight(){
+        if(containingCurve == null) return 0.0;
+
+        return containingCurve.getHeight();
     }
 
     public double getLat() {
