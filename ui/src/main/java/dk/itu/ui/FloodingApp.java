@@ -41,8 +41,8 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-            services.getOsmService(state.isWithDb()).loadOsmData("denmark.osm");
-//            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
+//            services.getOsmService(state.isWithDb()).loadOsmData("ky.osm");
+            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
             state.resetWindowBounds();
             state.updateMinMaxWaterLevels(services);
 //            var bounds = state.getWindowBounds();
@@ -114,16 +114,16 @@ public class FloodingApp extends GameApplication {
                                             .getElements()
                             );
                             // Potential TODO: Better height curve flooded state tracking to enable scaled window queries
-//                    heightCurves.addAll(
-//                            services
-//                                    .getHeightCurveService()
-//                                    .searchScaled(
-//                                            window[0],
-//                                            window[1],
-//                                            window[2],
-//                                            window[3]
-//                                    )
-//                    );
+        //                  heightCurves.addAll(
+        //                          services
+        //                                  .getHeightCurveService()
+        //                                  .searchScaled(
+        //                                          window[0],
+        //                                          window[1],
+        //                                          window[2],
+        //                                          window[3]
+        //                                  )
+        //                  );
                         }
                     }, executor);
 
@@ -161,7 +161,7 @@ public class FloodingApp extends GameApplication {
                     heightCurves.forEach(hc -> hc.draw(g2d, strokeBaseWidth));
                     boundingBoxes.forEach(bb -> bb.draw(g2d, strokeBaseWidth));
 
-                    // Draw dijkstra route if there is one
+                    // Draw routing if there is one
                     var dijkstraRoute = state.getRoutingConfiguration().getRoute(state.isWithDb(), state.getWaterLevel());
                     if (dijkstraRoute != null) {
                         dijkstraRoute.prepareDrawing(g2d);

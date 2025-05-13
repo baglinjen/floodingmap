@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.*;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dk.itu.data.enums.RoutingType;
 import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.models.db.osm.OsmWay;
 import dk.itu.data.services.Services;
@@ -129,9 +130,8 @@ public class RoutingTest {
         var expectedRouteCoordinates = extractCoordinates(filename);
 
         //Act
-        testConfiguration.setIsAStar(false);
-
-        assertThat(testConfiguration.getIsAStar()).isEqualTo(false);
+        testConfiguration.setRoutingMethod(RoutingType.Dijkstra);
+        assertThat(testConfiguration.getRoutingMethod()).isEqualTo(RoutingType.Dijkstra);
 
         var dijkstraThread = testConfiguration.calculateRoute(false);
         dijkstraThread.join();
@@ -139,9 +139,8 @@ public class RoutingTest {
         var dijkstraRoute = testConfiguration.getRoute(false, 0.0);
         var dijkstraCoordinates = ((OsmWay)dijkstraRoute).getOuterCoordinates();
 
-        testConfiguration.setIsAStar(true);
-
-        assertThat(testConfiguration.getIsAStar()).isEqualTo(true);
+        testConfiguration.setRoutingMethod(RoutingType.AStar);
+        assertThat(testConfiguration.getRoutingMethod()).isEqualTo(RoutingType.AStar);
 
         var aStarThread = testConfiguration.calculateRoute(false);
         aStarThread.join();
@@ -149,15 +148,25 @@ public class RoutingTest {
         var aStarRoute = testConfiguration.getRoute(false, 0.0);
         var aStarCoordinates = ((OsmWay)aStarRoute).getOuterCoordinates();
 
+        testConfiguration.setRoutingMethod(RoutingType.AStarBidirectional);
+        assertThat(testConfiguration.getRoutingMethod()).isEqualTo(RoutingType.AStarBidirectional);
+
+        var aStarBidirectionalThread = testConfiguration.calculateRoute(false);
+        aStarBidirectionalThread.join();
+
+        var aStarBidirectionalRoute = testConfiguration.getRoute(false, 0.0);
+        var aStarBidirectionalCoordinates = ((OsmWay)aStarBidirectionalRoute).getOuterCoordinates();
+
         //Assert
         assertThat(dijkstraRoute).isNotNull();
         assertThat(dijkstraCoordinates).isNotNull();
+        assertThat(dijkstraCoordinates).isEqualTo(expectedRouteCoordinates);
 
         assertThat(aStarRoute).isNotNull();
         assertThat(aStarCoordinates).isNotNull();
 
-        assertThat(dijkstraCoordinates).isEqualTo(aStarCoordinates);
-        assertThat(dijkstraCoordinates).isEqualTo(expectedRouteCoordinates);
+        assertThat(aStarCoordinates).isEqualTo(dijkstraCoordinates);
+        assertThat(aStarBidirectionalCoordinates).isEqualTo(dijkstraCoordinates);
     }
 
     @Test

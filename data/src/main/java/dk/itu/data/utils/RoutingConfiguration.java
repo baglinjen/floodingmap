@@ -1,4 +1,6 @@
 package dk.itu.data.utils;
+import dk.itu.common.configurations.CommonConfiguration;
+import dk.itu.data.enums.RoutingType;
 import dk.itu.data.models.db.osm.OsmElement;
 import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.models.db.osm.OsmWay;
@@ -9,15 +11,18 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RoutingConfiguration {
     private static final Logger logger = LoggerFactory.getLogger();
-    private boolean shouldVisualize, isAStar;
-    private OsmNode startNode, endNode;
+    private boolean shouldVisualize;
     private double waterLevel = 0.0;
+    private RoutingType routingType = RoutingType.Dijkstra;
+    private OsmNode startNode, endNode;
     private Pair<OsmElement, Double> route;
-    private final List<OsmNode> touchedNodes = new ArrayList<>();
+    private volatile List<OsmNode> touchedNodes = Collections.synchronizedList(new ArrayList<>());
+    private OsmNode sharedNode = null;
     private Thread calculationThread;
 
     public OsmNode getStartNode() {
@@ -41,11 +46,12 @@ public class RoutingConfiguration {
         shouldVisualize = !shouldVisualize;
     }
 
-    public boolean getIsAStar(){
-        return this.isAStar;
+    public void setRoutingMethod(RoutingType routingType){
+        this.routingType = routingType;
     }
-    public void setIsAStar(boolean isAStar){
-        this.isAStar = isAStar;
+
+    public RoutingType getRoutingMethod(){
+        return routingType;
     }
 
     public OsmElement getRoute(boolean isWithDb, double currentWaterLevel){
@@ -60,19 +66,29 @@ public class RoutingConfiguration {
         return List.copyOf(touchedNodes);
     }
 
-    public Thread calculateRoute(boolean isWithDb) {
+    public Thread calculateRoute(boolean isWithDb) throws RuntimeException{
         calculationThread = new Thread(() -> {
             Services.withServices(services -> {
                 var nodes = services.getOsmService(isWithDb).getTraversableOsmNodes();
 
-                if (startNode == null || endNode == null) throw new IllegalArgumentException("Start node and end node must be selected");
-                if (startNode.getId() == endNode.getId()) throw new IllegalArgumentException("Start node and end node can not be the same");
+                if (startNode == null || endNode == null)
+                    throw new IllegalArgumentException("Start node and end node must be selected");
+                if (startNode.getId() == endNode.getId())
+                    throw new IllegalArgumentException("Start node and end node can not be the same");
 
-                touchedNodes.clear();
+                touchedNodes = Collections.synchronizedList(new ArrayList<>());
 
-                var route = createDijkstra(startNode, endNode, nodes, services);
+                nodes.remove(startNode.getId());
+                nodes.remove(endNode.getId());
+                nodes.put(startNode.getId(), startNode);
+                nodes.put(endNode.getId(), endNode);
 
-                if (route == null) logger.warn("No possible route could be found between: {}, {}", startNode.getId(), endNode.getId());
+                var route = routingType == RoutingType.AStarBidirectional ?
+                        createAStarBidirectional(startNode, endNode, nodes, services) :
+                        createPath(createCoordinateList(createRoute(startNode, endNode, nodes, services, null), startNode, endNode));
+
+                if (route == null)
+                    logger.warn("No possible route could be found between: {}, {}", startNode.getId(), endNode.getId());
 
                 this.route = new Pair<>(route, waterLevel);
             });
@@ -82,72 +98,119 @@ public class RoutingConfiguration {
         return calculationThread;
     }
 
-    private OsmElement createDijkstra(OsmNode startNode, OsmNode endNode, Map<Long, OsmNode> nodes, Services services){
-        nodes.remove(startNode.getId());
-        nodes.remove(endNode.getId());
-        nodes.put(startNode.getId(), startNode);
-        nodes.put(endNode.getId(), endNode);
+    private OsmElement createAStarBidirectional(OsmNode startNode, OsmNode endNode, Map<Long, OsmNode> nodes, Services services){
+        try{
+            var forwardSet = Collections.synchronizedSet(new HashSet<OsmNode>());
+            var backwardSet = Collections.synchronizedSet(new HashSet<OsmNode>());
 
-        Map<OsmNode, OsmNode> previousNodes = new ConcurrentHashMap<>();
-        Map<OsmNode, Double> distances = new ConcurrentHashMap<>();
+            ExecutorService executorService = Executors.newFixedThreadPool(2);
+
+            Callable<Map<OsmNode, OsmNode>> forwardTask = () -> createRoute(startNode, endNode, nodes, services, new Pair<>(forwardSet, backwardSet));
+            Callable<Map<OsmNode, OsmNode>> backwardTask = () -> createRoute(endNode, startNode, nodes, services, new Pair<>(backwardSet, forwardSet));
+
+            Future<Map<OsmNode, OsmNode>> forwardFuture = executorService.submit(forwardTask);
+            Future<Map<OsmNode, OsmNode>> backwardFuture = executorService.submit(backwardTask);
+
+            var forwardsRouteMap = forwardFuture.get();
+            var backwardsRouteMap = backwardFuture.get();
+
+            assert forwardsRouteMap != null;
+            assert backwardsRouteMap != null;
+
+            var forwardsRoute = createCoordinateList(forwardsRouteMap, startNode, sharedNode);
+            var backwardsRoute = reverseCoordinateList(createCoordinateList(backwardsRouteMap, endNode, sharedNode));
+
+            executorService.shutdown();
+
+            return createPath(stitchCoordinates(forwardsRoute, backwardsRoute));
+        } catch (InterruptedException | ExecutionException e){
+            logger.error("A-Star bidirectional could not calculate a route successfully", e);
+            return null;
+        }
+    }
+
+    private Map<OsmNode, OsmNode> createRoute(OsmNode startNode, OsmNode endNode, Map<Long, OsmNode> nodes, Services services, Pair<Set<OsmNode>, Set<OsmNode>> connectionSet){
+        Map<OsmNode, OsmNode> previousConnections = new ConcurrentHashMap<>();
+        Map<OsmNode, Double> knownDistances = new ConcurrentHashMap<>();
         Map<OsmNode, Double> heuristicDistances = new ConcurrentHashMap<>();
 
         PriorityQueue<OsmNode> pq = new PriorityQueue<>(Comparator.comparingDouble(n -> heuristicDistances.getOrDefault(n, Double.MAX_VALUE)));
 
-        nodes
-                .values()
-                .parallelStream()
-                .forEach(v -> {
-                    distances.put(v, v == startNode ? 0.0 : Double.MAX_VALUE);
-                    heuristicDistances.put(v, v == endNode ? 0.0 : Double.MAX_VALUE);
-                });
+        nodes.values().parallelStream().forEach(n -> {
+            knownDistances.putIfAbsent(n, n == startNode ? 0.0 : Double.MAX_VALUE);
+            heuristicDistances.putIfAbsent(n, n == endNode ? 0.0 : Double.MAX_VALUE);
+        });
 
         pq.offer(startNode);
 
+        int delay = CommonConfiguration.getInstance().getRoutingDelay();
+        boolean shouldDelay = delay > 0;
+
         while(!pq.isEmpty()){
-            OsmNode curNode = pq.poll();
-            touchedNodes.add(curNode);
+            try{
+                if(shouldDelay) Thread.sleep(delay);
+            } catch(InterruptedException e){
+                logger.error("An interruption occurred when using route delaying");
+            }
 
-                if (curNode == endNode) {
-                    return createPath(previousNodes, startNode, endNode);
+            OsmNode node = pq.poll();
+            touchedNodes.add(node);
+
+            if(connectionSet != null){
+                //This will happen if createRoute is called as an A* bidirectional multithreaded
+                if(sharedNode != null) return previousConnections;
+
+                connectionSet.getFirst().add(node);
+
+                if(connectionSet.getFirst().contains(node) && connectionSet.getSecond().contains(node)) {
+                    sharedNode = node;
+                    return previousConnections;
+
+                }
+            } else if (node == endNode){
+                //This will happen if createRoute is called as a normal dijkstra / A*
+                return previousConnections;
+            }
+
+            var nodeDistance = knownDistances.get(node);
+
+            for(var conn : node.getConnectionMap().entrySet()){
+                OsmNode nextNode;
+                try{
+                    nextNode = nodes.get(conn.getKey());
+                    if(nextNode == null) throw new NoSuchElementException("No next node with chosen ID");
+                } catch(NoSuchElementException e){
+                    continue;
                 }
 
-                double currDistance = distances.get(curNode);
+                var nextNodeHeight = services.getHeightCurveService().getHeightCurveForPoint(nextNode.getLon(), nextNode.getLat()).getHeight();
+                if(nextNodeHeight < waterLevel) continue; // Road is flooded
 
-                for(var connection : curNode.getConnectionMap().entrySet()){
-                    OsmNode nextNode;
-                    try{
-                        nextNode = nodes.get(connection.getKey());
-                        if(nextNode == null) throw new NoSuchElementException("No next node with chosen ID");
-                    } catch(NoSuchElementException e){
-                        continue;
-                    }
-
-                    var height = services.getHeightCurveService().getHeightCurveForPoint(nextNode.getLon(), nextNode.getLat()).getHeight();
-                    if (height < waterLevel) continue; // Road is flooded
-
-                    double connectionDistance = connection.getValue();
-                    double distance = connectionDistance + currDistance;
-                    if(distance < distances.get(nextNode)){
-                        //A new shorter way has been found
-                        distances.put(nextNode, distance);
-                        previousNodes.put(nextNode, curNode);
-                        heuristicDistances.put(nextNode, distance + (isAStar ? RoutingUtils.distanceMeters(nextNode.getLat(), nextNode.getLon(), endNode.getLat(), endNode.getLon()) : 0.0));
-                        pq.offer(nextNode);
-                    }
+                double connDistance = conn.getValue();
+                double distance = connDistance + nodeDistance;
+                if(distance < knownDistances.get(nextNode)){
+                    knownDistances.put(nextNode, distance);
+                    previousConnections.put(nextNode, node);
+                    heuristicDistances.put(nextNode, distance + (routingType == RoutingType.Dijkstra ? 0.0 : RoutingUtils.distanceMeters(nextNode.getLat(), nextNode.getLon(), endNode.getLat(), endNode.getLon())));
+                    pq.offer(nextNode);
                 }
+            }
         }
 
-        return null; // No path found
+        return null;//No route found
     }
 
-    private OsmElement createPath(Map<OsmNode, OsmNode> previousNodes, OsmNode startNode, OsmNode endNode){
+    private OsmElement createPath(double[] coordinateList){
+        return OsmWay.createWayForRouting(coordinateList);
+    }
+
+    private double[] createCoordinateList(Map<OsmNode, OsmNode> previousConnections, OsmNode startNode, OsmNode endNode){
         List<OsmNode> path = new ArrayList<>();
         var curNode = endNode;
 
         while(curNode != startNode){
             path.addFirst(curNode);
-            curNode = previousNodes.get(curNode);
+            curNode = previousConnections.get(curNode);
         }
 
         path.addFirst(startNode);
@@ -160,6 +223,41 @@ public class RoutingConfiguration {
             count = count + 2;
         }
 
-        return OsmWay.createWayForRouting(coordinateList);
+        return coordinateList;
+    }
+
+    //TODO: This could be optimized
+    private double[] reverseCoordinateList(double[] coordinates){
+        var result = new double[coordinates.length];
+
+        List<List<Double>> pairs = new ArrayList<>();
+        for(int i = 0; i < coordinates.length; i += 2){
+            pairs.add(Arrays.asList(coordinates[i], coordinates[i+1]));
+        }
+
+        var list = new ArrayList<Double>();
+        for(int i = pairs.size() - 1; i >=0; i--){
+            list.addAll(pairs.get(i));
+        }
+
+        for(int i = 0; i < list.size(); i++){
+            result[i] = list.get(i);
+        }
+
+        return result;
+    }
+
+    private double[] stitchCoordinates(double[] firstList, double[] secondList){
+        boolean removeDuplicate = (firstList[firstList.length - 2] == secondList[0] && firstList[firstList.length - 1] == secondList[1]);
+
+        var result = new double[
+                removeDuplicate ? firstList.length + secondList.length - 2 :
+                firstList.length + secondList.length
+        ];
+
+        System.arraycopy(firstList, 0, result, 0, firstList.length);
+        System.arraycopy(secondList, removeDuplicate ? 2 : 0, result, firstList.length, result.length - firstList.length);
+
+        return result;
     }
 }
