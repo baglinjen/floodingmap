@@ -1,14 +1,11 @@
 package dk.itu.data.datastructure.heightcurvetree;
 
-import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.heightcurve.HeightCurveElement;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.IntStream;
-
-import static dk.itu.data.models.db.BoundingBox.intersects;
 
 public class HeightCurveTree {
     private final HeightCurveTreeNode root = new HeightCurveTreeNode(
@@ -57,7 +54,7 @@ public class HeightCurveTree {
     }
     private void searchScaled(HeightCurveTreeNode node, double[] queryBox, Collection<HeightCurveElement> results) {
         // If heightCurveElement intersects => add to list => Run with children
-        if (intersects(queryBox, node.getHeightCurveElement().getBounds())) {
+        if (node.getHeightCurveElement().intersects(queryBox)) {
             results.add(node.getHeightCurveElement());
             node.getChildren().parallelStream().forEach(child -> searchScaled(child, queryBox, results));
         }
@@ -132,8 +129,8 @@ public class HeightCurveTree {
             // Candidates are children which are bigger than element => might contain so sort by biggest first
             var candidateNodes = node.getChildren()
                     .parallelStream()
-                    .filter(e -> e.getArea() > heightCurveElement.getArea()) // TODO: This filter is slow
-                    .sorted(Comparator.comparing(HeightCurveTreeNode::getArea).reversed())
+                    .filter(e -> e.getPolygonArea() > heightCurveElement.getPolygonArea()) // TODO: This filter is slow
+                    .sorted(Comparator.comparing(HeightCurveTreeNode::getPolygonArea).reversed())
                     .toList(); // TODO: This toList is slow
 
             if (candidateNodes.isEmpty()) {
@@ -142,7 +139,7 @@ public class HeightCurveTree {
 
                 var childrenPossiblyContained = node.getChildren()
                         .parallelStream()
-                        .filter(e -> e.getArea() < heightCurveElement.getArea())
+                        .filter(e -> e.getPolygonArea() < heightCurveElement.getPolygonArea())
                         .toList();
 
                 if (!childrenPossiblyContained.isEmpty()) {

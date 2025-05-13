@@ -13,8 +13,8 @@ public class OsmWay extends OsmElement {
     private final boolean isLine;
     private Path2D.Double path = null;
 
-    public OsmWay(long id, boolean isLine, double[] boundingBox, double area, double[] outerCoordinates) {
-        super(id, boundingBox, area);
+    public OsmWay(long id, boolean isLine, double[] boundingBox, double[] outerCoordinates) {
+        super(id, boundingBox);
         this.isLine = isLine;
         this.outerCoordinates = outerCoordinates;
     }
@@ -30,7 +30,6 @@ public class OsmWay extends OsmElement {
                 parserOsmWay.getId(),
                 parserOsmWay.isLine(),
                 bounds,
-                parserOsmWay.getArea(),
                 parserOsmWay.getCoordinates()
         );
 
@@ -40,7 +39,7 @@ public class OsmWay extends OsmElement {
     }
 
     public static OsmWay createWayForRouting(double[] coordinates) {
-        var way = new OsmWay(0, true, null, 0, coordinates);
+        var way = new OsmWay(0, true, null, coordinates);
         way.setStyle(Color.yellow, 6);
         return way;
     }

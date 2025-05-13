@@ -22,17 +22,12 @@ public class HeightCurveTreeNode {
         return heightCurveElement;
     }
 
-    public double getArea() {
-        return heightCurveElement.getArea();
+    public double getPolygonArea() {
+        return heightCurveElement.getPolygonArea();
     }
 
     public boolean contains(HeightCurveElement element) {
-        if (
-                element.getBounds()[0] >= heightCurveElement.getBounds()[0] &&
-                element.getBounds()[1] >= heightCurveElement.getBounds()[1] &&
-                element.getBounds()[2] <= heightCurveElement.getBounds()[2] &&
-                element.getBounds()[3] <= heightCurveElement.getBounds()[3]
-        ) {
+        if (heightCurveElement.contains(element)) {
             return PolygonUtils.contains(this.heightCurveElement.getCoordinates(), element.getCoordinates());
         } else {
             return false;
@@ -41,10 +36,10 @@ public class HeightCurveTreeNode {
 
     public boolean contains(double lon, double lat) {
         if (
-                lon >= heightCurveElement.getBounds()[0] &&
-                        lat >= heightCurveElement.getBounds()[1] &&
-                        lon <= heightCurveElement.getBounds()[2] &&
-                        lat <= heightCurveElement.getBounds()[3]
+                lon >= heightCurveElement.getMinLon() &&
+                lat >= heightCurveElement.getMinLat() &&
+                lon <= heightCurveElement.getMaxLon() &&
+                lat <= heightCurveElement.getMaxLat()
         ) {
             return PolygonUtils.isPointInPolygon(this.heightCurveElement.getCoordinates(), lon, lat);
         } else {

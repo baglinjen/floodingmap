@@ -10,7 +10,7 @@ public class OsmNode extends OsmElement {
     private final double lat, lon;
     private final Map<Long, Double> connectionMap;
     public OsmNode(long id, double lon, double lat, double[] boundingBox, Map<Long, Double> connectionMap) {
-        super(id, boundingBox, 0);
+        super(id, boundingBox);
         this.lon = lon;
         this.lat = lat;
         this.connectionMap = connectionMap;

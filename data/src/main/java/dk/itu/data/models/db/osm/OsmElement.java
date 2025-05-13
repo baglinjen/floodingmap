@@ -5,7 +5,7 @@ import dk.itu.data.models.db.BoundingBox;
 public abstract class OsmElement extends BoundingBox {
     private final long id;
 
-    public OsmElement(long id, double[] boundingBox, double area) {
+    public OsmElement(long id, double[] boundingBox) {
         super(boundingBox);
         this.id = id;
     }

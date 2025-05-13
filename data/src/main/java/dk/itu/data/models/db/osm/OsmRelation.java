@@ -13,8 +13,8 @@ public class OsmRelation extends OsmElement {
     private final List<double[]> innerPolygons;
     private Path2D.Double path = null;
 
-    public OsmRelation(long id, double[] boundingBox, double area, List<double[]> outerPolygons, List<double[]> innerPolygons) {
-        super(id, boundingBox, area);
+    public OsmRelation(long id, double[] boundingBox, List<double[]> outerPolygons, List<double[]> innerPolygons) {
+        super(id, boundingBox);
         this.outerPolygons = outerPolygons;
         this.innerPolygons = innerPolygons;
     }
@@ -25,7 +25,6 @@ public class OsmRelation extends OsmElement {
         var osmRelation = new OsmRelation(
                 parserOsmRelation.getId(),
                 bounds,
-                parserOsmRelation.getArea(),
                 parserOsmRelation.getOuterPolygons(),
                 parserOsmRelation.getInnerPolygons()
         );
