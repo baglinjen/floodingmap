@@ -9,6 +9,7 @@ import dk.itu.data.repositories.OsmElementRepository;
 import dk.itu.data.repositories.OsmElementRepositoryDb;
 import dk.itu.data.repositories.OsmElementRepositoryMemory;
 import dk.itu.util.LoggerFactory;
+import it.unimi.dsi.fastutil.longs.Long2ReferenceArrayMap;
 import org.apache.logging.log4j.Logger;
 
 import java.sql.Connection;
@@ -29,9 +30,9 @@ public class OsmService {
     }
 
     public OsmNode getNearestTraversableOsmNode(double lon, double lat) {
-        synchronized (this.osmElementRepository) {
+//        synchronized (this.osmElementRepository) {
             return osmElementRepository.getNearestTraversableOsmNode(lon, lat);
-        }
+//        }
     }
 
     public List<OsmElement> getOsmElementsToBeDrawn(int limit, double minLon, double minLat, double maxLon, double maxLat) {
@@ -41,25 +42,25 @@ public class OsmService {
     }
 
     public List<OsmElement> getOsmElementsToBeDrawnScaled(double minLon, double minLat, double maxLon, double maxLat) {
-        synchronized (this.osmElementRepository) {
+//        synchronized (this.osmElementRepository) {
             return osmElementRepository.getOsmElementsScaled(minLon, minLat, maxLon, maxLat, (maxLon - minLon) * (maxLat - minLat) * OSM_ELEMENT_PERCENT_SCREEN);
-        }
+//        }
     }
 
     public List<BoundingBox> getBoundingBoxes() {
-        synchronized (this.osmElementRepository) {
+//        synchronized (this.osmElementRepository) {
             return osmElementRepository.getBoundingBoxes();
-        }
+//        }
     }
 
     public Map<Long, OsmNode> getTraversableOsmNodes(){
-        synchronized (this.osmElementRepository) {
+//        synchronized (this.osmElementRepository) {
             var nodes = osmElementRepository.getTraversableOsmNodes();
-            var result = new HashMap<Long, OsmNode>();
+            Map<Long, OsmNode> result = new Long2ReferenceArrayMap<>();
 
             nodes.forEach(node -> result.put(node.getId(), node));
             return result;
-        }
+//        }
     }
 
     public void loadOsmData(String osmFileName) {
@@ -74,11 +75,13 @@ public class OsmService {
         synchronized (this.osmElementRepository) {
             // Add to Database
             logger.info("Started inserting drawable elements to repository");
+            long startTime = System.currentTimeMillis();
             osmElementRepository.add(osmParserResult.getElementsToBeDrawn());
-            logger.info("Finished inserting drawable elements to repository");
+            logger.info("Finished inserting drawable elements to repository in {} ms", System.currentTimeMillis() - startTime);
             logger.info("Started inserting traversable elements to repository");
+            startTime = System.currentTimeMillis();
             osmElementRepository.addTraversable(osmParserResult.getTraversableNodes());
-            logger.info("Finished inserting traversable elements to repository");
+            logger.info("Finished inserting traversable elements to repository in {} ms", System.currentTimeMillis() - startTime);
         }
     }
 

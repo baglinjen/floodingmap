@@ -2,16 +2,16 @@ package dk.itu.data.datastructure.rtree;
 
 import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.osm.OsmElement;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 
-import java.util.Comparator;
 import java.util.List;
-import java.util.ArrayList;
 
 public class RTreeNode {
     BoundingBox mbr;
     RTreeNode parent;
-    List<OsmElement> elements = new ArrayList<>();    // For leaf nodes
-    private List<RTreeNode> children = new ArrayList<>();           // For internal nodes
+    List<OsmElement> elements = new ObjectArrayList<>();    // For leaf nodes
+    private List<RTreeNode> children = new ReferenceArrayList<>();           // For internal nodes
     public RTreeNode()  {
         this.mbr = null;
     }

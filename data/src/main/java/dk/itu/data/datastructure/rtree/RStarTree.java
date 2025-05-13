@@ -672,37 +672,18 @@ public class RStarTree {
 
 
     private int calculateLevel(RTreeNode node) {
-        if (node == root) return 0;
-
-        RTreeNode current = root;
-        int level = 0;
-
-        while (!current.isLeaf()) {
-            level++;
-            boolean found = false;
-
-            for (RTreeNode child : current.getChildren()) {
-                if (containsNode(child, node)) {
-                    current = child;
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) return -1; // Node not found
-        }
-
-        return level;
+        return calculateLevel(root, node, 0);
     }
+    private int calculateLevel(RTreeNode node, RTreeNode nodeToFind, int level) {
+        if (node == nodeToFind) return level;
 
-    private boolean containsNode(RTreeNode parent, RTreeNode target) {
-        if (parent == target) return true;
-
-        for (RTreeNode child : parent.getChildren()) {
-            if (containsNode(child, target)) return true;
-        }
-
-        return false;
+        return node
+                .getChildren()
+                .parallelStream()
+                .filter(c -> c.mbr.intersects(nodeToFind.mbr))
+                .map(c -> calculateLevel(c, nodeToFind, level+1))
+                .max(Integer::compareTo)
+                .orElse(level);
     }
 
     private void searchRecursive(RTreeNode node, BoundingBox queryBox, Collection<OsmElement> results) {
