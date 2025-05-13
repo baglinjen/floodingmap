@@ -202,19 +202,14 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
     }
 
     @Override
+    public List<BoundingBox> getSpatialNodes() {
+        return List.of();
+    }
+
+    @Override
     public List<OsmElement> getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
-        return List.of();
-    }
-
-    @Override
-    public List<BoundingBox> getBoundingBoxes() {
-        return List.of();
-    }
-
-    @Override
-    public List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
-        String condWays = String.format("COALESCE(w.line, w.polygon) && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
-        String condRelations = String.format("r.shape && ST_MakeEnvelope(%s, %s, %s, %s, 4326)", minLon, minLat, maxLon, maxLat);
+        String condWays = String.format("COALESCE(w.line, w.polygon) && ST_MakeEnvelope(%s, %s, %s, %s, 4326) AND w.area >= %s", minLon, minLat, maxLon, maxLat, minBoundingBoxArea);
+        String condRelations = String.format("r.shape && ST_MakeEnvelope(%s, %s, %s, %s, 4326) AND r.area >= %s", minLon, minLat, maxLon, maxLat, minBoundingBoxArea);
         return ctx.select(
                         DSL.field("n.dbObj", byte[].class),
                         DSL.field("'n' as type", String.class),
@@ -240,7 +235,6 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
                                 )
                 )
                 .orderBy(DSL.field("area").desc())
-                .limit(limit)
                 .fetch(new RecordMapper<>() {
                     @Nullable
                     @Override
@@ -310,7 +304,7 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
     }
 
     @Override
-    public BoundingBox getBounds() {
+    public double[] getBounds() {
         return ctx.select(
                 DSL.field("MIN(minLon)", double.class),
                 DSL.field("MIN(minLat)", double.class),
@@ -344,9 +338,9 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
                 )
         ).fetchOne(r -> {
             if (r.component1() == null || r.component2() == null || r.component3() == null || r.component4() == null) {
-                return new BoundingBox(-180, -90, 180, 90);
+                return new double[]{-180, -90, 180, 90};
             }
-            return new BoundingBox(r.component1(), r.component2(), r.component3(), r.component4());
+            return new double[]{r.component1(), r.component2(), r.component3(), r.component4()};
         });
     }
 }

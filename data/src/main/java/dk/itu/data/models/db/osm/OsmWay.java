@@ -1,6 +1,5 @@
 package dk.itu.data.models.db.osm;
 
-import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.parser.ParserOsmWay;
 
 import java.awt.*;
@@ -14,7 +13,7 @@ public class OsmWay extends OsmElement {
     private final boolean isLine;
     private Path2D.Double path = null;
 
-    public OsmWay(long id, boolean isLine, BoundingBox boundingBox, double area, double[] outerCoordinates) {
+    public OsmWay(long id, boolean isLine, double[] boundingBox, double area, double[] outerCoordinates) {
         super(id, boundingBox, area);
         this.isLine = isLine;
         this.outerCoordinates = outerCoordinates;
@@ -27,10 +26,10 @@ public class OsmWay extends OsmElement {
     public static OsmWay mapToOsmWay(ParserOsmWay parserOsmWay) {
         var bounds = parserOsmWay.getBounds();
 
-        BoundingBox boundingBox = new BoundingBox(bounds[0], bounds[1], bounds[2], bounds[3]);
         var osmWay = new OsmWay(
                 parserOsmWay.getId(),
-                parserOsmWay.isLine(), boundingBox,
+                parserOsmWay.isLine(),
+                bounds,
                 parserOsmWay.getArea(),
                 parserOsmWay.getCoordinates()
         );

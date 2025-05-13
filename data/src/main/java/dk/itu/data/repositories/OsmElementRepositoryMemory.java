@@ -32,7 +32,7 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     private final RStarTree rtree = new RStarTree(), traversable = new RStarTree();
 
     @Override
-    public synchronized void add(List<ParserOsmElement> osmElements) {
+    public void add(List<ParserOsmElement> osmElements) {
         final int[] elementsAdded = {0};
         int elementsToAdd = osmElements.size();
         osmElements.parallelStream().map(this::mapToOsmElement).toList().forEach(element -> {
@@ -52,7 +52,7 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     }
 
     @Override
-    public synchronized void addTraversable(List<ParserOsmNode> nodes) {
+    public void addTraversable(List<ParserOsmNode> nodes) {
         final int[] elementsAdded = {0};
         int elementsToAdd = nodes.size();
         nodes.parallelStream().map(OsmNode::mapToOsmNode).toList().forEach(element -> {
@@ -63,42 +63,37 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     }
 
     @Override
-    public synchronized List<OsmElement> getOsmElements(int limit, double minLon, double minLat, double maxLon, double maxLat) {
-        return rtree.search(minLon, minLat, maxLon, maxLat);
-    }
-
-    @Override
-    public synchronized List<OsmElement> getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
+    public List<OsmElement> getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
         return rtree.searchScaled(minLon, minLat, maxLon, maxLat, minBoundingBoxArea);
     }
 
     @Override
-    public synchronized List<BoundingBox> getBoundingBoxes() {
+    public List<BoundingBox> getSpatialNodes() {
         return rtree.getBoundingBoxes();
     }
 
     @Override
-    public synchronized List<OsmNode> getTraversableOsmNodes() {
+    public List<OsmNode> getTraversableOsmNodes() {
         return traversable.getNodes();
     }
 
     @Override
-    public synchronized OsmNode getNearestTraversableOsmNode(double lon, double lat) {
+    public OsmNode getNearestTraversableOsmNode(double lon, double lat) {
         return traversable.getNearest(lon, lat);
     }
 
     @Override
-    public synchronized void clearAll() {
+    public void clearAll() {
         rtree.clear();
         traversable.clear();
     }
 
     @Override
-    public synchronized BoundingBox getBounds() {
-        if (rtree.getBoundingBox() == null) {
-            return new BoundingBox(-180, -90, 180, 90);
+    public double[] getBounds() {
+        if (rtree.isEmpty()) {
+            return new double[]{-180, -90, 180, 90};
         } else {
-            return rtree.getBoundingBox();
+            return rtree.getRoot().getBoundingBoxWithArea();
         }
     }
 }

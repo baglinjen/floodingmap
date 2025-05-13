@@ -41,7 +41,7 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-//            services.getOsmService(state.isWithDb()).loadOsmData("ky.osm");
+//            services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
             services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
             state.resetWindowBounds();
             state.updateMinMaxWaterLevels(services);
@@ -53,7 +53,7 @@ public class FloodingApp extends GameApplication {
             CompletableFuture<Void>[] dataFetchFutures = new CompletableFuture[3];
 
             List<OsmElement> osmElements = new ReferenceArrayList<>();
-            List<BoundingBox> boundingBoxes = new ReferenceArrayList<>();
+            List<BoundingBox> spatialNodes = new ReferenceArrayList<>();
             List<HeightCurveElement> heightCurves = new ReferenceArrayList<>();
 
             try (ExecutorService executor = Executors.newCachedThreadPool()) {
@@ -94,12 +94,12 @@ public class FloodingApp extends GameApplication {
 
                     // Adding Bounding Boxes
                     dataFetchFutures[1] = CompletableFuture.runAsync(() -> {
-                        boundingBoxes.clear();
+                        spatialNodes.clear();
                         if (state.shouldDrawBoundingBox()) {
-                            boundingBoxes.addAll(
+                            spatialNodes.addAll(
                                     services
                                             .getOsmService(state.isWithDb())
-                                            .getBoundingBoxes()
+                                            .getSpatialNodes()
                             );
                         }
                     }, executor);
@@ -159,7 +159,7 @@ public class FloodingApp extends GameApplication {
                     // Draw elements
                     osmElements.forEach(element -> element.draw(g2d, strokeBaseWidth));
                     heightCurves.forEach(hc -> hc.draw(g2d, strokeBaseWidth));
-                    boundingBoxes.forEach(bb -> bb.draw(g2d, strokeBaseWidth));
+                    spatialNodes.forEach(bb -> bb.drawBoundingBox(g2d, strokeBaseWidth));
 
                     // Draw routing if there is one
                     var dijkstraRoute = state.getRoutingConfiguration().getRoute(state.isWithDb(), state.getWaterLevel());

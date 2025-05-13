@@ -157,12 +157,12 @@ public class State {
 
     public void resetWindowBounds(Services services) {
         var bounds = services.getOsmService(withDb).getBounds();
-        double scale = HEIGHT / (bounds.getMaxLat() - bounds.getMinLat());
+        double scale = HEIGHT / (bounds[3] - bounds[1]);
         getSuperAffine()
                 .reset()
                 .prependTranslation(
-                        -0.56 * bounds.getMinLon(),
-                        bounds.getMaxLat())
+                        -0.56 * bounds[0],
+                        bounds[3])
                 .prependScale(
                         scale,
                         scale
@@ -171,11 +171,6 @@ public class State {
 
     public boolean isWithDb() {
         return withDb;
-    }
-
-    public void setWithDb(boolean withDb) {
-        // TODO: Use this in component
-        this.withDb = withDb;
     }
 
     public boolean shouldDrawBoundingBox() {

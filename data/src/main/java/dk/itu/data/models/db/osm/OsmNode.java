@@ -1,6 +1,5 @@
 package dk.itu.data.models.db.osm;
 
-import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.utils.RoutingUtils;
 
@@ -10,7 +9,7 @@ import java.util.Map;
 public class OsmNode extends OsmElement {
     private final double lat, lon;
     private final Map<Long, Double> connectionMap;
-    public OsmNode(long id, double lon, double lat, BoundingBox boundingBox, Map<Long, Double> connectionMap) {
+    public OsmNode(long id, double lon, double lat, double[] boundingBox, Map<Long, Double> connectionMap) {
         super(id, boundingBox, 0);
         this.lon = lon;
         this.lat = lat;
@@ -18,13 +17,13 @@ public class OsmNode extends OsmElement {
     }
 
     public static OsmNode mapToOsmNode(ParserOsmNode parserOsmNode) {
-        BoundingBox boundingBox = new BoundingBox(
+        var osmNode = new OsmNode(
+                parserOsmNode.getId(),
                 parserOsmNode.getLon(),
                 parserOsmNode.getLat(),
-                parserOsmNode.getLon(),
-                parserOsmNode.getLat()
+                new double[]{parserOsmNode.getLon(), parserOsmNode.getLat(), parserOsmNode.getLon(), parserOsmNode.getLat()},
+                RoutingUtils.buildConnectionMap(parserOsmNode)
         );
-        var osmNode = new OsmNode(parserOsmNode.getId(), parserOsmNode.getLon(), parserOsmNode.getLat(), boundingBox, RoutingUtils.buildConnectionMap(parserOsmNode));
         osmNode.setStyle(parserOsmNode.getColor(), parserOsmNode.getStroke());
 
         return osmNode;

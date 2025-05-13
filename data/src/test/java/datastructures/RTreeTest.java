@@ -267,7 +267,7 @@ public class RTreeTest {
        rStarTree.insert(node2);
 
        // Act
-       BoundingBox bbox = rStarTree.getBoundingBox();
+       BoundingBox bbox = rStarTree.getRoot();
 
        // Assert
        assertNotNull(bbox);

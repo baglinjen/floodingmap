@@ -8,6 +8,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.IntStream;
 
+import static dk.itu.data.models.db.BoundingBox.intersects;
+
 public class HeightCurveTree {
     private final HeightCurveTreeNode root = new HeightCurveTreeNode(
             new HeightCurveElement(
@@ -43,7 +45,7 @@ public class HeightCurveTree {
         node.getChildren().parallelStream().forEach(child -> getElements(child, elements));
     }
 
-    public List<HeightCurveElement> searchScaled(BoundingBox boundingBox, double minBoundingBoxArea) {
+    public List<HeightCurveElement> searchScaled(double[] boundingBox, double minBoundingBoxArea) {
         Collection<HeightCurveElement> elementsConcurrent = new ConcurrentLinkedQueue<>();
 
         searchScaled(root, boundingBox, elementsConcurrent);
@@ -53,9 +55,9 @@ public class HeightCurveTree {
                 .filter(e -> e.getArea() >= minBoundingBoxArea)
                 .toList();
     }
-    private void searchScaled(HeightCurveTreeNode node, BoundingBox queryBox, Collection<HeightCurveElement> results) {
+    private void searchScaled(HeightCurveTreeNode node, double[] queryBox, Collection<HeightCurveElement> results) {
         // If heightCurveElement intersects => add to list => Run with children
-        if (queryBox.intersects(node.getHeightCurveElement().getBounds())) {
+        if (intersects(queryBox, node.getHeightCurveElement().getBounds())) {
             results.add(node.getHeightCurveElement());
             node.getChildren().parallelStream().forEach(child -> searchScaled(child, queryBox, results));
         }
