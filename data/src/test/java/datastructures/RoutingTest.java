@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dk.itu.data.enums.RoutingType;
+import dk.itu.data.models.db.heightcurve.HeightCurveElement;
 import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.models.db.osm.OsmWay;
 import dk.itu.data.services.Services;
@@ -41,6 +42,11 @@ public class RoutingTest {
     void setupIndividual(){
         testConfiguration = new RoutingConfiguration();
         testConfiguration.setWaterLevel(0.0);
+
+        //Ensure flooded curves are reset upon each run
+        Services.withServices(s -> {
+            s.getHeightCurveService().getElements().parallelStream().forEach(HeightCurveElement::setAboveWater);
+        });
     }
 
     @ParameterizedTest
@@ -99,6 +105,8 @@ public class RoutingTest {
         //Arrange
         testConfiguration.setStartNode(nodes.get(startNodeId));
         testConfiguration.setEndNode(nodes.get(endNodeId));
+
+        simulateFlooding(waterLevel);
 
         testConfiguration.setWaterLevel(waterLevel);
         var expectedCoords = extractCoordinates(filename);
@@ -237,5 +245,17 @@ public class RoutingTest {
         }
 
         return extractCoordinates(returnNodes);
+    }
+
+    /// Method to simulate the flooding which would otherwise occur in the timeline-effect in FloodingApp
+    private void simulateFlooding(float waterLevel){
+        Services.withServices(s -> {
+            var floodingSteps = s.getHeightCurveService().getFloodingSteps(waterLevel);
+
+            for (List<HeightCurveElement> floodingStep : floodingSteps) {
+                floodingStep.parallelStream().forEach(HeightCurveElement::setBelowWater);
+            }
+        });
+
     }
 }

@@ -47,6 +47,7 @@ public class RoutingConfiguration {
     }
 
     public void setRoutingMethod(RoutingType routingType){
+        logger.info("Routing type set to {}", routingType);
         this.routingType = routingType;
     }
 
@@ -67,6 +68,7 @@ public class RoutingConfiguration {
     }
 
     public Thread calculateRoute(boolean isWithDb) throws RuntimeException{
+        logger.info("Calculating route");
         calculationThread = new Thread(() -> {
             Services.withServices(services -> {
                 var nodes = services.getOsmService(isWithDb).getTraversableOsmNodes();
@@ -99,7 +101,10 @@ public class RoutingConfiguration {
     }
 
     private OsmElement createAStarBidirectional(OsmNode startNode, OsmNode endNode, Map<Long, OsmNode> nodes, Services services){
+        logger.info("Beginning A-star bidirectional route");
         try{
+            sharedNode = null;
+
             var forwardSet = Collections.synchronizedSet(new HashSet<OsmNode>());
             var backwardSet = Collections.synchronizedSet(new HashSet<OsmNode>());
 
@@ -130,15 +135,19 @@ public class RoutingConfiguration {
     }
 
     private Map<OsmNode, OsmNode> createRoute(OsmNode startNode, OsmNode endNode, Map<Long, OsmNode> nodes, Services services, Pair<Set<OsmNode>, Set<OsmNode>> connectionSet){
-        Map<OsmNode, OsmNode> previousConnections = new ConcurrentHashMap<>();
-        Map<OsmNode, Double> knownDistances = new ConcurrentHashMap<>();
-        Map<OsmNode, Double> heuristicDistances = new ConcurrentHashMap<>();
+        logger.debug("Starting routing from {} to {}", startNode.getId(), endNode.getId());
+        Map<OsmNode, OsmNode> previousConnections = new HashMap<>();
+        Map<OsmNode, Double> knownDistances = new HashMap<>();
+        Map<OsmNode, Double> heuristicDistances = new HashMap<>();
 
         PriorityQueue<OsmNode> pq = new PriorityQueue<>(Comparator.comparingDouble(n -> heuristicDistances.getOrDefault(n, Double.MAX_VALUE)));
 
-        nodes.values().parallelStream().forEach(n -> {
-            knownDistances.putIfAbsent(n, n == startNode ? 0.0 : Double.MAX_VALUE);
-            heuristicDistances.putIfAbsent(n, n == endNode ? 0.0 : Double.MAX_VALUE);
+        //nodes.values().parallelStream().forEach(n -> {
+        nodes.values().forEach(n -> {
+            //knownDistances.putIfAbsent(n, n == startNode ? 0.0 : Double.MAX_VALUE);
+            //heuristicDistances.putIfAbsent(n, n == endNode ? 0.0 : Double.MAX_VALUE);
+            knownDistances.put(n, n == startNode ? 0.0 : Double.MAX_VALUE);
+            heuristicDistances.put(n, n == endNode ? 0.0 : Double.MAX_VALUE);
         });
 
         pq.offer(startNode);
@@ -158,17 +167,19 @@ public class RoutingConfiguration {
 
             if(connectionSet != null){
                 //This will happen if createRoute is called as an A* bidirectional multithreaded
+                //TODO: Investigate if errors occurs due to TOCTTOU-failure
                 if(sharedNode != null) return previousConnections;
 
                 connectionSet.getFirst().add(node);
 
-                if(connectionSet.getFirst().contains(node) && connectionSet.getSecond().contains(node)) {
+                //if(connectionSet.getFirst().contains(node) && connectionSet.getSecond().contains(node)) {
+                if(connectionSet.getSecond().contains(node)){
+                    logger.debug("A shared node was found to be: {}", node.getId());
                     sharedNode = node;
                     return previousConnections;
-
                 }
             } else if (node == endNode){
-                //This will happen if createRoute is called as a normal dijkstra / A*
+                //This will happen if createRoute is called as a regular dijkstra / A*
                 return previousConnections;
             }
 
@@ -204,14 +215,18 @@ public class RoutingConfiguration {
             }
         }
 
+        logger.debug("No route found for route between {} and {}", startNode.getId(), endNode.getId());
         return null;//No route found
     }
 
     private OsmElement createPath(double[] coordinateList){
+        logger.info("Creating path with {} coordinates", coordinateList.length / 2);
         return OsmWay.createWayForRouting(coordinateList);
     }
 
     private double[] createCoordinateList(Map<OsmNode, OsmNode> previousConnections, OsmNode startNode, OsmNode endNode){
+        if(previousConnections == null) throw new RuntimeException("Previous connections can not be null");
+
         List<OsmNode> path = new ArrayList<>();
         var curNode = endNode;
 
