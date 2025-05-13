@@ -37,11 +37,7 @@ public class OsmNode extends OsmElement {
         this.containingCurve = containingCurve;
     }
 
-    public double getHeight(){
-        if(containingCurve == null) return 0.0;
-
-        return containingCurve.getHeight();
-    }
+    public HeightCurveElement getContainingCurve(){return containingCurve;}
 
     public double getLat() {
         return lat;

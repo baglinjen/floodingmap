@@ -40,6 +40,8 @@ public class HeightCurveElement extends Colored {
         );
     }
 
+    public boolean getIsAboveWater(){return isAboveWater;}
+
     public double[] getBounds() {
         return bounds;
     }

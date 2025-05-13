@@ -183,9 +183,15 @@ public class RoutingConfiguration {
                     continue;
                 }
 
-                //var nextNodeHeight = services.getHeightCurveService().getHeightCurveForPoint(nextNode.getLon(), nextNode.getLat()).getHeight();
-                var nextNodeHeight = nextNode.getHeight();
-                if(nextNodeHeight < waterLevel) continue; // Road is flooded
+                var nextNodeCurve = nextNode.getContainingCurve();
+
+                if(nextNodeCurve == null) {
+                    //If no curve has been mapped to node yet -> force load curve
+                    nextNodeCurve = services.getHeightCurveService().getHeightCurveForPoint(nextNode.getLon(), nextNode.getLat());
+                    nextNode.setContainingCurve(nextNodeCurve);
+                }
+
+                if(nextNodeCurve != null && !nextNodeCurve.getIsAboveWater()) continue;//Road is flooded
 
                 double connDistance = conn.getValue();
                 double distance = connDistance + nodeDistance;
