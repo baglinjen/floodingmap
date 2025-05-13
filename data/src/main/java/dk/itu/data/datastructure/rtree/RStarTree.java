@@ -3,6 +3,7 @@ import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.osm.OsmElement;
 import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.models.db.osm.OsmWay;
+import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import javafx.util.Pair;
 
 import java.util.*;
@@ -715,14 +716,14 @@ public class RStarTree {
     }
 
     public List<OsmElement> searchScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
-        List<OsmElement> elementsConcurrent = Collections.synchronizedList(new ArrayList<>());
+        List<OsmElement> elementsConcurrent = Collections.synchronizedList(new ReferenceArrayList<>());
         double[] box = {minLon, minLat, maxLon, maxLat};
 
         searchScaledRecursive(root, box, minBoundingBoxArea, elementsConcurrent);
 
         return elementsConcurrent
                 .parallelStream()
-                .filter(e -> e.intersects(box) && e.getArea() >= minBoundingBoxArea)
+                .filter(e -> e.intersects(box) && e.getArea() >= minBoundingBoxArea) // Slow => consider filtering on results.addAll
                 .sorted(Comparator.comparing((e1) -> switch (e1) {
                     case OsmWay way -> way.isLine() ? way.getId() : -way.getArea();
                     default -> -e1.getArea();

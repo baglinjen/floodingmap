@@ -10,6 +10,9 @@ import dk.itu.ui.components.MouseEventOverlayComponent;
 import dk.itu.util.LoggerFactory;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import javafx.scene.image.ImageView;
+import javafx.scene.image.PixelBuffer;
+import javafx.scene.image.PixelFormat;
+import javafx.scene.image.WritableImage;
 import javafx.scene.layout.StackPane;
 import org.apache.logging.log4j.Logger;
 
@@ -22,7 +25,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static com.almasb.fxgl.dsl.FXGLForKtKt.*;
-import static dk.itu.util.DrawingUtils.bufferedImageToWritableImage;
+import static dk.itu.util.DrawingUtils.createWritableImageFromBufferedImage;
 
 public class FloodingApp extends GameApplication {
     public static final int WIDTH = 1920, HEIGHT = 920;
@@ -66,12 +69,7 @@ public class FloodingApp extends GameApplication {
 
                     image.flush();
 
-                    Graphics2D g2d = image.createGraphics();
-                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
-                    g2d.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
-                    g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED);
-
+                    Graphics2D g2d = (Graphics2D) image.getGraphics();
                     g2d.setBackground(Color.decode("#a9d3de"));
                     g2d.clearRect(0, 0, WIDTH, HEIGHT);
                     g2d.setTransform(state.getSuperAffine());
@@ -197,9 +195,16 @@ public class FloodingApp extends GameApplication {
 
                     g2d.dispose();
 
-                    view.setImage(bufferedImageToWritableImage(image));
+//                    WritableImage x = (WritableImage) view.getImage();
+//                    view.setImage(bufferedImageToWritableImage(writableImage, image));
+//                    view.setImage(bufferedImageToWritableImage(writableImage, image));
 
-//                    logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
+//                    transferBufferedImageDataToWritableImage(image, writableImage);
+                    view.setImage(createWritableImageFromBufferedImage(image));
+
+
+
+                    logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
                 }
             }
         });
@@ -212,6 +217,13 @@ public class FloodingApp extends GameApplication {
                 .getDefaultScreenDevice()
                 .getDefaultConfiguration()
                 .createCompatibleImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB_PRE);
+
+        Graphics2D g2d = (Graphics2D) this.image.getGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
+        g2d.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
+        g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED);
+
         Services.withServices(services -> {
             // Set State
             this.state = new State(services);
