@@ -111,7 +111,7 @@ public abstract class BoundingBox extends Colored implements Serializable {
         );
     }
 
-    public boolean contains(BoundingBox other) {
+    public boolean containsBoundingBox(BoundingBox other) {
         return
                 minLon <= other.minLon &&
                 minLat <= other.minLat &&

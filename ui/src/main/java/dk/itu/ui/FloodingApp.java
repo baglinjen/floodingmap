@@ -47,9 +47,9 @@ public class FloodingApp extends GameApplication {
 
             // Temporary whilst using in-memory
 //            services.getOsmService(state.isWithDb()).loadOsmData("ky.osm");
-            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
-            //services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
-            //services.getHeightCurveService().loadGmlFileData("tuna-dijkstra.gml");
+//            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
+            services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
+//            services.getHeightCurveService().loadGmlFileData("tuna-dijkstra.gml");
             state.resetWindowBounds();
             state.updateMinMaxWaterLevels(services);
 //            var bounds = state.getWindowBounds();
@@ -210,7 +210,7 @@ public class FloodingApp extends GameApplication {
                     System.arraycopy(pixels, 0, buffer.getBuffer().array(), 0, pixels.length);
                     view.setImage(new WritableImage(buffer));
 
-                    logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
+//                    logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
                 }
             }
         });

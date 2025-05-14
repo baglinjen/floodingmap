@@ -72,7 +72,7 @@ public class HeightCurveService {
         }
     }
 
-    private List<double[]> splitBoundingBoxInUTMQuadrants(double minLon, double minLat, double maxLon, double maxLat) {
+    public static List<double[]> splitBoundingBoxInUTMQuadrants(double minLon, double minLat, double maxLon, double maxLat) {
         var blUtm = wgsToUtm(minLon, minLat);
         var tlUtm = wgsToUtm(minLon, maxLat);
         var trUtm = wgsToUtm(maxLon, maxLat);
