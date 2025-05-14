@@ -2,7 +2,6 @@ package dk.itu.data.utils;
 
 import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.data.enums.RoutingType;
-import dk.itu.data.exceptions.RouteExceptions;
 import dk.itu.data.models.db.osm.OsmElement;
 import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.models.db.osm.OsmWay;
@@ -141,16 +140,6 @@ public class RoutingConfiguration {
             var backwardsRouteMap = backwardFuture.get();
 
             if(sharedNode == startNode || sharedNode == endNode){
-                if(forwardsRouteMap != null && forwardsRouteMap.containsKey(startNode) && forwardsRouteMap.containsKey(endNode)){
-                    //The forward route is applicable
-                    return createPath(createCoordinateList(forwardsRouteMap, startNode, endNode));
-                } else if (backwardsRouteMap != null && backwardsRouteMap.containsKey(startNode) && backwardsRouteMap.containsKey(endNode)){
-                    //The backwards routing is applicable
-                    return createPath(reverseCoordinateList(createCoordinateList(backwardsRouteMap, endNode, startNode)));
-                }
-            }
-
-            if(sharedNode == startNode || sharedNode == endNode){
                 //Routing is too short for multithreading -> fallback to regular A*
                 logger.info("Falling back to regular A* - route was to short to efficiently calculate with multithreading");
                 return createPath(createCoordinateList(createRoute(startNode, endNode, nodes, services, null), startNode, endNode));
@@ -175,11 +164,7 @@ public class RoutingConfiguration {
 
         PriorityQueue<OsmNode> pq = new PriorityQueue<>(Comparator.comparingDouble(n -> heuristicDistances.getOrDefault(n, Double.MAX_VALUE)));
 
-        //nodes.values().parallelStream().forEach(n -> {
         nodes.values().forEach(n -> {
-            //TODO: Determine if map should be concurrent or not...
-            //knownDistances.putIfAbsent(n, n == startNode ? 0.0 : Double.MAX_VALUE);
-            //heuristicDistances.putIfAbsent(n, n == endNode ? 0.0 : Double.MAX_VALUE);
             knownDistances.put(n, n == startNode ? 0.0 : Double.MAX_VALUE);
             heuristicDistances.put(n, n == endNode ? 0.0 : Double.MAX_VALUE);
         });
@@ -202,7 +187,6 @@ public class RoutingConfiguration {
             if(connectionSet != null){
                 //This will happen if createRoute is called as an A* bidirectional multithreaded
                 if (sharedNode != null) return previousConnections;
-                //if(stopMultithreading) return previousConnections;
                 connectionSet.getFirst().add(node);
 
                 if(connectionSet.getSecond().contains(node)){
