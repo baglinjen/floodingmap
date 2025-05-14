@@ -37,8 +37,6 @@ public class DrawingConfiguration {
     private Specification specification;
     @JsonProperty
     private Map<String, Feature> features;
-    @JsonProperty
-    private List<String> infoToKeep;
 
     public Style getStyle(Map<String, String> tags) {
         for (String key : tags.keySet()) {
