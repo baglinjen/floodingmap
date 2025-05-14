@@ -94,14 +94,14 @@ public class HeightCurveTree {
     }
 
     public HeightCurveElement getHeightCurveForPoint(double lon, double lat) {
-        return getHeightCurveForPoint(root, lon, lat);
-
+        return getHeightCurveForPoint(root, lon, lat).orElse(root.getHeightCurveElement());
     }
-    private HeightCurveElement getHeightCurveForPoint(HeightCurveTreeNode node, double lon, double lat) {
+
+    private Optional<HeightCurveElement> getHeightCurveForPoint(HeightCurveTreeNode node, double lon, double lat) {
         if (!node.contains(lon, lat)) {
-            return null;
+            return Optional.empty();
         } else if (node.getChildren().isEmpty()) {
-            return node.getHeightCurveElement();
+            return Optional.of(node.getHeightCurveElement());
         } else {
             return node
                     .getChildren()
@@ -109,7 +109,7 @@ public class HeightCurveTree {
                     .map(child -> getHeightCurveForPoint(child, lon, lat))
                     .filter(Objects::nonNull)
                     .findFirst()
-                    .orElseThrow();
+                    .orElse(Optional.empty());
         }
     }
 

@@ -13,6 +13,7 @@ import it.unimi.dsi.fastutil.longs.Long2ReferenceArrayMap;
 import org.apache.logging.log4j.Logger;
 
 import java.sql.Connection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -38,7 +39,7 @@ public class OsmService {
 
     public Map<Long, OsmNode> getTraversableOsmNodes(){
         var nodes = osmElementRepository.getTraversableOsmNodes();
-        Map<Long, OsmNode> result = new Long2ReferenceArrayMap<>();
+        Map<Long, OsmNode> result = new HashMap<>();
 
         nodes.forEach(node -> result.put(node.getId(), node));
         return result;

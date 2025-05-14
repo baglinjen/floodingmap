@@ -39,7 +39,7 @@ public class OsmWay extends OsmElement {
     }
 
     public static OsmWay createWayForRouting(double[] coordinates) {
-        var way = new OsmWay(0, true, null, coordinates);
+        var way = new OsmWay(0, true, new double[]{0.0, 0.0, 0.0, 0.0}, coordinates);
         way.setStyle(Color.yellow, 6);
         return way;
     }
