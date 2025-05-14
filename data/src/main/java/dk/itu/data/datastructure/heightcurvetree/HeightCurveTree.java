@@ -98,19 +98,18 @@ public class HeightCurveTree {
 
     }
     private HeightCurveElement getHeightCurveForPoint(HeightCurveTreeNode node, double lon, double lat) {
-        if (node.getChildren().isEmpty()) {
+        if (!node.contains(lon, lat)) {
+            return null;
+        } else if (node.getChildren().isEmpty()) {
             return node.getHeightCurveElement();
         } else {
-            var childContaining = node.getChildren()
+            return node
+                    .getChildren()
                     .parallelStream()
-                    .filter(e -> e.contains(lon, lat))
-                    .findFirst();
-
-            if (childContaining.isPresent()) {
-                return getHeightCurveForPoint(childContaining.get(), lon, lat);
-            } else {
-                return node.getHeightCurveElement();
-            }
+                    .map(child -> getHeightCurveForPoint(child, lon, lat))
+                    .filter(Objects::nonNull)
+                    .findFirst()
+                    .orElseThrow();
         }
     }
 

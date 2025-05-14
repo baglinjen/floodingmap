@@ -9,6 +9,7 @@ import javafx.scene.paint.Color;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.nio.IntBuffer;
+import java.util.Arrays;
 
 public class DrawingUtils {
     public static WritableImage createWritableImageFromBufferedImage(BufferedImage img) {
@@ -27,6 +28,25 @@ public class DrawingUtils {
         );
 
         return new WritableImage(pixelBuffer);
+    }
+
+    public static void transferBufferedImageDataToIntBuffer(BufferedImage bufferedImage, IntBuffer buffer) {
+        int[] pixels = ((DataBufferInt) bufferedImage.getRaster().getDataBuffer()).getData();
+
+//        buffer.clear();
+//        buffer.position(0);
+        buffer.put(pixels);
+    }
+    public static void transferBufferedImageDataToArray(BufferedImage bufferedImage, int[] array) {
+        int[] pixels = ((DataBufferInt) bufferedImage.getRaster().getDataBuffer()).getData();
+
+        for (int i = 0; i < array.length; i++) {
+            array[i] = pixels[i];
+        }
+
+//        buffer.clear();
+//        buffer.position(0);
+//        buffer.put(pixels);
     }
 
     /**

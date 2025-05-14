@@ -19,13 +19,14 @@ import org.apache.logging.log4j.Logger;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
+import java.nio.IntBuffer;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static com.almasb.fxgl.dsl.FXGLForKtKt.*;
-import static dk.itu.util.DrawingUtils.createWritableImageFromBufferedImage;
+import static dk.itu.util.DrawingUtils.*;
 
 public class FloodingApp extends GameApplication {
     public static final int WIDTH = 1920, HEIGHT = 920;
@@ -35,7 +36,15 @@ public class FloodingApp extends GameApplication {
 
     // Drawing related
     private BufferedImage image;
-    private final ImageView view = new ImageView();
+    private IntBuffer buffer = IntBuffer.allocate(WIDTH * HEIGHT);
+    private int[] pixels = buffer.array();
+    private PixelBuffer<IntBuffer> pixelBuffer = new PixelBuffer<>(
+            WIDTH, HEIGHT,
+            buffer,
+            PixelFormat.getIntArgbPreInstance()
+    );
+    private WritableImage writableImage = new WritableImage(pixelBuffer);
+    private final ImageView view = new ImageView(writableImage);
 
     // Simulation thread
     private Thread simulationThread;
@@ -44,8 +53,8 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-//            services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
-            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
+            services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
+//            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
             state.resetWindowBounds();
             state.updateMinMaxWaterLevels(services);
 //            var bounds = state.getWindowBounds();
@@ -200,6 +209,16 @@ public class FloodingApp extends GameApplication {
 //                    view.setImage(bufferedImageToWritableImage(writableImage, image));
 
 //                    transferBufferedImageDataToWritableImage(image, writableImage);
+
+
+//                    transferBufferedImageDataToIntBuffer(image, buffer);
+//                    transferBufferedImageDataToArray(image, pixels);
+//                    pixelBuffer.updateBuffer((_) -> null);
+
+//                    pixelBuffer.updateBuffer((x) -> {
+//                        return new Rectangle2D(0, 0, WIDTH, HEIGHT);
+//                    });
+
                     view.setImage(createWritableImageFromBufferedImage(image));
 
 
