@@ -71,7 +71,12 @@ public class FloodingApp extends GameApplication {
 
                     image.flush();
 
-                    Graphics2D g2d = (Graphics2D) image.getGraphics();
+                    Graphics2D g2d =  image.createGraphics();
+                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
+                    g2d.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
+                    g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED);
+
                     g2d.setBackground(Color.decode("#a9d3de"));
                     g2d.clearRect(0, 0, WIDTH, HEIGHT);
                     g2d.setTransform(state.getSuperAffine());
@@ -215,12 +220,6 @@ public class FloodingApp extends GameApplication {
                 .getDefaultScreenDevice()
                 .getDefaultConfiguration()
                 .createCompatibleImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB_PRE);
-
-        Graphics2D g2d = (Graphics2D) this.image.getGraphics();
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
-        g2d.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
-        g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED);
 
         Services.withServices(services -> {
             // Set State
