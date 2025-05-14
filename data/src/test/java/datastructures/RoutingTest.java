@@ -9,7 +9,7 @@ import dk.itu.data.models.db.heightcurve.HeightCurveElement;
 import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.models.db.osm.OsmWay;
 import dk.itu.data.services.Services;
-import dk.itu.data.utils.RoutingConfiguration;
+import dk.itu.data.services.RoutingService;
 import dk.itu.data.utils.RoutingUtils;
 import dk.itu.util.LoggerFactory;
 import org.apache.logging.log4j.Logger;
@@ -25,7 +25,7 @@ import java.util.Map;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class RoutingTest {
     private static final Logger logger = LoggerFactory.getLogger();
-    private static RoutingConfiguration testConfiguration;
+    private static RoutingService testConfiguration;
     private static Map<Long, OsmNode> nodes;
 
     @BeforeAll
@@ -40,7 +40,7 @@ public class RoutingTest {
 
     @BeforeEach
     void setupIndividual(){
-        testConfiguration = new RoutingConfiguration();
+        testConfiguration = new RoutingService();
         testConfiguration.setWaterLevel(0.0);
 
         resetFlooding();

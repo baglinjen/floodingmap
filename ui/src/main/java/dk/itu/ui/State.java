@@ -4,7 +4,7 @@ import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.data.models.db.heightcurve.HeightCurveElement;
 import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.services.Services;
-import dk.itu.data.utils.RoutingConfiguration;
+import dk.itu.data.services.RoutingService;
 import dk.itu.ui.drawables.NearestNeighbour;
 import dk.itu.util.LoggerFactory;
 import kotlin.Pair;
@@ -23,7 +23,7 @@ public class State {
     private final List<Consumer<Point2D.Double>> mouseMovedListeners = new ArrayList<>();
     private final List<Consumer<Pair<Float, Float>>> minMaxWaterLevelListeners = new ArrayList<>();
     private boolean shouldDrawGeoJson = true;
-    private final RoutingConfiguration routingConfiguration;
+    private final RoutingService routingConfiguration;
     private double mouseX, mouseY;
 
     /// The water level the ocean will eventually reach through the flooding
@@ -41,7 +41,7 @@ public class State {
     private static final Logger logger = LoggerFactory.getLogger();
 
     public State(Services services) {
-        this.routingConfiguration = new RoutingConfiguration();
+        this.routingConfiguration = new RoutingService();
         this.minWaterLevel = services.getHeightCurveService().getMinWaterLevel();
         this.maxWaterLevel = services.getHeightCurveService().getMaxWaterLevel();
         this.resetWindowBounds();
@@ -84,7 +84,7 @@ public class State {
     }
 
     // Getter and setter for routing
-    public RoutingConfiguration getRoutingConfiguration(){
+    public RoutingService getRoutingConfiguration(){
         return routingConfiguration;
     }
 
