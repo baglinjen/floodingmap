@@ -2,22 +2,18 @@ package dk.itu.data.datastructure.rtree;
 
 import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.osm.OsmElement;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 
-import java.util.Comparator;
+import java.awt.*;
 import java.util.List;
-import java.util.ArrayList;
 
-public class RTreeNode {
-    BoundingBox mbr;
+public class RTreeNode extends BoundingBox {
     RTreeNode parent;
-    List<OsmElement> elements = new ArrayList<>();    // For leaf nodes
-    private List<RTreeNode> children = new ArrayList<>();           // For internal nodes
+    List<OsmElement> elements = new ObjectArrayList<>();    // For leaf nodes
+    private List<RTreeNode> children = new ReferenceArrayList<>();           // For internal nodes
     public RTreeNode()  {
-        this.mbr = null;
-    }
-
-    public BoundingBox getMBR() {
-        return mbr;
+        super();
     }
 
     public RTreeNode getParent() {
@@ -42,7 +38,11 @@ public class RTreeNode {
 
     public void addEntry(OsmElement entry) {
         elements.add(entry);
-        updateMBR(entry.getBoundingBox());
+        if (elements.size() > 1) {
+            expand(entry);
+        } else {
+            setBoundingBox(entry);
+        }
     }
 
     public List<OsmElement> getElements() {
@@ -52,7 +52,11 @@ public class RTreeNode {
     public void addChild(RTreeNode child) {
         children.add(child);
         child.setParent(this);
-        updateMBR(child.mbr);
+        if (children.size() > 1) {
+            expand(child);
+        } else {
+            setBoundingBox(child);
+        }
     }
 
     public void updateBoundingBox() {
@@ -60,30 +64,26 @@ public class RTreeNode {
             return;
         }
 
-        // TODO: Check with parallel stream for children (not per value min/max)
-
         double minX = Double.MAX_VALUE, minY = Double.MAX_VALUE;
         double maxX = Double.MIN_VALUE, maxY = Double.MIN_VALUE;
 
         for (RTreeNode child : children) {
-            minX = Math.min(minX, child.mbr.getMinLon());
-            minY = Math.min(minY, child.mbr.getMinLat());
-            maxX = Math.max(maxX, child.mbr.getMaxLon());
-            maxY = Math.max(maxY, child.mbr.getMaxLat());
+            minX = Math.min(minX, child.getMinLon());
+            minY = Math.min(minY, child.getMinLat());
+            maxX = Math.max(maxX, child.getMaxLon());
+            maxY = Math.max(maxY, child.getMaxLat());
         }
 
-        this.mbr = new BoundingBox(minX, minY, maxX, maxY);
-    }
-
-    private void updateMBR(BoundingBox bbox) {
-        if (mbr == null) {
-            mbr = new BoundingBox(bbox.getMinLon(), bbox.getMinLat(), bbox.getMaxLon(), bbox.getMaxLat());
-        } else {
-            mbr.expand(bbox);
-        }
+        setBoundingBox(minX, minY, maxX, maxY);
     }
 
     public void setMBR(BoundingBox bbox) {
-        this.mbr = bbox;
+        this.setBoundingBox(bbox);
     }
+
+    @Override
+    public void prepareDrawing(Graphics2D g2d) {}
+
+    @Override
+    public void draw(Graphics2D g2d, float strokeBaseWidth) {}
 }

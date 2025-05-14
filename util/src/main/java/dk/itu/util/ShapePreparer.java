@@ -4,8 +4,6 @@ import kotlin.Pair;
 
 import java.awt.*;
 import java.awt.geom.Path2D;
-import java.awt.geom.Point2D;
-import java.util.ArrayList;
 import java.util.List;
 
 public class ShapePreparer {
@@ -28,12 +26,17 @@ public class ShapePreparer {
         var finalPath = new Path2D.Double(Path2D.WIND_EVEN_ODD);
         var pathsAppended = 0;
 
-        List<double[]> polygons = new ArrayList<>();
-        polygons.addAll(outerPolygons);
-        polygons.addAll(innerPolygons);
+        for (var outer : outerPolygons) {
+            var shape = calculateShape(g2d, outer, tolerance);
 
-        for (double[] polygon : polygons) {
-            var shape = calculateShape(g2d, polygon, tolerance);
+            if (shape.component2() >= 3) {
+                shape.component1().closePath();
+                finalPath.append(shape.component1(), false);
+                pathsAppended++;
+            }
+        }
+        for (var inner : innerPolygons) {
+            var shape = calculateShape(g2d, inner, tolerance);
 
             if (shape.component2() >= 3) {
                 shape.component1().closePath();
@@ -48,27 +51,37 @@ public class ShapePreparer {
     // Pair with path2D and number of vertices
     private static Pair<Path2D.Double, Integer> calculateShape(Graphics2D g2d, double[] shape, double tolerance) {
         var path = new Path2D.Double();
-        var transform = g2d.getTransform();
-
         path.moveTo(0.56*shape[0], -shape[1]);
-        int pointsAdded = 1;
 
-        var lastTransformedPoint = new Point2D.Double();
-        transform.transform(new Point2D.Double(shape[0], shape[1]), lastTransformedPoint);
+        int pointsAdded = 1, indexLastTransformedPoint = 0;
+        double[] pointsTransformed = new double[shape.length];
 
-        for (int i = 2; i < shape.length; i+=2) {
-            var point = new Point2D.Double(shape[i], shape[i+1]);
-            var transformedPoint = new Point2D.Double();
-            transform.transform(point, transformedPoint);
+        g2d.getTransform().transform(shape, 0, pointsTransformed, 0, shape.length/2);
 
-            boolean isSamePixel = transformedPoint.distance(lastTransformedPoint) <= tolerance;
-            if (isSamePixel) continue;
+        for (int i = 2; i < pointsTransformed.length; i+=2) {
 
-            path.lineTo(0.56*point.getX(), -point.getY());
-            lastTransformedPoint = transformedPoint;
+            if (
+                    calculateDistance(
+                            pointsTransformed[indexLastTransformedPoint],
+                            pointsTransformed[indexLastTransformedPoint+1],
+                            pointsTransformed[i],
+                            pointsTransformed[i+1]
+                    ) <= tolerance
+            ) continue;
+
+            path.lineTo(0.56*shape[i], -shape[i+1]);
+            indexLastTransformedPoint = i;
             pointsAdded++;
         }
 
         return new Pair<>(path, pointsAdded);
+    }
+
+    private static double calculateDistance(double p1x, double p1y, double p2x, double p2y) {
+        return Math.sqrt(
+                Math.pow(Math.max(p1x, p2x) - Math.min(p1x, p2x), 2)
+                        +
+                Math.pow(Math.max(p1y, p2y) - Math.min(p1y, p2y), 2)
+        );
     }
 }

@@ -1,46 +1,8 @@
 package dk.itu.util;
 
-import javafx.scene.image.PixelBuffer;
-import javafx.scene.image.PixelFormat;
-import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
 
-import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferInt;
-import java.nio.ByteBuffer;
-import java.util.stream.IntStream;
-
 public class DrawingUtils {
-    
-
-    /**
-     * Uses BufferedImage to create a WritableImage UI component
-     */
-    public static WritableImage bufferedImageToWritableImage(BufferedImage bufferedImage) {
-        int width = bufferedImage.getWidth();
-        int height = bufferedImage.getHeight();
-
-        int[] pixels = ((DataBufferInt) bufferedImage.getRaster().getDataBuffer()).getData();
-        byte[] pixelData = new byte[width * height * 4];
-
-        IntStream.range(0, pixels.length).parallel().forEach(i -> {
-            var pixel = pixels[i];
-            int baseIndex = i * 4;
-            pixelData[baseIndex] = (byte) ((pixel) & 0xFF);         // Blue
-            pixelData[baseIndex + 1] = (byte) ((pixel >> 8) & 0xFF);  // Green
-            pixelData[baseIndex + 2] = (byte) ((pixel >> 16) & 0xFF); // Red
-            pixelData[baseIndex + 3] = (byte) ((pixel >> 24) & 0xFF); // Alpha
-        });
-
-        PixelBuffer<ByteBuffer> pixelBuffer = new PixelBuffer<>(
-                width, height,
-                ByteBuffer.wrap(pixelData),
-                PixelFormat.getByteBgraPreInstance()
-        );
-
-        return new WritableImage(pixelBuffer);
-    }
-
     /**
      * Converts a color to its integer rgba representation
      */

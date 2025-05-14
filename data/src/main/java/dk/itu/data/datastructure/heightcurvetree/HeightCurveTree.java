@@ -1,6 +1,5 @@
 package dk.itu.data.datastructure.heightcurvetree;
 
-import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.heightcurve.HeightCurveElement;
 
 import java.util.*;
@@ -43,7 +42,7 @@ public class HeightCurveTree {
         node.getChildren().parallelStream().forEach(child -> getElements(child, elements));
     }
 
-    public List<HeightCurveElement> searchScaled(BoundingBox boundingBox, double minBoundingBoxArea) {
+    public List<HeightCurveElement> searchScaled(double[] boundingBox, double minBoundingBoxArea) {
         Collection<HeightCurveElement> elementsConcurrent = new ConcurrentLinkedQueue<>();
 
         searchScaled(root, boundingBox, elementsConcurrent);
@@ -53,9 +52,9 @@ public class HeightCurveTree {
                 .filter(e -> e.getArea() >= minBoundingBoxArea)
                 .toList();
     }
-    private void searchScaled(HeightCurveTreeNode node, BoundingBox queryBox, Collection<HeightCurveElement> results) {
+    private void searchScaled(HeightCurveTreeNode node, double[] queryBox, Collection<HeightCurveElement> results) {
         // If heightCurveElement intersects => add to list => Run with children
-        if (queryBox.intersects(node.getHeightCurveElement().getBounds())) {
+        if (node.getHeightCurveElement().intersects(queryBox)) {
             results.add(node.getHeightCurveElement());
             node.getChildren().parallelStream().forEach(child -> searchScaled(child, queryBox, results));
         }
@@ -99,19 +98,18 @@ public class HeightCurveTree {
 
     }
     private HeightCurveElement getHeightCurveForPoint(HeightCurveTreeNode node, double lon, double lat) {
-        if (node.getChildren().isEmpty()) {
+        if (!node.contains(lon, lat)) {
+            return null;
+        } else if (node.getChildren().isEmpty()) {
             return node.getHeightCurveElement();
         } else {
-            var childContaining = node.getChildren()
+            return node
+                    .getChildren()
                     .parallelStream()
-                    .filter(e -> e.contains(lon, lat))
-                    .findFirst();
-
-            if (childContaining.isPresent()) {
-                return getHeightCurveForPoint(childContaining.get(), lon, lat);
-            } else {
-                return node.getHeightCurveElement();
-            }
+                    .map(child -> getHeightCurveForPoint(child, lon, lat))
+                    .filter(Objects::nonNull)
+                    .findFirst()
+                    .orElseThrow();
         }
     }
 
@@ -130,8 +128,8 @@ public class HeightCurveTree {
             // Candidates are children which are bigger than element => might contain so sort by biggest first
             var candidateNodes = node.getChildren()
                     .parallelStream()
-                    .filter(e -> e.getArea() > heightCurveElement.getArea()) // TODO: This filter is slow
-                    .sorted(Comparator.comparing(HeightCurveTreeNode::getArea).reversed())
+                    .filter(e -> e.getPolygonArea() > heightCurveElement.getPolygonArea()) // TODO: This filter is slow
+                    .sorted(Comparator.comparing(HeightCurveTreeNode::getPolygonArea).reversed())
                     .toList(); // TODO: This toList is slow
 
             if (candidateNodes.isEmpty()) {
@@ -140,7 +138,7 @@ public class HeightCurveTree {
 
                 var childrenPossiblyContained = node.getChildren()
                         .parallelStream()
-                        .filter(e -> e.getArea() < heightCurveElement.getArea())
+                        .filter(e -> e.getPolygonArea() < heightCurveElement.getPolygonArea())
                         .toList();
 
                 if (!childrenPossiblyContained.isEmpty()) {

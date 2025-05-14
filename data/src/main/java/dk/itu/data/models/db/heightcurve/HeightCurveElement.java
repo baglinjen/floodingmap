@@ -2,6 +2,7 @@ package dk.itu.data.models.db.heightcurve;
 
 import dk.itu.common.configurations.DrawingConfiguration;
 import dk.itu.common.models.Colored;
+import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.parser.ParserHeightCurveElement;
 
 import java.awt.*;
@@ -13,22 +14,23 @@ import static dk.itu.util.DrawingUtils.toARGB;
 import static dk.itu.util.PolygonUtils.forceCounterClockwise;
 import static dk.itu.util.ShapePreparer.prepareComplexPolygon;
 
-public class HeightCurveElement extends Colored {
+public class HeightCurveElement extends BoundingBox {
     private static final DrawingConfiguration.Style STYLE_ABOVE_WATER = new DrawingConfiguration.Style(Color.BLACK, 1);
     private static final DrawingConfiguration.Style STYLE_BELOW_WATER = new DrawingConfiguration.Style(new Color(toARGB(javafx.scene.paint.Color.web("#40739e80")), true), null);
     private static final DrawingConfiguration.Style STYLE_SELECTED = new DrawingConfiguration.Style(new Color(toARGB(javafx.scene.paint.Color.web("#00FF0080")), true), null);
-    private final double[] outerPolygon, bounds;
+    private final double[] outerPolygon;
     private final List<double[]> innerPolygons = new ArrayList<>();
     private final float height;
-    private final double area;
+    private final double polygonArea;
     private Path2D.Double path;
     private boolean isAboveWater = true;
 
-    public HeightCurveElement(double[] outerPolygon, float height, double area, double[] bounds) {
+    public HeightCurveElement(double[] outerPolygon, float height, double polygonArea, double[] bounds) {
+        super(bounds);
         this.outerPolygon = outerPolygon;
         this.height = height;
-        this.area = area;
-        this.bounds = bounds;
+        this.polygonArea = polygonArea;
+        setAboveWater();
     }
 
     public static HeightCurveElement mapToHeightCurveElement(ParserHeightCurveElement parserHeightCurveElement) {
@@ -40,11 +42,10 @@ public class HeightCurveElement extends Colored {
         );
     }
 
-    public boolean getIsAboveWater(){return isAboveWater;}
-
-    public double[] getBounds() {
-        return bounds;
+    public boolean getIsAboveWater() {
+        return isAboveWater;
     }
+
     public double[] getCoordinates() {
         return outerPolygon;
     }
@@ -54,8 +55,8 @@ public class HeightCurveElement extends Colored {
     public void removeInnerPolygon(double[] innerPolygon) {
         innerPolygons.remove(innerPolygon);
     }
-    public double getArea() {
-        return area;
+    public double getPolygonArea() {
+        return polygonArea;
     }
     public float getHeight() {
         return height;

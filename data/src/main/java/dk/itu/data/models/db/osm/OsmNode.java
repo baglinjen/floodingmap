@@ -1,6 +1,5 @@
 package dk.itu.data.models.db.osm;
 
-import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.heightcurve.HeightCurveElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.utils.RoutingUtils;
@@ -13,21 +12,21 @@ public class OsmNode extends OsmElement {
     private final Map<Long, Double> connectionMap;
     private HeightCurveElement containingCurve = null;
 
-    public OsmNode(long id, double lon, double lat, BoundingBox boundingBox, Map<Long, Double> connectionMap) {
-        super(id, boundingBox, 0);
+    public OsmNode(long id, double lon, double lat, double[] boundingBox, Map<Long, Double> connectionMap) {
+        super(id, boundingBox);
         this.lon = lon;
         this.lat = lat;
         this.connectionMap = connectionMap;
     }
 
     public static OsmNode mapToOsmNode(ParserOsmNode parserOsmNode) {
-        BoundingBox boundingBox = new BoundingBox(
+        var osmNode = new OsmNode(
+                parserOsmNode.getId(),
                 parserOsmNode.getLon(),
                 parserOsmNode.getLat(),
-                parserOsmNode.getLon(),
-                parserOsmNode.getLat()
+                new double[]{parserOsmNode.getLon(), parserOsmNode.getLat(), parserOsmNode.getLon(), parserOsmNode.getLat()},
+                RoutingUtils.buildConnectionMap(parserOsmNode)
         );
-        var osmNode = new OsmNode(parserOsmNode.getId(), parserOsmNode.getLon(), parserOsmNode.getLat(), boundingBox, RoutingUtils.buildConnectionMap(parserOsmNode));
         osmNode.setStyle(parserOsmNode.getColor(), parserOsmNode.getStroke());
 
         return osmNode;

@@ -1,6 +1,5 @@
 package dk.itu.data.models.db.osm;
 
-import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.parser.ParserOsmWay;
 
 import java.awt.*;
@@ -14,8 +13,8 @@ public class OsmWay extends OsmElement {
     private final boolean isLine;
     private Path2D.Double path = null;
 
-    public OsmWay(long id, boolean isLine, BoundingBox boundingBox, double area, double[] outerCoordinates) {
-        super(id, boundingBox, area);
+    public OsmWay(long id, boolean isLine, double[] boundingBox, double[] outerCoordinates) {
+        super(id, boundingBox);
         this.isLine = isLine;
         this.outerCoordinates = outerCoordinates;
     }
@@ -27,11 +26,10 @@ public class OsmWay extends OsmElement {
     public static OsmWay mapToOsmWay(ParserOsmWay parserOsmWay) {
         var bounds = parserOsmWay.getBounds();
 
-        BoundingBox boundingBox = new BoundingBox(bounds[0], bounds[1], bounds[2], bounds[3]);
         var osmWay = new OsmWay(
                 parserOsmWay.getId(),
-                parserOsmWay.isLine(), boundingBox,
-                parserOsmWay.getArea(),
+                parserOsmWay.isLine(),
+                bounds,
                 parserOsmWay.getCoordinates()
         );
 
@@ -41,7 +39,7 @@ public class OsmWay extends OsmElement {
     }
 
     public static OsmWay createWayForRouting(double[] coordinates) {
-        var way = new OsmWay(0, true, null, 0, coordinates);
+        var way = new OsmWay(0, true, null, coordinates);
         way.setStyle(Color.yellow, 6);
         return way;
     }

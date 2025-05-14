@@ -1,6 +1,5 @@
 package dk.itu.data.models.db.osm;
 
-import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.parser.ParserOsmRelation;
 
 import java.awt.*;
@@ -14,8 +13,8 @@ public class OsmRelation extends OsmElement {
     private final List<double[]> innerPolygons;
     private Path2D.Double path = null;
 
-    public OsmRelation(long id, BoundingBox boundingBox, double area, List<double[]> outerPolygons, List<double[]> innerPolygons) {
-        super(id, boundingBox, area);
+    public OsmRelation(long id, double[] boundingBox, List<double[]> outerPolygons, List<double[]> innerPolygons) {
+        super(id, boundingBox);
         this.outerPolygons = outerPolygons;
         this.innerPolygons = innerPolygons;
     }
@@ -23,11 +22,9 @@ public class OsmRelation extends OsmElement {
     public static OsmRelation mapToOsmRelation(ParserOsmRelation parserOsmRelation) {
         var bounds = parserOsmRelation.getBounds();
 
-        BoundingBox boundingBox = new BoundingBox(bounds[0], bounds[1], bounds[2], bounds[3]);
         var osmRelation = new OsmRelation(
                 parserOsmRelation.getId(),
-                boundingBox,
-                parserOsmRelation.getArea(),
+                bounds,
                 parserOsmRelation.getOuterPolygons(),
                 parserOsmRelation.getInnerPolygons()
         );

@@ -80,7 +80,7 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
     @Override
     public synchronized List<HeightCurveElement> searchScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
         synchronized (heightCurveTree) {
-            return heightCurveTree.searchScaled(new BoundingBox(minLon, minLat, maxLon, maxLat), minBoundingBoxArea);
+            return heightCurveTree.searchScaled(new double[]{minLon, minLat, maxLon, maxLat}, minBoundingBoxArea);
         }
     }
 

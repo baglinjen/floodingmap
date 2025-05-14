@@ -227,34 +227,6 @@ public class PolygonUtils {
         return inside;
     }
 
-    public static boolean isPointInPolygonX2(double[] polygon, double x, double y) {
-        boolean inside = false;
-
-
-        double x0 = polygon[polygon.length - 4];
-        double y0 = polygon[polygon.length - 3];
-        double x1 = polygon[polygon.length - 2];
-        double y1 = polygon[polygon.length - 1];
-        double x2, y2;
-
-        for (int i = 0; i < polygon.length; i+=4) {
-            x2 = polygon[i];
-            y2 = polygon[i + 1];
-
-            if (
-                    ((y1 > y) != (y2 > y)) && // Condition 1 within y bounds
-                            (x < (x2 - x1) * (y - y1) / (y2 - y1) + x1)  // Condition 2 within x bounds
-            ) {
-                inside = !inside;
-            }
-
-            x1 = x2;
-            y1 = y2;
-        }
-
-        return inside;
-    }
-
     /**
      * Determines if two line segments intersect.
      */
