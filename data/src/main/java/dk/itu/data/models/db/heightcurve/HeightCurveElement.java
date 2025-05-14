@@ -22,7 +22,7 @@ public class HeightCurveElement extends Colored {
     private final float height;
     private final double area;
     private Path2D.Double path;
-    private boolean isAboveWater = false;
+    private boolean isAboveWater = true;
 
     public HeightCurveElement(double[] outerPolygon, float height, double area, double[] bounds) {
         this.outerPolygon = outerPolygon;
@@ -39,6 +39,8 @@ public class HeightCurveElement extends Colored {
                 parserHeightCurveElement.calculateBounds()
         );
     }
+
+    public boolean getIsAboveWater(){return isAboveWater;}
 
     public double[] getBounds() {
         return bounds;
