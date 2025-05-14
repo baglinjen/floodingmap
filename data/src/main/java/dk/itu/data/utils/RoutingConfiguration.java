@@ -26,6 +26,7 @@ public class RoutingConfiguration {
     private boolean shouldVisualize; // A configuration for drawing visited nodes through the search
 
     // Multithreading
+    private volatile boolean stopCalculationFlag = false;
     private Thread calculationThread;
     ExecutorService executorService = Executors.newFixedThreadPool(2);
 
@@ -72,6 +73,10 @@ public class RoutingConfiguration {
         return cachedRoute;
     }
 
+    public void cancelRouteCalculation(){
+        stopCalculationFlag = true;
+    }
+
     public List<OsmNode> getTouchedNodes(){
         return List.copyOf(touchedNodes);
     }
@@ -86,6 +91,7 @@ public class RoutingConfiguration {
         calculationThread = new Thread(() -> {
             try{
                 Services.withServices(services -> {
+                    stopCalculationFlag = false;
                     cachedRouteWaterLevel = waterLevel; //Register height for caching
 
                     var nodes = services.getOsmService(isWithDb).getTraversableOsmNodes();
@@ -175,6 +181,8 @@ public class RoutingConfiguration {
         boolean shouldDelay = delay > 0;
 
         while(!pq.isEmpty()){
+            if(stopCalculationFlag) return null;
+
             try{
                 if(shouldDelay) Thread.sleep(delay);
             } catch(InterruptedException e){
