@@ -127,63 +127,32 @@ public class HeightCurveTree {
             // Try to find first node which contains element
             // Candidates are children which are bigger than element => might contain so sort by biggest first
 
-            if (node.getChildren().stream().anyMatch(Objects::isNull)) {
-                System.out.println();
-            }
             var candidateNodes = node.getChildren()
                     .parallelStream()
-                    .filter(e -> e.getPolygonArea() > heightCurveElement.getPolygonArea()) // TODO: This filter is slow
+                    .filter(e -> e.contains(heightCurveElement))
                     .sorted(Comparator.comparing(HeightCurveTreeNode::getPolygonArea).reversed())
-                    .toList(); // TODO: This toList is slow
+                    .toList();
 
             if (candidateNodes.isEmpty()) {
                 // No child contains element => try to find children which the element contains
                 var newNode = new HeightCurveTreeNode(heightCurveElement);
-
-                var childrenPossiblyContained = node.getChildren()
+                node.getChildren()
                         .parallelStream()
-                        .filter(e -> e.getPolygonArea() < heightCurveElement.getPolygonArea())
-                        .toList();
-
-                if (!childrenPossiblyContained.isEmpty()) {
-                    // Some node children have a smaller area than element => add contained elements to the new node
-                    childrenPossiblyContained
-                            .parallelStream()
-                            .filter(e -> newNode.contains(e.getHeightCurveElement()))
-                            .toList()
-                            .forEach(child -> {
-                                node.getChildren().remove(child);
-                                node.getHeightCurveElement().removeInnerPolygon(child.getHeightCurveElement().getCoordinates());
-                                newNode.getChildren().add(child);
-                                newNode.getHeightCurveElement().addInnerPolygon(child.getHeightCurveElement().getCoordinates());
-                            });
-                }
+                        .filter(e -> heightCurveElement.contains(e.getHeightCurveElement()))
+                        .toList()
+                        .forEach(child -> {
+                            node.getChildren().remove(child);
+                            node.getHeightCurveElement().removeInnerPolygon(child.getHeightCurveElement().getCoordinates());
+                            newNode.getChildren().add(child);
+                            newNode.getHeightCurveElement().addInnerPolygon(child.getHeightCurveElement().getCoordinates());
+                        });
 
                 node.getChildren().add(newNode);
                 node.getHeightCurveElement().addInnerPolygon(newNode.getHeightCurveElement().getCoordinates());
             } else {
-                // Get the biggest child which contains element
-                var biggestChildContaining = findBiggestChildContaining(candidateNodes, heightCurveElement);
-//                var biggestChildContaining = candidateNodes.getFirst();
-//                put(biggestChildContaining, heightCurveElement);
-                if (biggestChildContaining.isPresent()) {
-                    put(biggestChildContaining.get(), heightCurveElement);
-                } else {
-                    // No child found which contains the element => add it to node
-                    node.getChildren().add(new HeightCurveTreeNode(heightCurveElement));
-                    node.getHeightCurveElement().addInnerPolygon(heightCurveElement.getCoordinates());
-                }
+                put(candidateNodes.getFirst(), heightCurveElement);
             }
         }
-    }
-
-    private Optional<HeightCurveTreeNode> findBiggestChildContaining(List<HeightCurveTreeNode> candidateNodes, HeightCurveElement heightCurveElement) {
-        HeightCurveTreeNode biggestChildContaining = null;
-        for (var child : candidateNodes) {
-            if (biggestChildContaining != null) break;
-            if (child.contains(heightCurveElement)) biggestChildContaining = child;
-        }
-        return Optional.ofNullable(biggestChildContaining);
     }
 
     public void clear() {
