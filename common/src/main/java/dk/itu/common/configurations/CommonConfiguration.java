@@ -21,7 +21,7 @@ public class CommonConfiguration {
     private final boolean useDb;
 
     private CommonConfiguration() {
-        this.dataForsyningenToken = System.getenv("dataForsyningenToken");
+        this.dataForsyningenToken = "5aa72c4f95a5e7503cb3e1dbc65cf51c";
         this.useDb = Boolean.parseBoolean(Objects.requireNonNullElse(System.getenv("useDb"), "false"));
         this.routingDelay = Integer.parseInt(Objects.requireNonNullElse(System.getenv("routingDelay"), "0"));
     }

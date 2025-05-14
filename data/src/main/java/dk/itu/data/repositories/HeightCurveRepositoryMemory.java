@@ -1,7 +1,6 @@
 package dk.itu.data.repositories;
 
 import dk.itu.data.datastructure.heightcurvetree.HeightCurveTree;
-import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.db.heightcurve.HeightCurveElement;
 import dk.itu.data.models.parser.ParserHeightCurveElement;
 import dk.itu.util.LoggerFactory;
@@ -35,6 +34,10 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
     @Override
     public boolean hasIdsBeenParsed(long id) {
         return parsedIds.contains(id);
+    }
+
+    public HeightCurveTree getHeightCurveTree() {
+        return heightCurveTree;
     }
 
     @Override
