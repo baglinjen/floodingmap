@@ -23,7 +23,7 @@ public class HeightCurveElement extends BoundingBox {
     private final float height;
     private final double polygonArea;
     private Path2D.Double path;
-    private boolean isAboveWater = false;
+    private boolean isAboveWater = true;
 
     public HeightCurveElement(double[] outerPolygon, float height, double polygonArea, double[] bounds) {
         super(bounds);
@@ -40,6 +40,10 @@ public class HeightCurveElement extends BoundingBox {
                 parserHeightCurveElement.calculateArea(),
                 parserHeightCurveElement.calculateBounds()
         );
+    }
+
+    public boolean getIsAboveWater() {
+        return isAboveWater;
     }
 
     public double[] getCoordinates() {

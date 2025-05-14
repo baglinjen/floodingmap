@@ -37,7 +37,7 @@ public class HeightCurveService {
             return this.repository.getFloodingSteps(waterLevel);
         }
     }
-
+    
     public HeightCurveElement getHeightCurveForPoint(double lon, double lat) {
         synchronized (this.repository) {
             return this.repository.getHeightCurveForPoint(lon, lat);

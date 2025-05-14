@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dk.itu.data.enums.RoutingType;
+import dk.itu.data.models.db.heightcurve.HeightCurveElement;
 import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.models.db.osm.OsmWay;
 import dk.itu.data.services.Services;
@@ -41,6 +42,11 @@ public class RoutingTest {
     void setupIndividual(){
         testConfiguration = new RoutingConfiguration();
         testConfiguration.setWaterLevel(0.0);
+
+        //Ensure flooded curves are reset upon each run
+        Services.withServices(s -> {
+            s.getHeightCurveService().getElements().parallelStream().forEach(HeightCurveElement::setAboveWater);
+        });
     }
 
     @ParameterizedTest
@@ -64,7 +70,7 @@ public class RoutingTest {
             "3344638963, 11975103676, '3344638963-11975103676-route.json'"
             //TODO: Consider adding more cases
     })
-    void DijkstraCanFindShortestPath(long startNodeId, long endNodeId, String filename) throws InterruptedException {
+    void routingCanFindShortestPath(long startNodeId, long endNodeId, String filename) throws InterruptedException {
         //Arrange
         testConfiguration.setStartNode(nodes.get(startNodeId));
         testConfiguration.setEndNode(nodes.get(endNodeId));
@@ -91,14 +97,20 @@ public class RoutingTest {
 
     @ParameterizedTest
     @CsvSource({
-            "1078669419, 4545580716, 0.0, 'flooded/1078669419-4545580716-route.json'",
-            "1078669419, 4545580716, 4.0, 'flooded/1078669419-4545580716-route-flooded.json'"
-            //TODO: Consider adding more cases
+            "Dijkstra, 1078669419, 4545580716, 0.0, 'flooded/1078669419-4545580716-route.json'",
+            "Dijkstra, 1078669419, 4545580716, 4.0, 'flooded/1078669419-4545580716-route-flooded.json'",
+            "AStar, 1078669419, 4545580716, 0.0, 'flooded/1078669419-4545580716-route.json'",
+            "AStar, 1078669419, 4545580716, 4.0, 'flooded/1078669419-4545580716-route-flooded.json'",
+            "AStarBidirectional, 1078669419, 4545580716, 0.0, 'flooded/1078669419-4545580716-route.json'",
+            "AStarBidirectional, 1078669419, 4545580716, 4.0, 'flooded/1078669419-4545580716-route-flooded.json'"
     })
-    void DijkstraWillAccountForRisingWater(long startNodeId, long endNodeId, float waterLevel, String filename) throws InterruptedException {
+    void routingWillAccountForRisingWater(String routingConfig, long startNodeId, long endNodeId, float waterLevel, String filename) throws InterruptedException {
         //Arrange
         testConfiguration.setStartNode(nodes.get(startNodeId));
         testConfiguration.setEndNode(nodes.get(endNodeId));
+        testConfiguration.setRoutingMethod(Enum.valueOf(RoutingType.class, routingConfig));
+
+        simulateFlooding(waterLevel);
 
         testConfiguration.setWaterLevel(waterLevel);
         var expectedCoords = extractCoordinates(filename);
@@ -122,7 +134,7 @@ public class RoutingTest {
             "3344638963, 11975103676, '3344638963-11975103676-route.json'",
             "1078669419, 4545580716, 'flooded/1078669419-4545580716-route.json'"
     })
-    void DijkstraAndAStarFindsEquallyCorrectRoute(long startNodeId, long endNodeId, String filename) throws InterruptedException{
+    void dijkstraAndAStarFindsEquallyCorrectRoute(long startNodeId, long endNodeId, String filename) throws InterruptedException{
         //Arrange
         testConfiguration.setStartNode(nodes.get(startNodeId));
         testConfiguration.setEndNode(nodes.get(endNodeId));
@@ -170,7 +182,7 @@ public class RoutingTest {
     }
 
     @Test
-    void RoutingConfigurationCanSwitchVisualization(){
+    void routingConfigurationCanSwitchVisualization(){
         assertThat(testConfiguration.getShouldVisualize()).isEqualTo(false);
 
         testConfiguration.toggleShouldVisualize();
@@ -183,9 +195,14 @@ public class RoutingTest {
     @ParameterizedTest
     @CsvSource({
             //Start node is on Tunø, end node on Bornholm -> not physically connected
-            "1078669498, 8202351169"
+            "1078669498, 8202351169, Dijkstra",
+            "1078669498, 8202351169, AStar",
+            "1078669498, 8202351169, AStarBidirectional"
     })
-    void RoutingCanHandleNotFindingARoute(long startNodeId, long endNodeId){
+    void routingCanHandleNotFindingARoute(long startNodeId, long endNodeId, String routingEnum){
+        var routingType = Enum.valueOf(RoutingType.class, routingEnum);
+
+        testConfiguration.setRoutingMethod(routingType);
         testConfiguration.setStartNode(nodes.get(startNodeId));
         testConfiguration.setEndNode(nodes.get(endNodeId));
 
@@ -196,7 +213,38 @@ public class RoutingTest {
         assertThat(route).isNull();
     }
 
-    //Load test data with list of id's
+    @ParameterizedTest
+    @CsvSource({
+            "Dijkstra, 1078669419, 4545580716",
+            "AStar, 1078669419, 4545580716",
+            "AStarBidirectional, 1078669419, 4545580716"
+    })
+    void routingWillInvalidate(String routingEnum, long startNodeId, long endNodeId) throws InterruptedException{
+        //Arrange
+        var routingType = Enum.valueOf(RoutingType.class, routingEnum);
+        testConfiguration.setRoutingMethod(routingType);
+
+        testConfiguration.setStartNode(nodes.get(startNodeId));
+        testConfiguration.setEndNode(nodes.get(endNodeId));
+
+        //Act
+        var initialCalculationThread = testConfiguration.calculateRoute(false);
+        initialCalculationThread.join();
+
+        var routeBeforeFlood = testConfiguration.getRoute(false, 0.0);
+
+        testConfiguration.setWaterLevel(10);
+        simulateFlooding(10);
+
+        var routeAfterFlood = testConfiguration.getRoute(false, 10);
+
+        //Assert
+        assertThat(routeBeforeFlood).isNotNull();
+        assertThat(routeAfterFlood).isNull();
+        assertThat(routeBeforeFlood).isNotEqualTo(routeAfterFlood);
+    }
+
+    /// Auxiliary method to load contents of a file. File should be in .JSON format containing a list of node IDs which a route should pass through.
     private List<Long> loadRouteData(String filename){
         try{
             var mapper = new ObjectMapper();
@@ -237,5 +285,17 @@ public class RoutingTest {
         }
 
         return extractCoordinates(returnNodes);
+    }
+
+    /// Method to simulate the flooding which would otherwise occur in the timeline-effect in FloodingApp
+    private void simulateFlooding(float waterLevel){
+        Services.withServices(s -> {
+            var floodingSteps = s.getHeightCurveService().getFloodingSteps(waterLevel);
+
+            for (List<HeightCurveElement> floodingStep : floodingSteps) {
+                floodingStep.parallelStream().forEach(HeightCurveElement::setBelowWater);
+            }
+        });
+
     }
 }

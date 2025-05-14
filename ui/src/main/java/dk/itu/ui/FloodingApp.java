@@ -46,8 +46,10 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
+//            services.getOsmService(state.isWithDb()).loadOsmData("ky.osm");
+            //services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
             services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
-//            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
+            services.getHeightCurveService().loadGmlFileData("tuna-dijkstra.gml");
             state.resetWindowBounds();
             state.updateMinMaxWaterLevels(services);
 //            var bounds = state.getWindowBounds();
@@ -145,14 +147,15 @@ public class FloodingApp extends GameApplication {
                             try {
                                 var floodingSteps = services.getHeightCurveService().getFloodingSteps(state.getWaterLevel());
 
-                                for (List<HeightCurveElement> floodingStep : floodingSteps) {
-                                    Thread.sleep(500);
-                                    floodingStep.parallelStream().forEach(HeightCurveElement::setBelowWater);
-                                }
-                            } catch (Exception ex) {
-                                Thread.currentThread().interrupt();
+                            for (List<HeightCurveElement> floodingStep : floodingSteps) {
+                                Thread.sleep(500);
+                                floodingStep.parallelStream().forEach(HeightCurveElement::setBelowWater);
+                                state.setActualWaterLevel(state.getActualWaterLevel() + 2.5f);
                             }
-                        });
+                        } catch (Exception ex){
+                            Thread.currentThread().interrupt();
+                        }
+                    });
 
                         simulationThread.start();
 
@@ -166,12 +169,12 @@ public class FloodingApp extends GameApplication {
                     heightCurves.forEach(hc -> hc.draw(g2d, strokeBaseWidth));
                     spatialNodes.forEach(bb -> bb.drawBoundingBox(g2d, strokeBaseWidth));
 
-                    // Draw routing if there is one
-                    var dijkstraRoute = state.getRoutingConfiguration().getRoute(state.isWithDb(), state.getWaterLevel());
-                    if (dijkstraRoute != null) {
-                        dijkstraRoute.prepareDrawing(g2d);
-                        dijkstraRoute.draw(g2d, strokeBaseWidth);
-                    }
+                // Draw routing if there is one
+                var dijkstraRoute = state.getRoutingConfiguration().getRoute(state.isWithDb(), state.getActualWaterLevel());
+                if (dijkstraRoute != null){
+                    dijkstraRoute.prepareDrawing(g2d);
+                    dijkstraRoute.draw(g2d, strokeBaseWidth);
+                }
 
                     if (state.getRoutingConfiguration().getShouldVisualize()) {
                         var nodes = state.getRoutingConfiguration().getTouchedNodes();

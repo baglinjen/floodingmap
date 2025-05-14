@@ -11,6 +11,7 @@ public class LoadHeightCurvesComponent extends Button {
             var windowBounds = state.getWindowBounds();
             services.getHeightCurveService().loadGmlData(windowBounds[0], windowBounds[1], windowBounds[2], windowBounds[3]);
             state.updateMinMaxWaterLevels(services);
+            state.recalculateNodeHeight();
         }));
     }
 }
