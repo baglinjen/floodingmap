@@ -70,7 +70,7 @@ public class RoutingTest {
             "3344638963, 11975103676, '3344638963-11975103676-route.json'"
             //TODO: Consider adding more cases
     })
-    void DijkstraCanFindShortestPath(long startNodeId, long endNodeId, String filename) throws InterruptedException {
+    void routingCanFindShortestPath(long startNodeId, long endNodeId, String filename) throws InterruptedException {
         //Arrange
         testConfiguration.setStartNode(nodes.get(startNodeId));
         testConfiguration.setEndNode(nodes.get(endNodeId));
@@ -104,7 +104,7 @@ public class RoutingTest {
             "AStarBidirectional, 1078669419, 4545580716, 0.0, 'flooded/1078669419-4545580716-route.json'",
             "AStarBidirectional, 1078669419, 4545580716, 4.0, 'flooded/1078669419-4545580716-route-flooded.json'"
     })
-    void RoutingWillAccountForRisingWater(String routingConfig, long startNodeId, long endNodeId, float waterLevel, String filename) throws InterruptedException {
+    void routingWillAccountForRisingWater(String routingConfig, long startNodeId, long endNodeId, float waterLevel, String filename) throws InterruptedException {
         //Arrange
         testConfiguration.setStartNode(nodes.get(startNodeId));
         testConfiguration.setEndNode(nodes.get(endNodeId));
@@ -134,7 +134,7 @@ public class RoutingTest {
             "3344638963, 11975103676, '3344638963-11975103676-route.json'",
             "1078669419, 4545580716, 'flooded/1078669419-4545580716-route.json'"
     })
-    void DijkstraAndAStarFindsEquallyCorrectRoute(long startNodeId, long endNodeId, String filename) throws InterruptedException{
+    void dijkstraAndAStarFindsEquallyCorrectRoute(long startNodeId, long endNodeId, String filename) throws InterruptedException{
         //Arrange
         testConfiguration.setStartNode(nodes.get(startNodeId));
         testConfiguration.setEndNode(nodes.get(endNodeId));
@@ -182,7 +182,7 @@ public class RoutingTest {
     }
 
     @Test
-    void RoutingConfigurationCanSwitchVisualization(){
+    void routingConfigurationCanSwitchVisualization(){
         assertThat(testConfiguration.getShouldVisualize()).isEqualTo(false);
 
         testConfiguration.toggleShouldVisualize();
@@ -199,7 +199,7 @@ public class RoutingTest {
             "1078669498, 8202351169, AStar",
             "1078669498, 8202351169, AStarBidirectional"
     })
-    void RoutingCanHandleNotFindingARoute(long startNodeId, long endNodeId, String routingEnum){
+    void routingCanHandleNotFindingARoute(long startNodeId, long endNodeId, String routingEnum){
         var routingType = Enum.valueOf(RoutingType.class, routingEnum);
 
         testConfiguration.setRoutingMethod(routingType);
@@ -219,7 +219,7 @@ public class RoutingTest {
             "AStar, 1078669419, 4545580716",
             "AStarBidirectional, 1078669419, 4545580716"
     })
-    void RoutingWillInvalidate(String routingEnum, long startNodeId, long endNodeId) throws InterruptedException{
+    void routingWillInvalidate(String routingEnum, long startNodeId, long endNodeId) throws InterruptedException{
         //Arrange
         var routingType = Enum.valueOf(RoutingType.class, routingEnum);
         testConfiguration.setRoutingMethod(routingType);
