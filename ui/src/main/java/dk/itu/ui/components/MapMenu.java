@@ -24,12 +24,18 @@ public class MapMenu extends ContextMenu {
                 }
             });
 
+        MenuItem cancelRoutingButton = new MenuItem("Cancel routing");
+        cancelRoutingButton.setOnAction(_ -> {
+            state.getRoutingConfiguration().cancelRouteCalculation();
+        });
+
             getItems().addAll(
                     routeStart,
                     routeEnd,
                     createRoutingButton(state, RoutingType.Dijkstra),
                     createRoutingButton(state, RoutingType.AStar),
-                    createRoutingButton(state, RoutingType.AStarBidirectional)
+                    createRoutingButton(state, RoutingType.AStarBidirectional),
+                    cancelRoutingButton
             );
         } catch(RuntimeException ex){
             displayAlert(ex.getMessage());
