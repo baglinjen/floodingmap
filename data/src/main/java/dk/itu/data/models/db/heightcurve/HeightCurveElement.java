@@ -4,6 +4,7 @@ import dk.itu.common.configurations.DrawingConfiguration;
 import dk.itu.common.models.Colored;
 import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.parser.ParserHeightCurveElement;
+import dk.itu.util.PolygonUtils;
 
 import java.awt.*;
 import java.awt.geom.Path2D;
@@ -55,6 +56,9 @@ public class HeightCurveElement extends BoundingBox {
     public void removeInnerPolygon(double[] innerPolygon) {
         innerPolygons.remove(innerPolygon);
     }
+    public void removeAllInnerPolygons() {
+        innerPolygons.clear();
+    }
     public double getPolygonArea() {
         return polygonArea;
     }
@@ -75,6 +79,14 @@ public class HeightCurveElement extends BoundingBox {
     }
     public void setUnselected() {
         setStyle(isAboveWater ? STYLE_ABOVE_WATER : STYLE_BELOW_WATER);
+    }
+
+    public boolean contains(HeightCurveElement other) {
+        if (super.contains(other)) {
+            return PolygonUtils.contains(this.outerPolygon, other.outerPolygon);
+        } else {
+            return false;
+        }
     }
 
     @Override
