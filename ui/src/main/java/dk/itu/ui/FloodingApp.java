@@ -9,16 +9,13 @@ import dk.itu.data.services.Services;
 import dk.itu.ui.components.MouseEventOverlayComponent;
 import dk.itu.util.LoggerFactory;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
-import javafx.scene.image.ImageView;
-import javafx.scene.image.PixelBuffer;
-import javafx.scene.image.PixelFormat;
-import javafx.scene.image.WritableImage;
+import javafx.scene.image.*;
 import javafx.scene.layout.StackPane;
 import org.apache.logging.log4j.Logger;
 
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
-import java.awt.image.BufferedImage;
+import java.awt.image.*;
 import java.nio.IntBuffer;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -26,7 +23,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static com.almasb.fxgl.dsl.FXGLForKtKt.*;
-import static dk.itu.util.DrawingUtils.*;
 
 public class FloodingApp extends GameApplication {
     public static final int WIDTH = 1920, HEIGHT = 920;
@@ -36,15 +32,12 @@ public class FloodingApp extends GameApplication {
 
     // Drawing related
     private BufferedImage image;
-    private IntBuffer buffer = IntBuffer.allocate(WIDTH * HEIGHT);
-    private int[] pixels = buffer.array();
-    private PixelBuffer<IntBuffer> pixelBuffer = new PixelBuffer<>(
+    private final PixelBuffer<IntBuffer> buffer = new PixelBuffer<>(
             WIDTH, HEIGHT,
-            buffer,
+            IntBuffer.allocate(WIDTH * HEIGHT),
             PixelFormat.getIntArgbPreInstance()
     );
-    private WritableImage writableImage = new WritableImage(pixelBuffer);
-    private final ImageView view = new ImageView(writableImage);
+    private final ImageView view = new ImageView();
 
     // Simulation thread
     private Thread simulationThread;
@@ -204,24 +197,10 @@ public class FloodingApp extends GameApplication {
 
                     g2d.dispose();
 
-//                    WritableImage x = (WritableImage) view.getImage();
-//                    view.setImage(bufferedImageToWritableImage(writableImage, image));
-//                    view.setImage(bufferedImageToWritableImage(writableImage, image));
-
-//                    transferBufferedImageDataToWritableImage(image, writableImage);
-
-
-//                    transferBufferedImageDataToIntBuffer(image, buffer);
-//                    transferBufferedImageDataToArray(image, pixels);
-//                    pixelBuffer.updateBuffer((_) -> null);
-
-//                    pixelBuffer.updateBuffer((x) -> {
-//                        return new Rectangle2D(0, 0, WIDTH, HEIGHT);
-//                    });
-
-                    view.setImage(createWritableImageFromBufferedImage(image));
-
-
+                    // Transfer BufferedImage pixels to WritableImage
+                    int[] pixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
+                    System.arraycopy(pixels, 0, buffer.getBuffer().array(), 0, pixels.length);
+                    view.setImage(new WritableImage(buffer));
 
                     logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
                 }
