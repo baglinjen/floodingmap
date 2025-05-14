@@ -35,8 +35,8 @@ public class RTreeTest {
     @Test
     public void testInsertSingleElementCreatesRoot() {
         // Arrange
-        BoundingBox bbox = new BoundingBox(1, 1, 2, 2);
-        OsmElement element = new OsmElement(1, bbox, bbox.getArea()) {
+
+        OsmElement element = new OsmElement(1, new double[]{1, 1, 2, 2}) {
             @Override
             public void prepareDrawing(Graphics2D g2d) {}
 
@@ -50,32 +50,29 @@ public class RTreeTest {
         // Assert
         assertNotNull(rStarTree.getRoot(), "Root should not be null after first insert");
         assertEquals(1, rStarTree.getRoot().getElements().size(), "Root should contain one element");
-        assertEquals(bbox.getArea(), rStarTree.getRoot().getMBR().getArea(), "Root MBR should match inserted element's bounding box area");
+        assertEquals(element.getArea(), rStarTree.getRoot().getArea(), "Root MBR should match inserted element's bounding box area");
         assertTrue(rStarTree.getRoot().getElements().contains(element), "Inserted element should be in the root");
     }
 
     @Test
     public void testSearchReturnsOnlyMatchingElements() {
         // Arrange
-        BoundingBox bbox1 = new BoundingBox(1, 1, 2, 2);
-        BoundingBox bbox2 = new BoundingBox(1, 1, 3, 3);
-        BoundingBox bbox3 = new BoundingBox(10, 10, 12, 12);
         // Elements to insert
-        OsmElement inside1 = new OsmElement(1, bbox1, bbox1.getArea()) {
+        OsmElement inside1 = new OsmElement(1, new double[]{1, 1, 2, 2}) {
             @Override
             public void prepareDrawing(Graphics2D g2d) {}
 
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         }; // Area = 1
-        OsmElement inside2 = new OsmElement(2, bbox2, bbox2.getArea()) {
+        OsmElement inside2 = new OsmElement(2, new double[]{1, 1, 3, 3}) {
             @Override
             public void prepareDrawing(Graphics2D g2d) {}
 
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         }; // Area = 4
-        OsmElement outside = new OsmElement(3, bbox3, bbox3.getArea()) {
+        OsmElement outside = new OsmElement(3, new double[]{10, 10, 12, 12}) {
             @Override
             public void prepareDrawing(Graphics2D g2d) {}
 
@@ -108,9 +105,39 @@ public class RTreeTest {
         RTreeNode child1 = new RTreeNode();
         RTreeNode child2 = new RTreeNode();
 
-        BoundingBox bbox1 = new BoundingBox(0, 0, 2, 2);
-        BoundingBox bbox2 = new BoundingBox(5, 5, 6, 6);
-        BoundingBox overlapBox = new BoundingBox(1.5, 1.5, 2.5, 2.5);
+        BoundingBox bbox1 = new BoundingBox(0, 0, 2, 2) {
+            @Override
+            public void prepareDrawing(Graphics2D g2d) {
+
+            }
+
+            @Override
+            public void draw(Graphics2D g2d, float strokeBaseWidth) {
+
+            }
+        };
+        BoundingBox bbox2 = new BoundingBox(5, 5, 6, 6) {
+            @Override
+            public void prepareDrawing(Graphics2D g2d) {
+
+            }
+
+            @Override
+            public void draw(Graphics2D g2d, float strokeBaseWidth) {
+
+            }
+        };
+        BoundingBox overlapBox = new BoundingBox(1.5, 1.5, 2.5, 2.5) {
+            @Override
+            public void prepareDrawing(Graphics2D g2d) {
+
+            }
+
+            @Override
+            public void draw(Graphics2D g2d, float strokeBaseWidth) {
+
+            }
+        };
 
         child1.setMBR(bbox1);
         child2.setMBR(bbox2);
@@ -137,9 +164,7 @@ public class RTreeTest {
     @Test
     public void testNearestSingleNode() {
         // Arrange
-        BoundingBox bbox = new BoundingBox(1, 1, 2, 2);
-
-        OsmNode node = new OsmNode(1, 1.5, 1.5, bbox, null);
+        OsmNode node = new OsmNode(1, 1.5, 1.5, new double[]{1, 1, 2, 2}, null);
         rStarTree.insert(node);
 
         // Act
@@ -153,15 +178,10 @@ public class RTreeTest {
     @Test
     public void testNearestMultipleNodes() {
         // Arrange
-        BoundingBox bbox1 = new BoundingBox(0, 0, 0, 0);
-        BoundingBox bbox2 = new BoundingBox(10.0, 10.0, 10.0, 10.0);
-        BoundingBox bbox3 = new BoundingBox(5.0, 5.0, 5.0, 5.0);
-        BoundingBox bbox4 = new BoundingBox(-5.0, -5.0, -5.0, -5.0);
-
-        OsmNode node1 = new OsmNode(1, 0.0, 0.0, bbox1, null);
-        OsmNode node2 = new OsmNode(2, 10.0, 10.0, bbox2, null);
-        OsmNode node3 = new OsmNode(3, 5.0, 5.0, bbox3, null);
-        OsmNode node4 = new OsmNode(4, -5.0, -5.0, bbox4, null);
+        OsmNode node1 = new OsmNode(1, 0.0, 0.0, new double[]{0, 0, 0, 0}, null);
+        OsmNode node2 = new OsmNode(2, 10.0, 10.0, new double[]{10, 10, 10, 10}, null);
+        OsmNode node3 = new OsmNode(3, 5.0, 5.0, new double[]{5, 5, 5, 5}, null);
+        OsmNode node4 = new OsmNode(4, -5.0, -5.0, new double[]{-5, -5, -5, -5}, null);
 
         rStarTree.insert(node1);
         rStarTree.insert(node2);
@@ -194,7 +214,7 @@ public class RTreeTest {
         // Arrange
         for (int i = 0; i < 10; i++) {   // 10x10 grid of nodes
             for (int j = 0; j < 10; j++) {
-                OsmNode node = new OsmNode(i * 10 + j, i, j, new BoundingBox(i, j, i, j), null);
+                OsmNode node = new OsmNode(i * 10 + j, i, j, new double[]{i, j, i, j}, null);
                 rStarTree.insert(node);
             }
         }
@@ -221,8 +241,8 @@ public class RTreeTest {
 
     @Test
     public void testGetElements() {
-        OsmNode node1 = new OsmNode(1, 0, 0, new BoundingBox(0, 0, 0, 0), null);
-        OsmNode node2 = new OsmNode(2, 10, 10, new BoundingBox(10, 10, 10, 10), null);
+        OsmNode node1 = new OsmNode(1, 0, 0, new double[]{0, 0, 0, 0}, null);
+        OsmNode node2 = new OsmNode(2, 10, 10, new double[]{10, 10, 10, 10}, null);
 
         rStarTree.insert(node1);
         rStarTree.insert(node2);
@@ -244,8 +264,8 @@ public class RTreeTest {
     public void testGetRoot()
     {
         // Arrange
-        OsmNode node1 = new OsmNode(1, 0, 0, new BoundingBox(0, 0, 0, 0), null);
-        OsmNode node2 = new OsmNode(2, 10, 10, new BoundingBox(10, 10, 10, 10), null);
+        OsmNode node1 = new OsmNode(1, 0, 0, new double[]{0, 0, 0, 0}, null);
+        OsmNode node2 = new OsmNode(2, 10, 10, new double[]{10, 10, 10, 10}, null);
 
         rStarTree.insert(node1);
         rStarTree.insert(node2);
@@ -260,8 +280,8 @@ public class RTreeTest {
     @Test
     public void testGetBoundingBox() {
         // Arrange
-       OsmNode node1 = new OsmNode(1, 0, 0, new BoundingBox(0, 0, 0, 0), null);
-       OsmNode node2 = new OsmNode(2, 10, 10, new BoundingBox(10, 10, 10, 10), null);
+       OsmNode node1 = new OsmNode(1, 0, 0, new double[]{0, 0, 0, 0}, null);
+       OsmNode node2 = new OsmNode(2, 10, 10, new double[]{10, 10, 10, 10}, null);
 
        rStarTree.insert(node1);
        rStarTree.insert(node2);
@@ -282,13 +302,43 @@ public class RTreeTest {
         RTreeNode child1 = new RTreeNode();
         RTreeNode child2 = new RTreeNode();
 
-        child1.setMBR(new BoundingBox(0, 0, 5, 5));
-        child2.setMBR(new BoundingBox(10, 10, 15, 15));
+        child1.setMBR(new BoundingBox(0, 0, 5, 5) {
+            @Override
+            public void prepareDrawing(Graphics2D g2d) {
+
+            }
+
+            @Override
+            public void draw(Graphics2D g2d, float strokeBaseWidth) {
+
+            }
+        });
+        child2.setMBR(new BoundingBox(10, 10, 15, 15) {
+            @Override
+            public void prepareDrawing(Graphics2D g2d) {
+
+            }
+
+            @Override
+            public void draw(Graphics2D g2d, float strokeBaseWidth) {
+
+            }
+        });
 
         root.getChildren().add(child1);
         root.getChildren().add(child2);
 
-        BoundingBox testMbr = new BoundingBox(11, 11, 12, 12);  // closer to child2
+        BoundingBox testMbr = new BoundingBox(11, 11, 12, 12) {
+            @Override
+            public void prepareDrawing(Graphics2D g2d) {
+
+            }
+
+            @Override
+            public void draw(Graphics2D g2d, float strokeBaseWidth) {
+
+            }
+        };  // closer to child2
 
         Method method = RStarTree.class.getDeclaredMethod("findTargetNodeAtLevel", RTreeNode.class, BoundingBox.class, int.class);
         method.setAccessible(true);
