@@ -43,10 +43,7 @@ public class RoutingTest {
         testConfiguration = new RoutingConfiguration();
         testConfiguration.setWaterLevel(0.0);
 
-        //Ensure flooded curves are reset upon each run
-        Services.withServices(s -> {
-            s.getHeightCurveService().getElements().parallelStream().forEach(HeightCurveElement::setAboveWater);
-        });
+        resetFlooding();
     }
 
     @ParameterizedTest
@@ -244,6 +241,67 @@ public class RoutingTest {
         assertThat(routeBeforeFlood).isNotEqualTo(routeAfterFlood);
     }
 
+    @Test
+    void routingWillCalculateThenFailThenRecalculate() throws InterruptedException{
+        //Arrange
+        testConfiguration.setStartNode(nodes.get(12260042387L));//Rønne
+        testConfiguration.setEndNode(nodes.get(10267226718L));//Gudhjem
+        testConfiguration.setRoutingMethod(RoutingType.AStarBidirectional);
+
+        //Act
+        var initialCalculation = testConfiguration.calculateRoute(false);
+        initialCalculation.join();
+
+        var initialRoute = testConfiguration.getRoute(false, 0.0);
+        assertThat(initialRoute).isNotNull();
+
+            //Simulate flooding
+            testConfiguration.setWaterLevel(10);//Invalidate route
+            simulateFlooding(10);
+
+        var floodedRoute = testConfiguration.getRoute(false, 10.0);
+        assertThat(floodedRoute).isNull();
+
+            //Remove flooding
+            testConfiguration.setWaterLevel(0);
+            resetFlooding();
+
+        testConfiguration.setStartNode(nodes.get(5817871235L));//Rønne
+        testConfiguration.setEndNode(nodes.get(4823363926L));//Nexø
+
+        var newCalculation = testConfiguration.calculateRoute(false);
+        newCalculation.join();
+
+        var newRoute = testConfiguration.getRoute(false, 0.0);
+        assertThat(newRoute).isNotNull();
+        assertThat(newRoute).isNotEqualTo(initialRoute);
+    }
+
+    @Test
+    void routingCanBeCancelledAndThenCalledAgain() throws InterruptedException{
+        //Arrange
+        testConfiguration.setStartNode(nodes.get(12260042387L));//Rønne
+        testConfiguration.setEndNode(nodes.get(10267226718L));//Gudhjem
+        testConfiguration.setRoutingMethod(RoutingType.AStarBidirectional);
+
+        //Act
+        testConfiguration.calculateRoute(false);
+        testConfiguration.cancelRouteCalculation();
+
+        var cancelledRoute = testConfiguration.getRoute(false, 0.0);
+
+        Thread.sleep(500);//Provide time for the calculation thread to die
+
+        var newCalculation = testConfiguration.calculateRoute(false);
+        newCalculation.join();
+
+        var newRoute = testConfiguration.getRoute(false, 0.0);
+
+        //Assert
+        assertThat(cancelledRoute).isNull();
+        assertThat(newRoute).isNotNull();
+    }
+
     /// Auxiliary method to load contents of a file. File should be in .JSON format containing a list of node IDs which a route should pass through.
     private List<Long> loadRouteData(String filename){
         try{
@@ -297,5 +355,12 @@ public class RoutingTest {
             }
         });
 
+    }
+
+    private void resetFlooding(){
+        //Ensure flooded curves are reset upon each run
+        Services.withServices(s -> {
+            s.getHeightCurveService().getElements().parallelStream().forEach(HeightCurveElement::setAboveWater);
+        });
     }
 }
