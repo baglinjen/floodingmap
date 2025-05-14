@@ -67,7 +67,7 @@ public class RoutingConfiguration {
             var thread = calculateRoute(isWithDb);
             thread.join();
         } catch(InterruptedException e){
-            logger.error("An exception occured while awaiting route calculation: {}", e.getMessage());
+            logger.error("An exception occurred while awaiting route calculation: {}", e.getMessage());
         }
 
         return cachedRoute;
@@ -85,7 +85,7 @@ public class RoutingConfiguration {
         logger.info("Attempting to calculate route");
         if(calculationThread != null && calculationThread.isAlive()){
             logger.info("Can not compute route while thread is busy");
-            throw new RuntimeException("A route is already being calculated. Please wait");
+            throw new RuntimeException("A route is already being calculated. Please wait!");
         }
 
         calculationThread = new Thread(() -> {
@@ -132,6 +132,7 @@ public class RoutingConfiguration {
         logger.info("Beginning A-star bidirectional route");
         try{
             sharedNode = null;
+            if(executorService.isShutdown()) executorService = Executors.newFixedThreadPool(2);
 
             var forwardSet = Collections.synchronizedSet(new HashSet<OsmNode>());
             var backwardSet = Collections.synchronizedSet(new HashSet<OsmNode>());
@@ -158,6 +159,7 @@ public class RoutingConfiguration {
             return createPath(stitchCoordinates(forwardsRoute, backwardsRoute));
         } catch (Exception e){
             logger.error("An exception occurred when creating A-Star bidirectional", e);
+            executorService.shutdownNow(); // Forcefully shut down the executorService
             return null;
         }
     }
@@ -181,7 +183,10 @@ public class RoutingConfiguration {
         boolean shouldDelay = delay > 0;
 
         while(!pq.isEmpty()){
-            if(stopCalculationFlag) return null;
+            if(stopCalculationFlag){
+                logger.info("Stopping calculation as stopCalculation flag is positive");
+                return null;
+            }
 
             try{
                 if(shouldDelay) Thread.sleep(delay);
