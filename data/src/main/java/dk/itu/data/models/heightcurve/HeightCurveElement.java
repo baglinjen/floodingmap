@@ -1,7 +1,7 @@
-package dk.itu.data.models.db.heightcurve;
+package dk.itu.data.models.heightcurve;
 
 import dk.itu.common.configurations.DrawingConfiguration;
-import dk.itu.data.models.db.BoundingBox;
+import dk.itu.data.models.BoundingBox;
 import dk.itu.data.models.parser.ParserHeightCurveElement;
 import dk.itu.util.PolygonUtils;
 
@@ -45,10 +45,16 @@ public class HeightCurveElement extends BoundingBox {
     public boolean getIsAboveWater() {
         return isAboveWater;
     }
-
     public double[] getCoordinates() {
         return outerPolygon;
     }
+    public double getPolygonArea() {
+        return polygonArea;
+    }
+    public float getHeight() {
+        return height;
+    }
+
     public void addInnerPolygon(double[] innerPolygon) {
         innerPolygons.add(innerPolygon);
     }
@@ -57,12 +63,6 @@ public class HeightCurveElement extends BoundingBox {
     }
     public void removeAllInnerPolygons() {
         innerPolygons.clear();
-    }
-    public double getPolygonArea() {
-        return polygonArea;
-    }
-    public float getHeight() {
-        return height;
     }
 
     public void setAboveWater() {

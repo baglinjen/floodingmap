@@ -2,9 +2,9 @@ package dk.itu.ui;
 
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
-import dk.itu.data.models.db.BoundingBox;
-import dk.itu.data.models.db.heightcurve.HeightCurveElement;
-import dk.itu.data.models.db.osm.OsmElement;
+import dk.itu.data.models.BoundingBox;
+import dk.itu.data.models.heightcurve.HeightCurveElement;
+import dk.itu.data.models.osm.OsmElement;
 import dk.itu.data.services.Services;
 import dk.itu.ui.components.MouseEventOverlayComponent;
 import dk.itu.util.LoggerFactory;

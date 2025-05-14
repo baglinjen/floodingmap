@@ -1,8 +1,8 @@
 package dk.itu.data.datastructure.rtree;
-import dk.itu.data.models.db.BoundingBox;
-import dk.itu.data.models.db.osm.OsmElement;
-import dk.itu.data.models.db.osm.OsmNode;
-import dk.itu.data.models.db.osm.OsmWay;
+import dk.itu.data.models.BoundingBox;
+import dk.itu.data.models.osm.OsmElement;
+import dk.itu.data.models.osm.OsmNode;
+import dk.itu.data.models.osm.OsmWay;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import javafx.util.Pair;
 
@@ -10,8 +10,8 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import static dk.itu.data.models.db.BoundingBox.expand;
-import static dk.itu.data.models.db.BoundingBox.intersectionArea;
+import static dk.itu.data.models.BoundingBox.expand;
+import static dk.itu.data.models.BoundingBox.intersectionArea;
 
 /*
 * The R* Tree is based on https://infolab.usc.edu/csci599/Fall2001/paper/rstar-tree.pdf
@@ -24,7 +24,6 @@ public class RStarTree {
     private static final double REINSERT_PERCENTAGE = 0.3;  // Percentage of entries to reinsert (30% is typical)
     private static final int MAX_CHILDREN = 10;
     private static final int MIN_CHILDREN = MAX_CHILDREN / 2;
-    private static final int REINSERT_LEVELS = 5;  // Max levels for forced reinsert to prevent recursion issues
 
     // Track levels for forced reinsert to prevent excessive reinsertion
     private final Set<Integer> reinsertLevels = new HashSet<>();
@@ -57,7 +56,7 @@ public class RStarTree {
      * @param box The bounding box
      * @return The minimum possible Euclidean distance
      */
-    private double minDist(double px, double py, BoundingBox box) { //TODO: Make method in BoundingBox class
+    private double minDist(double px, double py, BoundingBox box) {
         double dx = 0.0;
         double dy = 0.0;
 
@@ -99,7 +98,6 @@ public class RStarTree {
      * @return List of all OsmNode elements in the tree
      */
     public List<OsmNode> getNodes() {
-        // TODO: Use concurrent queue
         List<OsmNode> result = new ArrayList<>();
         if (root != null) {
             collectNodes(root, result);
@@ -452,9 +450,9 @@ public class RStarTree {
         return newNode;
     }
 
-//    /**
-//     * Helper method to force MBR creation in case a node's MBR is null after node split
-//     **/
+    /**
+    * Helper method to force MBR creation in case a node's MBR is null after node split
+    **/
     private void forceCreateMBR(RTreeNode node) {
         if (node.isLeaf() && !node.elements.isEmpty()) {
             // Get first element's bounding box
@@ -583,7 +581,7 @@ public class RStarTree {
             return node;
         }
 
-        // Choose best child based on minimum enlargement
+        // Choose the best child based on minimum enlargement
         RTreeNode bestChild = null;
         double minEnlargement = Double.POSITIVE_INFINITY;
 
@@ -838,5 +836,3 @@ public class RStarTree {
         return isEmpty;
     }
 }
-
-

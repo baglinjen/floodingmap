@@ -1,8 +1,8 @@
 package dk.itu.ui;
 
 import dk.itu.common.configurations.CommonConfiguration;
-import dk.itu.data.models.db.heightcurve.HeightCurveElement;
-import dk.itu.data.models.db.osm.OsmNode;
+import dk.itu.data.models.heightcurve.HeightCurveElement;
+import dk.itu.data.models.osm.OsmNode;
 import dk.itu.data.services.Services;
 import dk.itu.data.services.RoutingService;
 import dk.itu.ui.drawables.NearestNeighbour;

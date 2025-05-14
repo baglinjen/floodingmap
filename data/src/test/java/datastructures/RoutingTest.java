@@ -5,9 +5,9 @@ import static org.assertj.core.api.Assertions.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dk.itu.data.enums.RoutingType;
-import dk.itu.data.models.db.heightcurve.HeightCurveElement;
-import dk.itu.data.models.db.osm.OsmNode;
-import dk.itu.data.models.db.osm.OsmWay;
+import dk.itu.data.models.heightcurve.HeightCurveElement;
+import dk.itu.data.models.osm.OsmNode;
+import dk.itu.data.models.osm.OsmWay;
 import dk.itu.data.services.Services;
 import dk.itu.data.services.RoutingService;
 import dk.itu.data.utils.RoutingUtils;
@@ -65,7 +65,6 @@ public class RoutingTest {
     @CsvSource({
             "9342037677, 4289093536, '9342037677-4289093536-route.json'",
             "3344638963, 11975103676, '3344638963-11975103676-route.json'"
-            //TODO: Consider adding more cases
     })
     void routingCanFindShortestPath(long startNodeId, long endNodeId, String filename) throws InterruptedException {
         //Arrange

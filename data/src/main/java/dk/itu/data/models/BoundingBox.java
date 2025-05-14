@@ -1,4 +1,4 @@
-package dk.itu.data.models.db;
+package dk.itu.data.models;
 
 import dk.itu.common.configurations.DrawingConfiguration;
 import dk.itu.common.models.Colored;

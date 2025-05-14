@@ -2,9 +2,9 @@ package dk.itu.data.services;
 
 import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.data.enums.RoutingType;
-import dk.itu.data.models.db.osm.OsmElement;
-import dk.itu.data.models.db.osm.OsmNode;
-import dk.itu.data.models.db.osm.OsmWay;
+import dk.itu.data.models.osm.OsmElement;
+import dk.itu.data.models.osm.OsmNode;
+import dk.itu.data.models.osm.OsmWay;
 import dk.itu.data.utils.RoutingUtils;
 import dk.itu.util.LoggerFactory;
 import kotlin.Pair;
@@ -188,6 +188,7 @@ public class RoutingService {
                 return null;
             }
 
+            // This is used for simulating delay by system environments
             try{
                 if(shouldDelay) Thread.sleep(delay);
             } catch(InterruptedException e){
@@ -195,6 +196,8 @@ public class RoutingService {
             }
 
             OsmNode node = pq.poll();
+            if(node == null) continue;
+
             touchedNodes.add(node);
 
             if(connectionSet != null){
@@ -277,7 +280,6 @@ public class RoutingService {
         return coordinateList;
     }
 
-    //TODO: This could be optimized
     private double[] reverseCoordinateList(double[] coordinates){
         var result = new double[coordinates.length];
 

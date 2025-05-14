@@ -1,15 +1,17 @@
 package datastructures;
 
 import dk.itu.data.datastructure.rtree.RStarTree;
-import dk.itu.data.models.db.osm.OsmElement;
+import dk.itu.data.models.osm.OsmElement;
 import dk.itu.data.datastructure.rtree.RTreeNode;
-import dk.itu.data.models.db.BoundingBox;
+import dk.itu.data.models.BoundingBox;
 
 import java.lang.reflect.Method;
 import java.util.List;
 
-import dk.itu.data.models.db.osm.OsmNode;
+import dk.itu.data.models.osm.OsmNode;
 import dk.itu.data.services.Services;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -18,24 +20,27 @@ import java.awt.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class RTreeTest {
-    List<OsmNode> nodes;
-    RStarTree rStarTree;
+    static List<OsmNode> nodes;
+    static RStarTree rStarTree;
 
-    @BeforeEach
-    public void setUp() {
+    @BeforeAll
+    public static void setUp() {
         rStarTree = new RStarTree();
 
         Services.withServices(services -> {
             services.getOsmService(false).loadOsmData("bornholm.osm");
-            services.getHeightCurveService().loadGmlFileData("tuna-dijkstra.gml");
             nodes = services.getOsmService(false).getTraversableOsmNodes().values().stream().toList();
         });
+    }
+
+    @AfterEach
+    public void setUpIndividual(){
+        rStarTree.clear();
     }
 
     @Test
     public void testInsertSingleElementCreatesRoot() {
         // Arrange
-
         OsmElement element = new OsmElement(1, new double[]{1, 1, 2, 2}) {
             @Override
             public void prepareDrawing(Graphics2D g2d) {}
@@ -107,36 +112,24 @@ public class RTreeTest {
 
         BoundingBox bbox1 = new BoundingBox(0, 0, 2, 2) {
             @Override
-            public void prepareDrawing(Graphics2D g2d) {
-
-            }
+            public void prepareDrawing(Graphics2D g2d) {}
 
             @Override
-            public void draw(Graphics2D g2d, float strokeBaseWidth) {
-
-            }
+            public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         };
         BoundingBox bbox2 = new BoundingBox(5, 5, 6, 6) {
             @Override
-            public void prepareDrawing(Graphics2D g2d) {
-
-            }
+            public void prepareDrawing(Graphics2D g2d) {}
 
             @Override
-            public void draw(Graphics2D g2d, float strokeBaseWidth) {
-
-            }
+            public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         };
         BoundingBox overlapBox = new BoundingBox(1.5, 1.5, 2.5, 2.5) {
             @Override
-            public void prepareDrawing(Graphics2D g2d) {
-
-            }
+            public void prepareDrawing(Graphics2D g2d) {}
 
             @Override
-            public void draw(Graphics2D g2d, float strokeBaseWidth) {
-
-            }
+            public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         };
 
         child1.setMBR(bbox1);

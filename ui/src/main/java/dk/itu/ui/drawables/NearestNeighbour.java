@@ -1,7 +1,7 @@
 package dk.itu.ui.drawables;
 
 import dk.itu.common.models.Colored;
-import dk.itu.data.models.db.osm.OsmNode;
+import dk.itu.data.models.osm.OsmNode;
 
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
