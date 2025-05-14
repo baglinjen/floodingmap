@@ -44,37 +44,16 @@ public class HeightCurveBenchmarking {
         heightCurveElements = heightCurveParserResult.getElements().parallelStream().map(HeightCurveElement::mapToHeightCurveElement).toList();
     }
 
-//    @ParameterizedTest
-//    @ValueSource(ints = {50, 100, 250, 500, 1000, 3000, 7000, 15_000, 25_000, 40_000, 60_000})
-//    public void benchmark_insertion(int curves) {
-//        for (int i = 0; i < 1; i++) {
-//            long elapsedTime = runBenchmarkInsertion(curves);
-//            System.out.println((String.format("%.3f", elapsedTime / 1000000f) + "\t\t\t" + String.format("%.3f", (elapsedTime / 1000000f) / curves)).replace(".", ","));
-//        }
-//    }
-//    private long runBenchmarkInsertion(int curves) {
-//        List<HeightCurveElement> heightCurvesToTest = heightCurveElements.subList(0, curves);
-//
-//        long startTime = System.nanoTime();
-//        for (HeightCurveElement heightCurveElement : heightCurvesToTest) {
-//            heightCurveTree.put(heightCurveElement);
-//        }
-//        long elapsedTime = System.nanoTime() - startTime;
-//
-//        heightCurveTree.clear();
-//
-//        return elapsedTime;
-//    }
-
     @ParameterizedTest
     @ValueSource(ints = {50, 100, 250, 500, 1000, 3000, 7000, 15_000, 25_000, 40_000, 60_000})
-    public void benchmark_ray_casting_without_shoelace(int curves) {
-        for (int i = 0; i < 1; i++) {
-            long elapsedTime = runBenchmarkShoelace(curves);
+    public void benchmark_insertion(int curves) {
+        for (int i = 0; i < 5; i++) {
+            long elapsedTime = runBenchmarkInsertion(curves);
             System.out.println((String.format("%.3f", elapsedTime / 1000000f) + "\t\t\t" + String.format("%.3f", (elapsedTime / 1000000f) / curves)).replace(".", ","));
         }
+        System.out.println();
     }
-    private long runBenchmarkShoelace(int curves) {
+    private long runBenchmarkInsertion(int curves) {
         List<HeightCurveElement> heightCurvesToTest = heightCurveElements.subList(0, curves);
 
         long startTime = System.nanoTime();
@@ -87,6 +66,28 @@ public class HeightCurveBenchmarking {
 
         return elapsedTime;
     }
+
+//    @ParameterizedTest
+//    @ValueSource(ints = {50, 100, 250, 500, 1000, 3000, 7000, 15_000, 25_000, 40_000, 60_000})
+//    public void benchmark_ray_casting_without_shoelace(int curves) {
+//        for (int i = 0; i < 1; i++) {
+//            long elapsedTime = runBenchmarkShoelace(curves);
+//            System.out.println((String.format("%.3f", elapsedTime / 1000000f) + "\t\t\t" + String.format("%.3f", (elapsedTime / 1000000f) / curves)).replace(".", ","));
+//        }
+//    }
+//    private long runBenchmarkShoelace(int curves) {
+//        List<HeightCurveElement> heightCurvesToTest = heightCurveElements.subList(0, curves);
+//
+//        long startTime = System.nanoTime();
+//        for (HeightCurveElement heightCurveElement : heightCurvesToTest) {
+//            heightCurveTree.put(heightCurveElement);
+//        }
+//        long elapsedTime = System.nanoTime() - startTime;
+//
+//        heightCurveTree.clear();
+//
+//        return elapsedTime;
+//    }
 
 //    @ParameterizedTest
 //    @ValueSource(ints = {})

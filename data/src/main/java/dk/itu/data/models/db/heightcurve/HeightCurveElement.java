@@ -1,7 +1,6 @@
 package dk.itu.data.models.db.heightcurve;
 
 import dk.itu.common.configurations.DrawingConfiguration;
-import dk.itu.common.models.Colored;
 import dk.itu.data.models.db.BoundingBox;
 import dk.itu.data.models.parser.ParserHeightCurveElement;
 import dk.itu.util.PolygonUtils;
@@ -82,7 +81,7 @@ public class HeightCurveElement extends BoundingBox {
     }
 
     public boolean contains(HeightCurveElement other) {
-        if (super.contains(other)) {
+        if (super.containsBoundingBox(other)) {
             return PolygonUtils.contains(this.outerPolygon, other.outerPolygon);
         } else {
             return false;
