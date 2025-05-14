@@ -50,8 +50,12 @@ public class MapMenu extends ContextMenu {
             if (state.getRoutingConfiguration().getStartNode() == null || state.getRoutingConfiguration().getEndNode() == null){
                 displayAlert("Both start and end for route must be selected");
             } else{
-                state.getRoutingConfiguration().setRoutingMethod(routeType);
-                state.getRoutingConfiguration().calculateRoute(state.isWithDb());
+                try{
+                    state.getRoutingConfiguration().setRoutingMethod(routeType);
+                    state.getRoutingConfiguration().calculateRoute(state.isWithDb());
+                } catch(RuntimeException ex){
+                    displayAlert(ex.getMessage());
+                }
             }
         });
 

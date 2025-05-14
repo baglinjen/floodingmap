@@ -21,6 +21,7 @@ public class WaterSliderComponent extends Slider {
         valueProperty().addListener((_, oldValue, newValue) -> {
             if (oldValue.floatValue() != newValue.floatValue()) {
                 state.setWaterLevel(newValue.floatValue());
+                state.setActualWaterLevel(0);
             }
         });
     }

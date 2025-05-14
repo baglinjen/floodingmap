@@ -39,8 +39,9 @@ public class FloodingApp extends GameApplication {
 
             // Temporary whilst using in-memory
 //            services.getOsmService(state.isWithDb()).loadOsmData("ky.osm");
-            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
-            //services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
+            //services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
+            services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
+            services.getHeightCurveService().loadGmlFileData("tuna-dijkstra.gml");
             state.resetWindowBounds();
             state.updateMinMaxWaterLevels(services);
 //            var bounds = state.getWindowBounds();
@@ -129,6 +130,7 @@ public class FloodingApp extends GameApplication {
                             for (List<HeightCurveElement> floodingStep : floodingSteps) {
                                 Thread.sleep(500);
                                 floodingStep.parallelStream().forEach(HeightCurveElement::setBelowWater);
+                                state.setActualWaterLevel(state.getActualWaterLevel() + 2.5f);
                             }
                         } catch (Exception ex){
                             Thread.currentThread().interrupt();
@@ -148,7 +150,7 @@ public class FloodingApp extends GameApplication {
                 boundingBoxes.forEach(bb -> bb.draw(g2d, strokeBaseWidth));
 
                 // Draw routing if there is one
-                var dijkstraRoute = state.getRoutingConfiguration().getRoute(state.isWithDb(), state.getWaterLevel());
+                var dijkstraRoute = state.getRoutingConfiguration().getRoute(state.isWithDb(), state.getActualWaterLevel());
                 if (dijkstraRoute != null){
                     dijkstraRoute.prepareDrawing(g2d);
                     dijkstraRoute.draw(g2d, strokeBaseWidth);

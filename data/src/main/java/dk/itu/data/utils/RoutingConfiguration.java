@@ -1,6 +1,8 @@
 package dk.itu.data.utils;
+
 import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.data.enums.RoutingType;
+import dk.itu.data.exceptions.RouteExceptions;
 import dk.itu.data.models.db.osm.OsmElement;
 import dk.itu.data.models.db.osm.OsmNode;
 import dk.itu.data.models.db.osm.OsmWay;
@@ -8,22 +10,25 @@ import dk.itu.data.services.Services;
 import dk.itu.util.LoggerFactory;
 import kotlin.Pair;
 import org.apache.logging.log4j.Logger;
-
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RoutingConfiguration {
-    private static final Logger logger = LoggerFactory.getLogger();
-    private boolean shouldVisualize;
-    private double waterLevel = 0.0;
+    // Routing configurations
+    private OsmNode startNode, endNode, sharedNode = null;
+    private OsmElement cachedRoute;
     private RoutingType routingType = RoutingType.Dijkstra;
-    private OsmNode startNode, endNode;
-    private Pair<OsmElement, Double> route;
-    private volatile List<OsmNode> touchedNodes = Collections.synchronizedList(new ArrayList<>());
-    private OsmNode sharedNode = null;
+    private double waterLevel, cachedRouteWaterLevel;
+
+    // General functionality
+    private static final Logger logger = LoggerFactory.getLogger();
+    private volatile Set<OsmNode> touchedNodes = Collections.synchronizedSet(new HashSet<>());
+    private boolean shouldVisualize; // A configuration for drawing visited nodes through the search
+
+    // Multithreading
     private Thread calculationThread;
+    ExecutorService executorService = Executors.newFixedThreadPool(2);
 
     public OsmNode getStartNode() {
         return startNode;
@@ -42,25 +47,30 @@ public class RoutingConfiguration {
     public void setWaterLevel(double waterLevel){this.waterLevel = waterLevel;}
 
     public boolean getShouldVisualize(){return shouldVisualize;}
-    public void toggleShouldVisualize(){
-        shouldVisualize = !shouldVisualize;
-    }
+    public void toggleShouldVisualize(){shouldVisualize = !shouldVisualize;}
 
     public void setRoutingMethod(RoutingType routingType){
         logger.info("Routing type set to {}", routingType);
         this.routingType = routingType;
     }
-
-    public RoutingType getRoutingMethod(){
-        return routingType;
-    }
+    public RoutingType getRoutingMethod(){return routingType;}
 
     public OsmElement getRoute(boolean isWithDb, double currentWaterLevel){
-        if (route == null) return null;
+        if(cachedRouteWaterLevel == currentWaterLevel) return cachedRoute;
 
-        if (route.getSecond() != currentWaterLevel) calculateRoute(isWithDb);
+        if(calculationThread != null && calculationThread.isAlive()){
+            //Routing is currently being processed -> return null for now
+            return null;
+        }
 
-        return (route == null ? null : route.getFirst());
+        try{
+            var thread = calculateRoute(isWithDb);
+            thread.join();
+        } catch(InterruptedException e){
+            logger.error("An exception occured while awaiting route calculation: {}", e.getMessage());
+        }
+
+        return cachedRoute;
     }
 
     public List<OsmNode> getTouchedNodes(){
@@ -68,32 +78,45 @@ public class RoutingConfiguration {
     }
 
     public Thread calculateRoute(boolean isWithDb) throws RuntimeException{
-        logger.info("Calculating route");
+        logger.info("Attempting to calculate route");
+        if(calculationThread != null && calculationThread.isAlive()){
+            logger.info("Can not compute route while thread is busy");
+            throw new RuntimeException("A route is already being calculated. Please wait");
+        }
+
         calculationThread = new Thread(() -> {
-            Services.withServices(services -> {
-                var nodes = services.getOsmService(isWithDb).getTraversableOsmNodes();
+            try{
+                Services.withServices(services -> {
+                    cachedRouteWaterLevel = waterLevel; //Register height for caching
 
-                if (startNode == null || endNode == null)
-                    throw new IllegalArgumentException("Start node and end node must be selected");
-                if (startNode.getId() == endNode.getId())
-                    throw new IllegalArgumentException("Start node and end node can not be the same");
+                    var nodes = services.getOsmService(isWithDb).getTraversableOsmNodes();
 
-                touchedNodes = Collections.synchronizedList(new ArrayList<>());
+                    if (startNode == null || endNode == null)
+                        throw new IllegalArgumentException("Start node and end node must be selected");
+                    if (startNode.getId() == endNode.getId())
+                        throw new IllegalArgumentException("Start node and end node can not be the same");
 
-                nodes.remove(startNode.getId());
-                nodes.remove(endNode.getId());
-                nodes.put(startNode.getId(), startNode);
-                nodes.put(endNode.getId(), endNode);
+                    touchedNodes = Collections.synchronizedSet(new HashSet<>());
 
-                var route = routingType == RoutingType.AStarBidirectional ?
-                        createAStarBidirectional(startNode, endNode, nodes, services) :
-                        createPath(createCoordinateList(createRoute(startNode, endNode, nodes, services, null), startNode, endNode));
+                    nodes.remove(startNode.getId());
+                    nodes.remove(endNode.getId());
+                    nodes.put(startNode.getId(), startNode);
+                    nodes.put(endNode.getId(), endNode);
 
-                if (route == null)
-                    logger.warn("No possible route could be found between: {}, {}", startNode.getId(), endNode.getId());
+                    var route = routingType == RoutingType.AStarBidirectional ?
+                            createAStarBidirectional(startNode, endNode, nodes, services) :
+                            createPath(createCoordinateList(createRoute(startNode, endNode, nodes, services, null), startNode, endNode));
 
-                this.route = new Pair<>(route, waterLevel);
-            });
+                    if (route == null)
+                        logger.warn("No possible route could be found between: {}, {}", startNode.getId(), endNode.getId());
+
+                    this.cachedRoute = route;
+                });
+            } catch (Exception ex){
+                logger.error("An exception occurred while calculating route: {}", ex.getMessage());
+                this.cachedRoute = null;
+                calculationThread = null;
+            }
         });
 
         calculationThread.start();
@@ -108,8 +131,6 @@ public class RoutingConfiguration {
             var forwardSet = Collections.synchronizedSet(new HashSet<OsmNode>());
             var backwardSet = Collections.synchronizedSet(new HashSet<OsmNode>());
 
-            ExecutorService executorService = Executors.newFixedThreadPool(2);
-
             Callable<Map<OsmNode, OsmNode>> forwardTask = () -> createRoute(startNode, endNode, nodes, services, new Pair<>(forwardSet, backwardSet));
             Callable<Map<OsmNode, OsmNode>> backwardTask = () -> createRoute(endNode, startNode, nodes, services, new Pair<>(backwardSet, forwardSet));
 
@@ -119,17 +140,29 @@ public class RoutingConfiguration {
             var forwardsRouteMap = forwardFuture.get();
             var backwardsRouteMap = backwardFuture.get();
 
-            assert forwardsRouteMap != null;
-            assert backwardsRouteMap != null;
+            if(sharedNode == startNode || sharedNode == endNode){
+                if(forwardsRouteMap != null && forwardsRouteMap.containsKey(startNode) && forwardsRouteMap.containsKey(endNode)){
+                    //The forward route is applicable
+                    return createPath(createCoordinateList(forwardsRouteMap, startNode, endNode));
+                } else if (backwardsRouteMap != null && backwardsRouteMap.containsKey(startNode) && backwardsRouteMap.containsKey(endNode)){
+                    //The backwards routing is applicable
+                    return createPath(reverseCoordinateList(createCoordinateList(backwardsRouteMap, endNode, startNode)));
+                }
+            }
+
+            if(sharedNode == startNode || sharedNode == endNode){
+                //Routing is too short for multithreading -> fallback to regular A*
+                logger.info("Falling back to regular A* - route was to short to efficiently calculate with multithreading");
+                return createPath(createCoordinateList(createRoute(startNode, endNode, nodes, services, null), startNode, endNode));
+            }
 
             var forwardsRoute = createCoordinateList(forwardsRouteMap, startNode, sharedNode);
             var backwardsRoute = reverseCoordinateList(createCoordinateList(backwardsRouteMap, endNode, sharedNode));
 
-            executorService.shutdown();
-
+            logger.info("Created A-star bidirectional routing with {} visited nodes", touchedNodes.size());
             return createPath(stitchCoordinates(forwardsRoute, backwardsRoute));
-        } catch (InterruptedException | ExecutionException e){
-            logger.error("A-Star bidirectional could not calculate a route successfully", e);
+        } catch (Exception e){
+            logger.error("An exception occurred when creating A-Star bidirectional", e);
             return null;
         }
     }
@@ -144,6 +177,7 @@ public class RoutingConfiguration {
 
         //nodes.values().parallelStream().forEach(n -> {
         nodes.values().forEach(n -> {
+            //TODO: Determine if map should be concurrent or not...
             //knownDistances.putIfAbsent(n, n == startNode ? 0.0 : Double.MAX_VALUE);
             //heuristicDistances.putIfAbsent(n, n == endNode ? 0.0 : Double.MAX_VALUE);
             knownDistances.put(n, n == startNode ? 0.0 : Double.MAX_VALUE);
@@ -167,12 +201,10 @@ public class RoutingConfiguration {
 
             if(connectionSet != null){
                 //This will happen if createRoute is called as an A* bidirectional multithreaded
-                //TODO: Investigate if errors occurs due to TOCTTOU-failure
-                if(sharedNode != null) return previousConnections;
-
+                if (sharedNode != null) return previousConnections;
+                //if(stopMultithreading) return previousConnections;
                 connectionSet.getFirst().add(node);
 
-                //if(connectionSet.getFirst().contains(node) && connectionSet.getSecond().contains(node)) {
                 if(connectionSet.getSecond().contains(node)){
                     logger.debug("A shared node was found to be: {}", node.getId());
                     sharedNode = node;
@@ -216,7 +248,7 @@ public class RoutingConfiguration {
         }
 
         logger.debug("No route found for route between {} and {}", startNode.getId(), endNode.getId());
-        return null;//No route found
+        return null;
     }
 
     private OsmElement createPath(double[] coordinateList){
@@ -224,7 +256,7 @@ public class RoutingConfiguration {
         return OsmWay.createWayForRouting(coordinateList);
     }
 
-    private double[] createCoordinateList(Map<OsmNode, OsmNode> previousConnections, OsmNode startNode, OsmNode endNode){
+    private double[] createCoordinateList(Map<OsmNode, OsmNode> previousConnections, OsmNode startNode, OsmNode endNode) throws RuntimeException{
         if(previousConnections == null) throw new RuntimeException("Previous connections can not be null");
 
         List<OsmNode> path = new ArrayList<>();

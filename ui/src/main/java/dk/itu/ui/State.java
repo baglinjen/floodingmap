@@ -25,7 +25,12 @@ public class State {
     private boolean shouldDrawGeoJson = true;
     private final RoutingConfiguration routingConfiguration;
     private double mouseX, mouseY;
+
+    /// The water level the ocean will eventually reach through the flooding
     private float waterLevel = 0f;
+    /// The water level at this current moment in time
+    private float actualWaterLevel = 0f;
+
     private float minWaterLevel, maxWaterLevel;
     private final SuperAffine superAffine = new SuperAffine();
     private boolean showSelectedHeightCurve = false;
@@ -134,7 +139,16 @@ public class State {
     }
     public void setWaterLevel(float waterLevel) {
         this.waterLevel = waterLevel;
-        this.routingConfiguration.setWaterLevel(waterLevel);
+        //this.routingConfiguration.setWaterLevel(waterLevel);
+    }
+
+    public float getActualWaterLevel(){
+        return actualWaterLevel;
+    }
+
+    public void setActualWaterLevel(float actualWaterLevel){
+        this.actualWaterLevel = actualWaterLevel;
+        this.routingConfiguration.setWaterLevel(actualWaterLevel);
     }
 
     // Getter for Affine
