@@ -55,6 +55,9 @@ public class HeightCurveElement extends BoundingBox {
     public void removeInnerPolygon(double[] innerPolygon) {
         innerPolygons.remove(innerPolygon);
     }
+    public void removeAllInnerPolygons() {
+        innerPolygons.clear();
+    }
     public double getPolygonArea() {
         return polygonArea;
     }

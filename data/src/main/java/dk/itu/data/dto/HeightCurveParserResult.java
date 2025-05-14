@@ -35,7 +35,7 @@ public class HeightCurveParserResult {
         elementsByHeight.values().forEach(list -> closeHeightCurvesForHeight(list, elements, unconnectedElements));
         elementsByHeight.clear();
         logger.info("Split in {} elements and {} unconnected elements - sorting by area", elements.size(), unconnectedElements.size());
-        elements = elements.parallelStream().sorted(Comparator.comparing(ParserHeightCurveElement::calculateArea).reversed()).toList();
+        elements = elements.parallelStream().sorted(Comparator.comparing(ParserHeightCurveElement::calculateArea)).toList();
         logger.info("Finished sanitizing");
     }
 

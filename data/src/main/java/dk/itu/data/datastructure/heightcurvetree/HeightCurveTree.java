@@ -128,7 +128,7 @@ public class HeightCurveTree {
             // Candidates are children which are bigger than element => might contain so sort by biggest first
             var candidateNodes = node.getChildren()
                     .parallelStream()
-                    .filter(e -> e.getPolygonArea() > heightCurveElement.getPolygonArea()) // TODO: This filter is slow
+                    .filter(e -> e.contains(heightCurveElement)) // TODO: This filter is slow
                     .sorted(Comparator.comparing(HeightCurveTreeNode::getPolygonArea).reversed())
                     .toList(); // TODO: This toList is slow
 
@@ -138,15 +138,12 @@ public class HeightCurveTree {
 
                 var childrenPossiblyContained = node.getChildren()
                         .parallelStream()
-                        .filter(e -> e.getPolygonArea() < heightCurveElement.getPolygonArea())
+                        .filter(e -> heightCurveElement.contains(e.getHeightCurveElement()))
                         .toList();
 
                 if (!childrenPossiblyContained.isEmpty()) {
                     // Some node children have a smaller area than element => add contained elements to the new node
                     childrenPossiblyContained
-                            .parallelStream()
-                            .filter(e -> newNode.contains(e.getHeightCurveElement()))
-                            .toList()
                             .forEach(child -> {
                                 node.getChildren().remove(child);
                                 node.getHeightCurveElement().removeInnerPolygon(child.getHeightCurveElement().getCoordinates());
@@ -159,14 +156,16 @@ public class HeightCurveTree {
                 node.getHeightCurveElement().addInnerPolygon(newNode.getHeightCurveElement().getCoordinates());
             } else {
                 // Get the biggest child which contains element
-                var biggestChildContaining = findBiggestChildContaining(candidateNodes, heightCurveElement);
-                if (biggestChildContaining.isPresent()) {
-                    put(biggestChildContaining.get(), heightCurveElement);
-                } else {
-                    // No child found which contains the element => add it to node
-                    node.getChildren().add(new HeightCurveTreeNode(heightCurveElement));
-                    node.getHeightCurveElement().addInnerPolygon(heightCurveElement.getCoordinates());
-                }
+//                var biggestChildContaining = findBiggestChildContaining(candidateNodes, heightCurveElement);
+                var biggestChildContaining = candidateNodes.getFirst();
+                put(biggestChildContaining, heightCurveElement);
+//                if (biggestChildContaining.isPresent()) {
+//                    put(biggestChildContaining.get(), heightCurveElement);
+//                } else {
+//                    // No child found which contains the element => add it to node
+//                    node.getChildren().add(new HeightCurveTreeNode(heightCurveElement));
+//                    node.getHeightCurveElement().addInnerPolygon(heightCurveElement.getCoordinates());
+//                }
             }
         }
     }
@@ -182,5 +181,6 @@ public class HeightCurveTree {
 
     public void clear() {
         root.getChildren().clear();
+        root.getHeightCurveElement().removeAllInnerPolygons();
     }
 }
