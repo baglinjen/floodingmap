@@ -1,9 +1,6 @@
 package dk.itu.util;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 public class ArrayUtils {
     /**
@@ -17,11 +14,5 @@ public class ArrayUtils {
         var newArray = Arrays.copyOf(a1, a1.length + a2.length - indexesToIgnore);
         System.arraycopy(a2, indexesToIgnore, newArray, a1.length, a2.length - indexesToIgnore);
         return newArray;
-    }
-
-    public static <T> List<T> appendSingle(List<T> list, T t){
-        List<T> newList = new ArrayList<>(list);
-        newList.add(t);
-        return Collections.unmodifiableList(newList);
     }
 }
