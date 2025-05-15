@@ -27,7 +27,6 @@ import static com.almasb.fxgl.dsl.FXGLForKtKt.*;
 public class FloodingApp extends GameApplication {
     public static final int WIDTH = 1920, HEIGHT = 920;
     private static final Logger logger = LoggerFactory.getLogger();
-
     private volatile State state;
 
     // Drawing related
@@ -46,14 +45,11 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-//            services.getOsmService(state.isWithDb()).loadOsmData("ky.osm");
-//            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
-            services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
-//            services.getHeightCurveService().loadGmlFileData("tuna-dijkstra.gml");
+            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
+
             state.resetWindowBounds();
             state.updateMinMaxWaterLevels(services);
-//            var bounds = state.getWindowBounds();
-//            services.getHeightCurveService().loadGmlData(bounds[0], bounds[1], bounds[2], bounds[3]);
+            state.recalculateNodeHeight();
 
             float registeredWaterLevel = 0.0f;
 
@@ -64,7 +60,6 @@ public class FloodingApp extends GameApplication {
             List<HeightCurveElement> heightCurves = new ReferenceArrayList<>();
 
             try (ExecutorService executor = Executors.newCachedThreadPool()) {
-
                 while (true) {
                     long start = System.nanoTime();
 
@@ -120,22 +115,12 @@ public class FloodingApp extends GameApplication {
                                             .getHeightCurveService()
                                             .getElements()
                             );
-                            // Potential TODO: Better height curve flooded state tracking to enable scaled window queries
-        //                  heightCurves.addAll(
-        //                          services
-        //                                  .getHeightCurveService()
-        //                                  .searchScaled(
-        //                                          window[0],
-        //                                          window[1],
-        //                                          window[2],
-        //                                          window[3]
-        //                                  )
-        //                  );
                         }
                     }, executor);
 
                     CompletableFuture.allOf(dataFetchFutures).join();
 
+                    //Simulate water flooding animation
                     if (state.getWaterLevel() != registeredWaterLevel) {
                         if (simulationThread != null && simulationThread.isAlive()) {
                             simulationThread.interrupt();
@@ -169,13 +154,14 @@ public class FloodingApp extends GameApplication {
                     heightCurves.forEach(hc -> hc.draw(g2d, strokeBaseWidth));
                     spatialNodes.forEach(bb -> bb.drawBoundingBox(g2d, strokeBaseWidth));
 
-                // Draw routing if there is one
-                var dijkstraRoute = state.getRoutingConfiguration().getRoute(state.isWithDb(), state.getActualWaterLevel());
-                if (dijkstraRoute != null){
-                    dijkstraRoute.prepareDrawing(g2d);
-                    dijkstraRoute.draw(g2d, strokeBaseWidth);
-                }
+                    // Draw routing if there is one
+                    var dijkstraRoute = state.getRoutingConfiguration().getRoute(state.isWithDb(), state.getActualWaterLevel());
+                    if (dijkstraRoute != null){
+                        dijkstraRoute.prepareDrawing(g2d);
+                        dijkstraRoute.draw(g2d, strokeBaseWidth);
+                    }
 
+                    //Draw visited nodes from route search
                     if (state.getRoutingConfiguration().getShouldVisualize()) {
                         var nodes = state.getRoutingConfiguration().getTouchedNodes();
                         for (var n : nodes) {
@@ -210,7 +196,7 @@ public class FloodingApp extends GameApplication {
                     System.arraycopy(pixels, 0, buffer.getBuffer().array(), 0, pixels.length);
                     view.setImage(new WritableImage(buffer));
 
-//                    logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
+                    logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
                 }
             }
         });
@@ -225,7 +211,6 @@ public class FloodingApp extends GameApplication {
                 .createCompatibleImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB_PRE);
 
         Services.withServices(services -> {
-            // Set State
             this.state = new State(services);
         });
 
@@ -246,7 +231,7 @@ public class FloodingApp extends GameApplication {
     protected void initSettings(GameSettings settings) {
         settings.setWidth(WIDTH);
         settings.setHeight(HEIGHT);
-        settings.setTitle("Flooding Visualisation");
+        settings.setTitle("Flooding visualisation tool for BSc project");
         settings.setVersion("1.0-SNAPSHOT");
         settings.setIntroEnabled(false);
         settings.setMainMenuEnabled(false);

@@ -191,13 +191,13 @@ public class State {
                 int threadIndex = i;
 
                 Runnable task = () -> {
-                    logger.info("Calculating node height for batch: " + threadIndex);
+                    logger.info("Calculating node height for batch: {}", threadIndex);
                     for(var n : threadNodes){
                         n.setContainingCurve(
                                 s.getHeightCurveService().getHeightCurveForPoint(n.getLon(), n.getLat())
                         );
                     }
-                    logger.info("Completed node height calculation for batch: " + threadIndex);
+                    logger.info("Completed node height calculation for batch: {}", threadIndex);
                 };
 
                 Thread thread = new Thread(task);
