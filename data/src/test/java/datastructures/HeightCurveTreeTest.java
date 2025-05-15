@@ -2,7 +2,7 @@ package datastructures;
 
 import dk.itu.data.datastructure.heightcurvetree.HeightCurveTree;
 import dk.itu.data.datastructure.heightcurvetree.HeightCurveTreeNode;
-import dk.itu.data.models.db.heightcurve.HeightCurveElement;
+import dk.itu.data.models.heightcurve.HeightCurveElement;
 import dk.itu.data.models.parser.ParserHeightCurveElement;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.TestAbortedException;

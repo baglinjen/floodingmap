@@ -1,15 +1,14 @@
 package dk.itu.data.services;
 
 import dk.itu.data.dto.OsmParserResult;
-import dk.itu.data.models.db.BoundingBox;
-import dk.itu.data.models.db.osm.OsmElement;
-import dk.itu.data.models.db.osm.OsmNode;
+import dk.itu.data.models.BoundingBox;
+import dk.itu.data.models.osm.OsmElement;
+import dk.itu.data.models.osm.OsmNode;
 import dk.itu.data.parsers.OsmParser;
 import dk.itu.data.repositories.OsmElementRepository;
 import dk.itu.data.repositories.OsmElementRepositoryDb;
 import dk.itu.data.repositories.OsmElementRepositoryMemory;
 import dk.itu.util.LoggerFactory;
-import it.unimi.dsi.fastutil.longs.Long2ReferenceArrayMap;
 import org.apache.logging.log4j.Logger;
 
 import java.sql.Connection;
@@ -59,7 +58,6 @@ public class OsmService {
         osmParserResult.sanitize();
 
         synchronized (this.osmElementRepository) {
-            // Add to Database
             logger.info("Started inserting drawable elements to repository");
             long startTime = System.currentTimeMillis();
             osmElementRepository.add(osmParserResult.getElementsToBeDrawn());

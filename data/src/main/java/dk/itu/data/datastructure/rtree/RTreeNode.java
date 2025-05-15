@@ -1,7 +1,7 @@
 package dk.itu.data.datastructure.rtree;
 
-import dk.itu.data.models.db.BoundingBox;
-import dk.itu.data.models.db.osm.OsmElement;
+import dk.itu.data.models.BoundingBox;
+import dk.itu.data.models.osm.OsmElement;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 
@@ -30,7 +30,6 @@ public class RTreeNode extends BoundingBox {
         this.children = children;
         this.children.forEach(child -> child.setParent(this));
     }
-
 
     public boolean isLeaf() {
         return children.isEmpty();

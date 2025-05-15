@@ -1,6 +1,6 @@
-package dk.itu.data.models.db.osm;
+package dk.itu.data.models.osm;
 
-import dk.itu.data.models.db.heightcurve.HeightCurveElement;
+import dk.itu.data.models.heightcurve.HeightCurveElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.utils.RoutingUtils;
 
@@ -36,7 +36,9 @@ public class OsmNode extends OsmElement {
         this.containingCurve = containingCurve;
     }
 
-    public HeightCurveElement getContainingCurve(){return containingCurve;}
+    public HeightCurveElement getContainingCurve(){
+        return containingCurve;
+    }
 
     public double getLat() {
         return lat;

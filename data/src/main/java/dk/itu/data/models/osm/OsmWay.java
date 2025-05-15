@@ -1,4 +1,4 @@
-package dk.itu.data.models.db.osm;
+package dk.itu.data.models.osm;
 
 import dk.itu.data.models.parser.ParserOsmWay;
 

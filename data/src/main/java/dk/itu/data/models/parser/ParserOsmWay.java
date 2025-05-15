@@ -1,10 +1,7 @@
 package dk.itu.data.models.parser;
 
-import dk.itu.data.models.db.BoundingBox;
-
 import java.awt.*;
 import java.awt.geom.Path2D;
-import java.awt.geom.Rectangle2D;
 import java.util.List;
 
 import static dk.itu.util.ShapePreparer.prepareLinePath;

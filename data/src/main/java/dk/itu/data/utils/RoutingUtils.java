@@ -18,6 +18,7 @@ public class RoutingUtils {
         return result;
     }
 
+    // This is based on the haversine formula to calculate distance between two points while accounting for earths curvature
     public static Double distanceMeters(double lat1, double lon1, double lat2, double lon2){
         double lat1Rad = Math.toRadians(lat1);
         double lon1Rad = Math.toRadians(lon1);
@@ -33,6 +34,4 @@ public class RoutingUtils {
 
         return EARTH_RADIUS_KM * c * 1000;
     }
-
-
 }

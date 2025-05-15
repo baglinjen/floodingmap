@@ -1,6 +1,6 @@
-package dk.itu.data.models.db.osm;
+package dk.itu.data.models.osm;
 
-import dk.itu.data.models.db.BoundingBox;
+import dk.itu.data.models.BoundingBox;
 
 public abstract class OsmElement extends BoundingBox {
     private final long id;

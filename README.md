@@ -1,4 +1,4 @@
-cd docu# floodingmap
+# floodingmap
 
 ### Set up environment variables
 To run the project correctly you must set three environment variables:
@@ -32,6 +32,3 @@ Doesn't work? This might help:
 
 
 - Detailed overview of the clean compile process: **mvn clean compile -X**
-
-
-

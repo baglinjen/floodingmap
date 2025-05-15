@@ -22,12 +22,10 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.IntStream;
 
-import static dk.itu.util.CoordinateUtils.wgsToUtm;
-
 public class GmlParser {
     private static final Set<String> quadrantsProcessed = new HashSet<>();
     private static final Logger logger = LoggerFactory.getLogger();
-    private static final int TIMEOUT_SECONDS = 60, MAX_RETRIES = 64, MAX_IO_RETRIES = 32; // Max 32 retries - 32 io retries counts for 1 retry
+    private static final int TIMEOUT_SECONDS = 60, MAX_RETRIES = 64, MAX_IO_RETRIES = 32; // Max 64 retries - 32 io retries counts for 1 retry
     private static final double IO_MIN_DELAY_MS = 50, IO_DELAY_VARIANCE_MS = 500;
     private static final HttpClient httpClient = HttpClient
             .newBuilder()

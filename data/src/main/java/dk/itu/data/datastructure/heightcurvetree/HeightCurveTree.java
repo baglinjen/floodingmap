@@ -1,6 +1,6 @@
 package dk.itu.data.datastructure.heightcurvetree;
 
-import dk.itu.data.models.db.heightcurve.HeightCurveElement;
+import dk.itu.data.models.heightcurve.HeightCurveElement;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;

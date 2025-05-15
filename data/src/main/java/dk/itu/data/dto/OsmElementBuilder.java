@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 
 public class OsmElementBuilder {
-    // Util
     private static final Logger logger = LoggerFactory.getLogger();
     // Parsed so far
     private final OsmParserResult osmParserResult;

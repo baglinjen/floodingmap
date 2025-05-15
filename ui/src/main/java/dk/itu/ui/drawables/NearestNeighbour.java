@@ -1,7 +1,7 @@
 package dk.itu.ui.drawables;
 
 import dk.itu.common.models.Colored;
-import dk.itu.data.models.db.osm.OsmNode;
+import dk.itu.data.models.osm.OsmNode;
 
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
@@ -21,7 +21,7 @@ public class NearestNeighbour extends Colored {
     }
 
     @Override
-    public void prepareDrawing(Graphics2D g2d) { /* Nothing to prepare */ }
+    public void prepareDrawing(Graphics2D g2d) {} //Nothing to prepare
 
     @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {

@@ -11,7 +11,6 @@ import java.util.stream.DoubleStream;
 import static dk.itu.util.CoordinateUtils.utmToWgs;
 
 public class HeightCurveElementBuilder {
-    // Logger
     private static final Logger logger = LoggerFactory.getLogger();
     // Parsed so far
     private final HeightCurveParserResult result;

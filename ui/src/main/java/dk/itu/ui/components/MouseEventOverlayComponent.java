@@ -12,7 +12,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 
-import java.awt.*;
 import java.awt.geom.Point2D;
 
 public class MouseEventOverlayComponent extends BorderPane {

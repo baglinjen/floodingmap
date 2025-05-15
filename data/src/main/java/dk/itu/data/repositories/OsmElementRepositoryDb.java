@@ -1,10 +1,10 @@
 package dk.itu.data.repositories;
 
-import dk.itu.data.models.db.*;
-import dk.itu.data.models.db.osm.OsmElement;
-import dk.itu.data.models.db.osm.OsmNode;
-import dk.itu.data.models.db.osm.OsmRelation;
-import dk.itu.data.models.db.osm.OsmWay;
+import dk.itu.data.models.BoundingBox;
+import dk.itu.data.models.osm.OsmElement;
+import dk.itu.data.models.osm.OsmNode;
+import dk.itu.data.models.osm.OsmRelation;
+import dk.itu.data.models.osm.OsmWay;
 import dk.itu.data.models.parser.ParserOsmElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.models.parser.ParserOsmRelation;
@@ -42,7 +42,6 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
         f.register(OsmRelation.class);
         f.register(Color.class);
         f.register(BoundingBox.class);
-        // TODO: For Path2D use another serializer which implements org.apache.fury.serializer.Serializer or java default serializer
         return f;
     });
 
@@ -177,7 +176,7 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
         return DSL.field("ST_GeomFromText({0}, {1})",
                 Geometry.class,
                 DSL.val(sb.toString()),
-                DSL.val(4326)
+                DSL.val(4326) //Coordinate format for PostGIS -> corresponds to lat/lon
         );
     }
 

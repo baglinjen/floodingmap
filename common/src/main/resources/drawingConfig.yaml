@@ -155,8 +155,3 @@ features:
           - "ditch"
         rgba: "blue"
         stroke: 3
-infoToKeep:
-  - "building:levels"
-  - "height"
-  - "maxspeed"
-  - "oneway"
