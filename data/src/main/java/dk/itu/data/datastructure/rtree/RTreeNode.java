@@ -6,6 +6,7 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 
 import java.awt.*;
+import java.awt.geom.Rectangle2D;
 import java.util.List;
 
 public class RTreeNode extends BoundingBox {
@@ -84,5 +85,9 @@ public class RTreeNode extends BoundingBox {
     public void prepareDrawing(Graphics2D g2d) {}
 
     @Override
-    public void draw(Graphics2D g2d, float strokeBaseWidth) {}
+    public void draw(Graphics2D g2d, float strokeBaseWidth) {
+        g2d.setColor(STYLE.rgba());
+        g2d.setStroke(new BasicStroke(strokeBaseWidth * STYLE.stroke()));
+        g2d.draw(new Rectangle2D.Double(0.56*getMinLon(), -getMaxLat(), 0.56*(getMaxLon() - getMinLon()), getMaxLat() - getMinLat()));
+    }
 }

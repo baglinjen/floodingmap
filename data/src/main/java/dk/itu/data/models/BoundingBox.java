@@ -134,10 +134,4 @@ public abstract class BoundingBox extends Colored implements Serializable {
     public double getMaxLat() {
         return maxLat;
     }
-
-    public void drawBoundingBox(Graphics2D g2d, float strokeBaseWidth) {
-        g2d.setColor(STYLE.rgba());
-        g2d.setStroke(new BasicStroke(strokeBaseWidth * STYLE.stroke()));
-        g2d.draw(new Rectangle2D.Double(0.56*minLon, -maxLat, 0.56*(maxLon - minLon), maxLat - minLat));
-    }
 }
