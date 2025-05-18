@@ -11,7 +11,7 @@ import static dk.itu.util.ShapePreparer.*;
 public class OsmRelation extends OsmElement {
     private final List<double[]> outerPolygons;
     private final List<double[]> innerPolygons;
-    private Path2D.Double path = null;
+    private final Path2D.Double path = new Path2D.Double(Path2D.WIND_EVEN_ODD);
 
     public OsmRelation(long id, double[] boundingBox, List<double[]> outerPolygons, List<double[]> innerPolygons) {
         super(id, boundingBox);
@@ -36,12 +36,13 @@ public class OsmRelation extends OsmElement {
 
     @Override
     public void prepareDrawing(Graphics2D g2d) {
-        path = prepareComplexPolygon(g2d, outerPolygons, innerPolygons, DRAWING_TOLERANCE);
+        path.reset();
+        prepareComplexPolygon(path, g2d, outerPolygons, innerPolygons, DRAWING_TOLERANCE);
     }
 
     @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
-        if (path == null) return;
+        if (path.getCurrentPoint() == null) return;
 
         g2d.setColor(getColor());
         g2d.fill(path);

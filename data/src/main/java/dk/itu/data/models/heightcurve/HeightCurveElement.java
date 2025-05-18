@@ -21,7 +21,7 @@ public class HeightCurveElement extends BoundingBox {
     private final double[] outerPolygon;
     private final List<double[]> innerPolygons = new ArrayList<>();
     private final float height;
-    private Path2D.Double path;
+    private final Path2D.Double path = new Path2D.Double(Path2D.WIND_EVEN_ODD);
     private boolean isAboveWater = true;
 
     public HeightCurveElement(double[] outerPolygon, float height, double[] bounds) {
@@ -87,15 +87,15 @@ public class HeightCurveElement extends BoundingBox {
         if (getColor() == null) setAboveWater();
 
         if (getStroke() == null) {
-            path = prepareComplexPolygon(g2d, List.of(outerPolygon), innerPolygons, DRAWING_TOLERANCE);
+            prepareComplexPolygon(path, g2d, outerPolygon, innerPolygons, DRAWING_TOLERANCE);
         } else {
-            path = preparePolygonPath(g2d, outerPolygon, DRAWING_TOLERANCE);
+            preparePolygonPath(path, g2d, outerPolygon, DRAWING_TOLERANCE);
         }
     }
 
     @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
-        if (path == null) return;
+        if (path.getCurrentPoint() == null) return;
 
         g2d.setColor(getColor());
         if (getStroke() == null) {

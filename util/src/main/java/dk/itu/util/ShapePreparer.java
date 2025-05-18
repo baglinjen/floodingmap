@@ -1,56 +1,66 @@
 package dk.itu.util;
 
-import kotlin.Pair;
-
 import java.awt.*;
 import java.awt.geom.Path2D;
 import java.util.List;
 
 public class ShapePreparer {
-    public static Path2D.Double prepareLinePath(Graphics2D g2d, double[] line, double tolerance) {
-        var shape = calculateShape(g2d, line, tolerance);
-        return shape.component2() > 2 ? shape.component1() : null;
-    }
-
-    public static Path2D.Double preparePolygonPath(Graphics2D g2d, double[] polygon, double tolerance) {
-        var shape = calculateShape(g2d, polygon, tolerance);
-        if (shape.component2() >= 3) {
-            shape.component1().closePath();
-            return shape.component1();
-        } else {
-            return null;
+    public static void prepareLinePath(Path2D.Double shape, Graphics2D g2d, double[] line, double tolerance) {
+        shape.reset();
+        if (calculateShape(shape, g2d, line, tolerance) < 3) {
+            shape.reset();
         }
     }
 
-    public static Path2D.Double prepareComplexPolygon(Graphics2D g2d, List<double[]> outerPolygons, List<double[]> innerPolygons, double tolerance) {
-        var finalPath = new Path2D.Double(Path2D.WIND_EVEN_ODD);
+    public static void preparePolygonPath(Path2D.Double shape, Graphics2D g2d, double[] polygon, double tolerance) {
+        shape.reset();
+        if (calculateShape(shape, g2d, polygon, tolerance) >= 3) {
+            shape.closePath();
+        } else {
+            shape.reset();
+        }
+    }
+
+    public static void prepareComplexPolygon(Path2D.Double finalPath, Graphics2D g2d, double[] outerPolygon, List<double[]> innerPolygons, double tolerance) {
+        finalPath.reset();
+
+        int pathsAppended = addPolygonToFinalPath(finalPath, g2d, outerPolygon, tolerance);
+        for (var inner : innerPolygons) {
+            pathsAppended += addPolygonToFinalPath(finalPath, g2d, inner, tolerance);
+        }
+
+        if (pathsAppended == 0) {
+            finalPath.reset();
+        }
+    }
+    public static void prepareComplexPolygon(Path2D.Double finalPath, Graphics2D g2d, List<double[]> outerPolygons, List<double[]> innerPolygons, double tolerance) {
+        finalPath.reset();
         var pathsAppended = 0;
 
         for (var outer : outerPolygons) {
-            var shape = calculateShape(g2d, outer, tolerance);
-
-            if (shape.component2() >= 3) {
-                shape.component1().closePath();
-                finalPath.append(shape.component1(), false);
-                pathsAppended++;
-            }
+            pathsAppended += addPolygonToFinalPath(finalPath, g2d, outer, tolerance);
         }
         for (var inner : innerPolygons) {
-            var shape = calculateShape(g2d, inner, tolerance);
-
-            if (shape.component2() >= 3) {
-                shape.component1().closePath();
-                finalPath.append(shape.component1(), false);
-                pathsAppended++;
-            }
+            pathsAppended += addPolygonToFinalPath(finalPath, g2d, inner, tolerance);
         }
 
-        return pathsAppended > 0 ? finalPath : null;
+        if (pathsAppended == 0) {
+            finalPath.reset();
+        }
     }
 
-    // Pair with path2D and number of vertices
-    private static Pair<Path2D.Double, Integer> calculateShape(Graphics2D g2d, double[] shape, double tolerance) {
-        var path = new Path2D.Double();
+    private static int addPolygonToFinalPath(Path2D.Double finalPath, Graphics2D g2d, double[] polygon, double tolerance) {
+        var shape = new Path2D.Double(Path2D.WIND_EVEN_ODD);
+        if (calculateShape(shape, g2d, polygon, tolerance) >= 3) {
+            shape.closePath();
+            finalPath.append(shape, false);
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
+    private static int calculateShape(Path2D.Double path, Graphics2D g2d, double[] shape, double tolerance) {
         path.moveTo(0.56*shape[0], -shape[1]);
 
         int pointsAdded = 1, indexLastTransformedPoint = 0;
@@ -74,7 +84,7 @@ public class ShapePreparer {
             pointsAdded++;
         }
 
-        return new Pair<>(path, pointsAdded);
+        return pointsAdded;
     }
 
     private static double calculateDistance(double p1x, double p1y, double p2x, double p2y) {

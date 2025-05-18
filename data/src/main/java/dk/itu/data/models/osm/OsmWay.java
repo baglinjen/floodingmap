@@ -11,7 +11,7 @@ import static dk.itu.util.ShapePreparer.preparePolygonPath;
 public class OsmWay extends OsmElement {
     private final double[] outerCoordinates;
     private final boolean isLine;
-    private Path2D.Double path = null;
+    private final Path2D.Double path = new Path2D.Double(Path2D.WIND_EVEN_ODD);
 
     public OsmWay(long id, boolean isLine, double[] boundingBox, double[] outerCoordinates) {
         super(id, boundingBox);
@@ -50,12 +50,17 @@ public class OsmWay extends OsmElement {
 
     @Override
     public void prepareDrawing(Graphics2D g2d) {
-        path = isLine ? prepareLinePath(g2d, outerCoordinates, DRAWING_TOLERANCE) : preparePolygonPath(g2d, outerCoordinates, DRAWING_TOLERANCE);
+        path.reset();
+        if (isLine) {
+            prepareLinePath(path, g2d, outerCoordinates, DRAWING_TOLERANCE);
+        } else {
+            preparePolygonPath(path, g2d, outerCoordinates, DRAWING_TOLERANCE);
+        }
     }
 
     @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
-        if (path == null) return;
+        if (path.getCurrentPoint() == null) return;
 
         g2d.setColor(getColor());
         if (isLine && getStroke() != null) {

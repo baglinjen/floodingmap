@@ -11,7 +11,7 @@ import static dk.itu.util.PolygonUtils.*;
 public class ParserOsmWay extends ParserOsmElement {
     private final double[] bounds = new double[4];
     private final double[] coordinates;
-    private Path2D.Double path = null;
+    private final Path2D.Double path = new Path2D.Double(Path2D.WIND_EVEN_ODD);
 
     private final boolean isLine;
 
@@ -63,12 +63,17 @@ public class ParserOsmWay extends ParserOsmElement {
 
     @Override
     public void prepareDrawing(Graphics2D g2d) {
-        path = isLine ? prepareLinePath(g2d, coordinates, 1) : preparePolygonPath(g2d, coordinates, 1);
+        path.reset();
+        if (isLine) {
+            prepareLinePath(path, g2d, coordinates, DRAWING_TOLERANCE);
+        } else {
+            preparePolygonPath(path, g2d, coordinates, DRAWING_TOLERANCE);
+        }
     }
 
     @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
-        if (path == null) return;
+        if (path.getCurrentPoint() == null) return;
 
         g2d.setColor(getColor());
         if (isLine) {
