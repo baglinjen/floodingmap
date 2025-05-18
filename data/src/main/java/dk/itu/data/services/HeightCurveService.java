@@ -151,6 +151,7 @@ public class HeightCurveService {
     public void clearAll() {
         synchronized (this.repository) {
             this.repository.clear();
+            GmlParser.clearProcessedQuadrants();
         }
     }
 }

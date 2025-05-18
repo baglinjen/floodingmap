@@ -3,13 +3,10 @@ package dk.itu.data.models.parser;
 import java.util.ArrayList;
 import java.util.List;
 
-import static dk.itu.util.PolygonUtils.calculatePolygonArea;
-
 public class ParserHeightCurveElement {
     private final List<Long> gmlIds = new ArrayList<>();
     private double[] coordinates;
     private final float height;
-    private Double area = null;
 
     public ParserHeightCurveElement(
             long gmlId,
@@ -36,13 +33,6 @@ public class ParserHeightCurveElement {
     }
     public void setCoordinates(double[] coordinates) {
         this.coordinates = coordinates;
-    }
-
-    public double calculateArea() {
-        if (area == null) {
-            area = calculatePolygonArea(this.coordinates);
-        }
-        return area;
     }
 
     public double[] calculateBounds() {

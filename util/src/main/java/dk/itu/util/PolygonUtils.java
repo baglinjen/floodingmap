@@ -1,5 +1,6 @@
 package dk.itu.util;
 
+import java.util.Arrays;
 import java.util.stream.IntStream;
 
 public class PolygonUtils {
@@ -56,7 +57,7 @@ public class PolygonUtils {
         }
     }
     private static boolean isClockwise(double[] coordinates) {
-        // Ensure we have at least a triangle (6 values: 3 points with x,y each)
+        // Validity check
         if (coordinates.length < 6 || coordinates.length % 2 != 0) {
             return true;
         }
@@ -79,32 +80,35 @@ public class PolygonUtils {
             sum += (x1 * y2) - (y1 * x2);
         }
 
+        // Negative area means it is clockwise
         return sum < 0;
     }
 
     public static double[] reversePairs(double[] array) {
+        double[] result = Arrays.copyOf(array, array.length);
+        reversePairsMut(result);
+        return result;
+    }
+    public static void reversePairsMut(double[] array) {
         // Check if array has an even number of elements
         if (array.length % 2 != 0) {
             throw new IllegalArgumentException("Array length must be even to keep pairs together");
         }
 
-        // Create result array of the same size
-        double[] result = new double[array.length];
+        int indexEnd;
+        double intermediateX, intermediateY;
+        for (int i = 0; i < array.length / 2; i+=2) {
+            indexEnd = array.length - 2 - i;
 
-        // Reverse the array pair by pair
-        for (int i = 0; i < array.length / 2; i++) {
-            // Get the index of the source pair (from the end)
-            int sourceIndex = array.length - 2 - (i * 2);
+            if (i == indexEnd) continue;
 
-            // Get the index of the destination pair (from the beginning)
-            int destIndex = i * 2;
-
-            // Copy the pair
-            result[destIndex] = array[sourceIndex];
-            result[destIndex + 1] = array[sourceIndex + 1];
+            intermediateX = array[i];
+            intermediateY = array[i + 1];
+            array[i] = array[indexEnd];
+            array[i + 1] = array[indexEnd + 1];
+            array[indexEnd] = intermediateX;
+            array[indexEnd + 1] = intermediateY;
         }
-
-        return result;
     }
 
     public static boolean contains(double[] p1, double[] p2) {

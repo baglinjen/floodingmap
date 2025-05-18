@@ -13,8 +13,8 @@ import static dk.itu.util.PolygonUtils.*;
 public class HeightCurveParserResult {
     private static final Logger logger = LoggerFactory.getLogger();
     private final Map<Float, List<ParserHeightCurveElement>> elementsByHeight = new HashMap<>();
-    private List<ParserHeightCurveElement> elements = new ArrayList<>();
-    private final List<ParserHeightCurveElement> unconnectedElements = new ArrayList<>();
+    private final List<ParserHeightCurveElement> elements = Collections.synchronizedList(new ArrayList<>());
+    private final Map<Float, List<ParserHeightCurveElement>> unconnectedElements = Collections.synchronizedMap(new HashMap<>());
 
     private final HeightCurveRepository repository;
 
@@ -26,75 +26,129 @@ public class HeightCurveParserResult {
         return elements;
     }
 
-    public List<ParserHeightCurveElement> getUnconnectedElements() {
+    public Map<Float, List<ParserHeightCurveElement>> getUnconnectedElements() {
         return unconnectedElements;
     }
 
     public void sanitize() {
         logger.info("Starting to sanitize {} height curve elements", elementsByHeight.values().stream().mapToInt(List::size).sum());
-        elementsByHeight.values().forEach(list -> closeHeightCurvesForHeight(list, elements, unconnectedElements));
+        elementsByHeight.keySet().forEach(h -> this.closeHeightCurvesForH(h, elementsByHeight.get(h)));
         elementsByHeight.clear();
         logger.info("Split in {} elements and {} unconnected elements - sorting by area", elements.size(), unconnectedElements.size());
-        elements = elements.parallelStream().sorted(Comparator.comparing(ParserHeightCurveElement::calculateArea)).toList();
+        elements.sort(Comparator.comparing(hc -> hc.getCoordinates().length));
         logger.info("Finished sanitizing");
     }
 
-    private void closeHeightCurvesForHeight(List<ParserHeightCurveElement> elements, List<ParserHeightCurveElement> closedElements, List<ParserHeightCurveElement> unclosedElements) {
-        for (int i = 0; i < elements.size(); i++) {
-            var elementI = elements.get(i);
-            var coordsI = elementI.getCoordinates();
+    private void closeHeightCurvesForH(Float height, List<ParserHeightCurveElement> elements) {
+        List<ParserHeightCurveElement> closedElements = new ArrayList<>();
+        List<ParserHeightCurveElement> unclosedElements = new ArrayList<>(elements);
 
-            if (isClosed(coordsI)) {
+        for (int i = 0; i < unclosedElements.size(); i++) {
+            // Iterate i trying to close j
+            var polygonI = unclosedElements.get(i);
+            // If i is closed already => add to closed and i-- && continue
+            if (isClosed(polygonI.getCoordinates())) {
+                unclosedElements.remove(polygonI);
+                closedElements.add(polygonI);
+                i--;
                 continue;
             }
 
-            for (int j = i; j < elements.size(); j++) {
-                if (i == j || i == -1) continue;
-                var elementJ = elements.get(j);
-                var coordsJ = elementJ.getCoordinates();
+            for (int j = i + 1; j < unclosedElements.size(); j++) {
+                var polygonJ = unclosedElements.get(j);
 
-                switch (findOpenPolygonMatchType(coordsI, coordsJ)) {
+                // If i is added to j => skip through j continue with i (j = unclosedElements.size & i--)
+                switch (findOpenPolygonMatchType(polygonI.getCoordinates(), polygonJ.getCoordinates())) {
                     case FIRST_FIRST -> {
-                        elementJ.setCoordinates(appendExcludingN(reversePairs(coordsJ), coordsI, 2));
-                        elementJ.addGmlIds(elementI.getGmlIds());
-                        elements.remove(i);
-                        i = -1;
-                    }
-                    case FIRST_LAST -> {
-                        elementJ.setCoordinates(appendExcludingN(coordsJ, coordsI, 2));
-                        elementJ.addGmlIds(elementI.getGmlIds());
-                        elements.remove(i);
-                        i = -1;
+                        // Remove i to add to j
+                        unclosedElements.remove(polygonI);
+
+                        // Add i to j
+                        reversePairsMut(polygonI.getCoordinates());
+                        polygonJ.setCoordinates(appendExcludingN(polygonI.getCoordinates(), polygonJ.getCoordinates(), 2));
+                        polygonJ.addGmlIds(polygonI.getGmlIds());
+
+                        // Add j to closed if it is now closed
+                        if (isClosed(polygonJ.getCoordinates())) {
+                            unclosedElements.remove(polygonJ);
+                            closedElements.add(polygonJ);
+                        }
+
+                        // Reset loop to restart with new element i
+                        j = unclosedElements.size();
+                        i--;
                     }
                     case LAST_FIRST -> {
-                        elementJ.setCoordinates(appendExcludingN(coordsI, coordsJ, 2));
-                        elementJ.addGmlIds(elementI.getGmlIds());
-                        elements.remove(i);
-                        i = -1;
+                        // Remove i to add to j
+                        unclosedElements.remove(polygonI);
+
+                        // Add i to j
+                        polygonJ.setCoordinates(appendExcludingN(polygonI.getCoordinates(), polygonJ.getCoordinates(), 2));
+                        polygonJ.addGmlIds(polygonI.getGmlIds());
+
+                        // Add j to closed if it is now closed
+                        if (isClosed(polygonJ.getCoordinates())) {
+                            unclosedElements.remove(polygonJ);
+                            closedElements.add(polygonJ);
+                        }
+
+                        // Reset loop to restart with new element i
+                        j = unclosedElements.size();
+                        i--;
+                    }
+                    case FIRST_LAST -> {
+                        // Remove i to add to j
+                        unclosedElements.remove(polygonI);
+
+                        // Add i to j
+                        polygonJ.setCoordinates(appendExcludingN(polygonJ.getCoordinates(), polygonI.getCoordinates(), 2));
+                        polygonJ.addGmlIds(polygonI.getGmlIds());
+
+                        // Add j to closed if it is now closed
+                        if (isClosed(polygonJ.getCoordinates())) {
+                            unclosedElements.remove(polygonJ);
+                            closedElements.add(polygonJ);
+                        }
+
+                        // Reset loop to restart with new element i
+                        j = unclosedElements.size();
+                        i--;
                     }
                     case LAST_LAST -> {
-                        elementJ.setCoordinates(appendExcludingN(coordsI, reversePairs(coordsJ), 2));
-                        elementJ.addGmlIds(elementI.getGmlIds());
-                        elements.remove(i);
-                        i = -1;
+                        // Remove i to add to j
+                        unclosedElements.remove(polygonI);
+
+                        // Add i to j
+                        reversePairsMut(polygonI.getCoordinates());
+                        polygonJ.setCoordinates(appendExcludingN(polygonJ.getCoordinates(), polygonI.getCoordinates(), 2));
+                        polygonJ.addGmlIds(polygonI.getGmlIds());
+
+                        // Add j to closed if it is now closed
+                        if (isClosed(polygonJ.getCoordinates())) {
+                            unclosedElements.remove(polygonJ);
+                            closedElements.add(polygonJ);
+                        }
+
+                        // Reset loop to restart with new element i
+                        j = unclosedElements.size();
+                        i--;
                     }
                 }
             }
         }
 
-        for (ParserHeightCurveElement element : elements) {
-            if (isClosed(element.getCoordinates())) {
-                closedElements.add(element);
-            } else {
-                unclosedElements.add(element);
+        synchronized (this.elements) {
+            this.elements.addAll(closedElements);
+        }
+        if (!unclosedElements.isEmpty()) {
+            synchronized (this.unconnectedElements) {
+                this.unconnectedElements.computeIfAbsent(height, _ -> new ArrayList<>()).addAll(unclosedElements);
             }
         }
     }
 
-    public void addUnconnectedElements(List<ParserHeightCurveElement> elements) {
-        for (ParserHeightCurveElement element : elements) {
-            addElement(element);
-        }
+    public void addUnconnectedElements(Map<Float, List<ParserHeightCurveElement>> unconnectedElements) {
+        this.elementsByHeight.putAll(unconnectedElements);
     }
 
     public synchronized void addParsedElementSync(ParserHeightCurveElement element) {
@@ -104,11 +158,5 @@ public class HeightCurveParserResult {
             elementsByHeight.putIfAbsent(height, new ArrayList<>());
             elementsByHeight.get(height).add(element);
         }
-    }
-
-    private void addElement(ParserHeightCurveElement element) {
-        var height = element.getHeight();
-        elementsByHeight.putIfAbsent(height, new ArrayList<>());
-        elementsByHeight.get(height).add(element);
     }
 }

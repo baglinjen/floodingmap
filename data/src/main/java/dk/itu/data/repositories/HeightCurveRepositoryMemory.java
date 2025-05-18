@@ -22,7 +22,7 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
 
     private final Set<Long> parsedIds = new ConcurrentSkipListSet<>();
     private final HeightCurveTree heightCurveTree = new HeightCurveTree();
-    private final List<ParserHeightCurveElement> unconnectedElements = new ArrayList<>();
+    private final Map<Float, List<ParserHeightCurveElement>> unconnectedElementsMap = new HashMap<>();
 
     private HeightCurveRepositoryMemory() {}
 
@@ -37,7 +37,7 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
     }
 
     @Override
-    public synchronized void add(List<ParserHeightCurveElement> elements) {
+    public void add(List<ParserHeightCurveElement> elements) {
         logger.info("Adding {} height curve elements", elements.size());
         long startTime = System.nanoTime();
 
@@ -56,16 +56,16 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
     }
 
     @Override
-    public synchronized List<ParserHeightCurveElement> getUnconnectedElements() {
-        return unconnectedElements;
+    public Map<Float, List<ParserHeightCurveElement>> getUnconnectedElements() {
+        return unconnectedElementsMap;
     }
 
     @Override
-    public synchronized void setUnconnectedElements(List<ParserHeightCurveElement> elements) {
+    public void setUnconnectedElements(Map<Float, List<ParserHeightCurveElement>> elements) {
         logger.info("Updating unconnected elements for {} elements", elements.size());
-        unconnectedElements.clear();
-        unconnectedElements.addAll(elements);
-        parsedIds.addAll(elements.parallelStream().map(ParserHeightCurveElement::getGmlIds).flatMap(Collection::stream).toList());
+        unconnectedElementsMap.clear();
+        unconnectedElementsMap.putAll(elements);
+        parsedIds.addAll(elements.values().parallelStream().flatMap(List::stream).map(ParserHeightCurveElement::getGmlIds).flatMap(Collection::stream).toList());
         logger.info("Finished updating unconnected elements for {} elements", elements.size());
     }
 
@@ -77,35 +77,28 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
     }
 
     @Override
-    public synchronized List<HeightCurveElement> searchScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
-        synchronized (heightCurveTree) {
-            return heightCurveTree.searchScaled(new double[]{minLon, minLat, maxLon, maxLat}, minBoundingBoxArea);
-        }
-    }
-
-    @Override
-    public synchronized List<List<HeightCurveElement>> getFloodingSteps(float waterLevel) {
+    public List<List<HeightCurveElement>> getFloodingSteps(float waterLevel) {
         return heightCurveTree.getFloodingSteps(waterLevel);
     }
 
     @Override
-    public synchronized HeightCurveElement getHeightCurveForPoint(double lon, double lat) {
+    public HeightCurveElement getHeightCurveForPoint(double lon, double lat) {
         return heightCurveTree.getHeightCurveForPoint(lon, lat);
     }
 
     @Override
-    public synchronized float getMinWaterLevel() {
+    public float getMinWaterLevel() {
         return heightCurveTree.getMinWaterLevel();
     }
 
     @Override
-    public synchronized float getMaxWaterLevel() {
+    public float getMaxWaterLevel() {
         return heightCurveTree.getMaxWaterLevel();
     }
 
     @Override
     public synchronized void clear() {
-        unconnectedElements.clear();
+        unconnectedElementsMap.clear();
         heightCurveTree.clear();
     }
 }

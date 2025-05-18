@@ -22,10 +22,6 @@ public class HeightCurveTreeNode {
         return heightCurveElement;
     }
 
-    public double getPolygonArea() {
-        return heightCurveElement.getPolygonArea();
-    }
-
     public boolean contains(HeightCurveElement element) {
         if (heightCurveElement.contains(element)) {
             return PolygonUtils.contains(this.heightCurveElement.getCoordinates(), element.getCoordinates());

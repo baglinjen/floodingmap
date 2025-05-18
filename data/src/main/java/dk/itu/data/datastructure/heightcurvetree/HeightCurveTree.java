@@ -12,13 +12,12 @@ public class HeightCurveTree {
             new HeightCurveElement(
                     new double[] {
                             -180, -90, // BL SW
-                            -180, 90, // TL NW
-                            180, 90, // TR NE
                             180, -90,  // BR SE
+                            180, 90, // TR NE
+                            -180, 90, // TL NW
                             -180, -90 // BL SW
                     },
                     0,
-                    Double.MAX_VALUE,
                     new double[] {-180, -90, 180, 90}
             )
     );
@@ -124,34 +123,31 @@ public class HeightCurveTree {
             node.getChildren().add(new HeightCurveTreeNode(heightCurveElement));
             node.getHeightCurveElement().addInnerPolygon(heightCurveElement.getCoordinates());
         } else {
-            // Try to find first node which contains element
-            // Candidates are children which are bigger than element => might contain so sort by biggest first
-
-            var candidateNodes = node.getChildren()
+            // Try to find first node which contains element and add => otherwise add to current node
+            node.getChildren()
                     .parallelStream()
                     .filter(e -> e.contains(heightCurveElement))
-                    .sorted(Comparator.comparing(HeightCurveTreeNode::getPolygonArea).reversed())
-                    .toList();
+                    .findFirst()
+                    .ifPresentOrElse(
+                            containingNode -> put(containingNode, heightCurveElement),
+                            () -> {
+                                // No child contains element => try to find children which the element contains
+                                var newNode = new HeightCurveTreeNode(heightCurveElement);
+                                node.getChildren()
+                                        .parallelStream()
+                                        .filter(e -> heightCurveElement.contains(e.getHeightCurveElement()))
+                                        .toList()
+                                        .forEach(child -> {
+                                            node.getChildren().remove(child);
+                                            node.getHeightCurveElement().removeInnerPolygon(child.getHeightCurveElement().getCoordinates());
+                                            newNode.getChildren().add(child);
+                                            newNode.getHeightCurveElement().addInnerPolygon(child.getHeightCurveElement().getCoordinates());
+                                        });
 
-            if (candidateNodes.isEmpty()) {
-                // No child contains element => try to find children which the element contains
-                var newNode = new HeightCurveTreeNode(heightCurveElement);
-                node.getChildren()
-                        .parallelStream()
-                        .filter(e -> heightCurveElement.contains(e.getHeightCurveElement()))
-                        .toList()
-                        .forEach(child -> {
-                            node.getChildren().remove(child);
-                            node.getHeightCurveElement().removeInnerPolygon(child.getHeightCurveElement().getCoordinates());
-                            newNode.getChildren().add(child);
-                            newNode.getHeightCurveElement().addInnerPolygon(child.getHeightCurveElement().getCoordinates());
-                        });
-
-                node.getChildren().add(newNode);
-                node.getHeightCurveElement().addInnerPolygon(newNode.getHeightCurveElement().getCoordinates());
-            } else {
-                put(candidateNodes.getFirst(), heightCurveElement);
-            }
+                                node.getChildren().add(newNode);
+                                node.getHeightCurveElement().addInnerPolygon(newNode.getHeightCurveElement().getCoordinates());
+                            }
+                    );
         }
     }
 

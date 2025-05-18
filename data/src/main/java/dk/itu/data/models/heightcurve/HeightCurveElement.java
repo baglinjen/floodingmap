@@ -12,7 +12,7 @@ import java.util.List;
 
 import static dk.itu.util.DrawingUtils.toARGB;
 import static dk.itu.util.PolygonUtils.forceCounterClockwise;
-import static dk.itu.util.ShapePreparer.prepareComplexPolygon;
+import static dk.itu.util.ShapePreparer.*;
 
 public class HeightCurveElement extends BoundingBox {
     private static final DrawingConfiguration.Style STYLE_ABOVE_WATER = new DrawingConfiguration.Style(Color.BLACK, 1);
@@ -21,15 +21,13 @@ public class HeightCurveElement extends BoundingBox {
     private final double[] outerPolygon;
     private final List<double[]> innerPolygons = new ArrayList<>();
     private final float height;
-    private final double polygonArea;
     private Path2D.Double path;
     private boolean isAboveWater = true;
 
-    public HeightCurveElement(double[] outerPolygon, float height, double polygonArea, double[] bounds) {
+    public HeightCurveElement(double[] outerPolygon, float height, double[] bounds) {
         super(bounds);
         this.outerPolygon = outerPolygon;
         this.height = height;
-        this.polygonArea = polygonArea;
         setAboveWater();
     }
 
@@ -37,7 +35,6 @@ public class HeightCurveElement extends BoundingBox {
         return new HeightCurveElement(
                 forceCounterClockwise(parserHeightCurveElement.getCoordinates()),
                 parserHeightCurveElement.getHeight(),
-                parserHeightCurveElement.calculateArea(),
                 parserHeightCurveElement.calculateBounds()
         );
     }
@@ -47,9 +44,6 @@ public class HeightCurveElement extends BoundingBox {
     }
     public double[] getCoordinates() {
         return outerPolygon;
-    }
-    public double getPolygonArea() {
-        return polygonArea;
     }
     public float getHeight() {
         return height;
@@ -90,13 +84,18 @@ public class HeightCurveElement extends BoundingBox {
 
     @Override
     public void prepareDrawing(Graphics2D g2d) {
-        path = prepareComplexPolygon(g2d, List.of(outerPolygon), innerPolygons, DRAWING_TOLERANCE);
+        if (getColor() == null) setAboveWater();
+
+        if (getStroke() == null) {
+            path = prepareComplexPolygon(g2d, List.of(outerPolygon), innerPolygons, DRAWING_TOLERANCE);
+        } else {
+            path = preparePolygonPath(g2d, outerPolygon, DRAWING_TOLERANCE);
+        }
     }
 
     @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
         if (path == null) return;
-        if (getColor() == null) setAboveWater();
 
         g2d.setColor(getColor());
         if (getStroke() == null) {
