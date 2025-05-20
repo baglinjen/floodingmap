@@ -1,26 +1,22 @@
 package dk.itu.data.models.osm;
 
 import dk.itu.data.models.parser.ParserOsmWay;
+import dk.itu.util.shape.WayPath;
 
 import java.awt.*;
-import java.awt.geom.Path2D;
-
-import static dk.itu.util.ShapePreparer.prepareLinePath;
-import static dk.itu.util.ShapePreparer.preparePolygonPath;
 
 public class OsmWay extends OsmElement {
-    private final double[] outerCoordinates;
     private final boolean isLine;
-    private final Path2D.Double path = new Path2D.Double(Path2D.WIND_EVEN_ODD);
+    private final WayPath path;
 
     public OsmWay(long id, boolean isLine, double[] boundingBox, double[] outerCoordinates) {
         super(id, boundingBox);
         this.isLine = isLine;
-        this.outerCoordinates = outerCoordinates;
+        this.path = new WayPath(outerCoordinates);
     }
 
     public double[] getOuterCoordinates(){
-        return outerCoordinates;
+        return this.path.getOuterCoordinates();
     }
 
     public static OsmWay mapToOsmWay(ParserOsmWay parserOsmWay) {
@@ -49,19 +45,7 @@ public class OsmWay extends OsmElement {
     }
 
     @Override
-    public void prepareDrawing(Graphics2D g2d) {
-        path.reset();
-        if (isLine) {
-            prepareLinePath(path, g2d, outerCoordinates, DRAWING_TOLERANCE);
-        } else {
-            preparePolygonPath(path, g2d, outerCoordinates, DRAWING_TOLERANCE);
-        }
-    }
-
-    @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
-        if (path.getCurrentPoint() == null) return;
-
         g2d.setColor(getColor());
         if (isLine && getStroke() != null) {
             g2d.setStroke(new BasicStroke(strokeBaseWidth * getStroke()));

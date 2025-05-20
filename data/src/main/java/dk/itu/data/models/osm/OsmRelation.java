@@ -1,22 +1,17 @@
 package dk.itu.data.models.osm;
 
 import dk.itu.data.models.parser.ParserOsmRelation;
+import dk.itu.util.shape.RelationPath;
 
 import java.awt.*;
-import java.awt.geom.Path2D;
 import java.util.List;
 
-import static dk.itu.util.ShapePreparer.*;
-
 public class OsmRelation extends OsmElement {
-    private final List<double[]> outerPolygons;
-    private final List<double[]> innerPolygons;
-    private final Path2D.Double path = new Path2D.Double(Path2D.WIND_EVEN_ODD);
+    private final RelationPath complexPathNodeSkip;
 
     public OsmRelation(long id, double[] boundingBox, List<double[]> outerPolygons, List<double[]> innerPolygons) {
         super(id, boundingBox);
-        this.outerPolygons = outerPolygons;
-        this.innerPolygons = innerPolygons;
+        this.complexPathNodeSkip = new RelationPath(outerPolygons, innerPolygons);
     }
 
     public static OsmRelation mapToOsmRelation(ParserOsmRelation parserOsmRelation) {
@@ -35,16 +30,8 @@ public class OsmRelation extends OsmElement {
     }
 
     @Override
-    public void prepareDrawing(Graphics2D g2d) {
-        path.reset();
-        prepareComplexPolygon(path, g2d, outerPolygons, innerPolygons, DRAWING_TOLERANCE);
-    }
-
-    @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
-        if (path.getCurrentPoint() == null) return;
-
         g2d.setColor(getColor());
-        g2d.fill(path);
+        g2d.fill(complexPathNodeSkip);
     }
 }

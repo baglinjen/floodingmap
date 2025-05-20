@@ -126,7 +126,7 @@ public class HeightCurveTree {
             // Try to find first node which contains element and add => otherwise add to current node
             node.getChildren()
                     .parallelStream()
-                    .filter(e -> e.contains(heightCurveElement))
+                    .filter(e -> e.getHeightCurveElement().contains(heightCurveElement))
                     .findFirst()
                     .ifPresentOrElse(
                             containingNode -> put(containingNode, heightCurveElement),

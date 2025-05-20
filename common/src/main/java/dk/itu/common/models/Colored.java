@@ -5,7 +5,6 @@ import dk.itu.common.configurations.DrawingConfiguration;
 import java.awt.*;
 
 public abstract class Colored implements Drawable {
-    public static final double DRAWING_TOLERANCE = 8;
     private Color color;
     private Integer stroke;
 

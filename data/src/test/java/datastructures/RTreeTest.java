@@ -12,7 +12,6 @@ import dk.itu.data.models.osm.OsmNode;
 import dk.itu.data.services.Services;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.awt.*;
@@ -42,8 +41,6 @@ public class RTreeTest {
     public void testInsertSingleElementCreatesRoot() {
         // Arrange
         OsmElement element = new OsmElement(1, new double[]{1, 1, 2, 2}) {
-            @Override
-            public void prepareDrawing(Graphics2D g2d) {}
 
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {}
@@ -64,22 +61,16 @@ public class RTreeTest {
         // Arrange
         // Elements to insert
         OsmElement inside1 = new OsmElement(1, new double[]{1, 1, 2, 2}) {
-            @Override
-            public void prepareDrawing(Graphics2D g2d) {}
 
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         }; // Area = 1
         OsmElement inside2 = new OsmElement(2, new double[]{1, 1, 3, 3}) {
-            @Override
-            public void prepareDrawing(Graphics2D g2d) {}
 
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         }; // Area = 4
         OsmElement outside = new OsmElement(3, new double[]{10, 10, 12, 12}) {
-            @Override
-            public void prepareDrawing(Graphics2D g2d) {}
 
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {}
@@ -111,22 +102,16 @@ public class RTreeTest {
         RTreeNode child2 = new RTreeNode();
 
         BoundingBox bbox1 = new BoundingBox(0, 0, 2, 2) {
-            @Override
-            public void prepareDrawing(Graphics2D g2d) {}
 
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         };
         BoundingBox bbox2 = new BoundingBox(5, 5, 6, 6) {
-            @Override
-            public void prepareDrawing(Graphics2D g2d) {}
 
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         };
         BoundingBox overlapBox = new BoundingBox(1.5, 1.5, 2.5, 2.5) {
-            @Override
-            public void prepareDrawing(Graphics2D g2d) {}
 
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {}
@@ -296,10 +281,6 @@ public class RTreeTest {
         RTreeNode child2 = new RTreeNode();
 
         child1.setMBR(new BoundingBox(0, 0, 5, 5) {
-            @Override
-            public void prepareDrawing(Graphics2D g2d) {
-
-            }
 
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {
@@ -307,10 +288,6 @@ public class RTreeTest {
             }
         });
         child2.setMBR(new BoundingBox(10, 10, 15, 15) {
-            @Override
-            public void prepareDrawing(Graphics2D g2d) {
-
-            }
 
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {
@@ -322,10 +299,6 @@ public class RTreeTest {
         root.getChildren().add(child2);
 
         BoundingBox testMbr = new BoundingBox(11, 11, 12, 12) {
-            @Override
-            public void prepareDrawing(Graphics2D g2d) {
-
-            }
 
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {

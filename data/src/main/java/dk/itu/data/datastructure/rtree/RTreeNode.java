@@ -82,9 +82,6 @@ public class RTreeNode extends BoundingBox {
     }
 
     @Override
-    public void prepareDrawing(Graphics2D g2d) {}
-
-    @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
         g2d.setColor(STYLE.rgba());
         g2d.setStroke(new BasicStroke(strokeBaseWidth * STYLE.stroke()));

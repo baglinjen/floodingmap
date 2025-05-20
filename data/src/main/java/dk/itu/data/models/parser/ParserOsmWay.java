@@ -4,8 +4,6 @@ import java.awt.*;
 import java.awt.geom.Path2D;
 import java.util.List;
 
-import static dk.itu.util.ShapePreparer.prepareLinePath;
-import static dk.itu.util.ShapePreparer.preparePolygonPath;
 import static dk.itu.util.PolygonUtils.*;
 
 public class ParserOsmWay extends ParserOsmElement {
@@ -62,25 +60,7 @@ public class ParserOsmWay extends ParserOsmElement {
     }
 
     @Override
-    public void prepareDrawing(Graphics2D g2d) {
-        path.reset();
-        if (isLine) {
-            prepareLinePath(path, g2d, coordinates, DRAWING_TOLERANCE);
-        } else {
-            preparePolygonPath(path, g2d, coordinates, DRAWING_TOLERANCE);
-        }
-    }
-
-    @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
-        if (path.getCurrentPoint() == null) return;
-
-        g2d.setColor(getColor());
-        if (isLine) {
-            g2d.setStroke(new BasicStroke(strokeBaseWidth * getStroke()));
-            g2d.draw(path);
-        } else {
-            g2d.fill(path);
-        }
+        // No need to draw
     }
 }

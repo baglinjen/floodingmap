@@ -9,7 +9,6 @@ import java.util.List;
 
 import static dk.itu.util.ArrayUtils.appendExcludingN;
 import static dk.itu.util.PolygonUtils.*;
-import static dk.itu.util.ShapePreparer.*;
 
 public class ParserOsmRelation extends ParserOsmElement {
     private final double[] bounds = new double[4];
@@ -201,17 +200,8 @@ public class ParserOsmRelation extends ParserOsmElement {
     }
 
     @Override
-    public void prepareDrawing(Graphics2D g2d) {
-        path.reset();
-        prepareComplexPolygon(path, g2d, outerPolygons, innerPolygons, 1);
-    }
-
-    @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
-        if (path.getCurrentPoint() == null) return;
-
-        g2d.setColor(getColor());
-        g2d.fill(path);
+        // No need to draw
     }
 
     public enum OsmRelationType {

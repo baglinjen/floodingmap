@@ -21,9 +21,6 @@ public class NearestNeighbour extends Colored {
     }
 
     @Override
-    public void prepareDrawing(Graphics2D g2d) {} //Nothing to prepare
-
-    @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
         var path = new Path2D.Double();
         path.moveTo(0.56*mousePos.getX(), -mousePos.getY());

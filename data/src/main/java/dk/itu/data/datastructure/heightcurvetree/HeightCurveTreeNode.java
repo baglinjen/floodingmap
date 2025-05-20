@@ -22,14 +22,6 @@ public class HeightCurveTreeNode {
         return heightCurveElement;
     }
 
-    public boolean contains(HeightCurveElement element) {
-        if (heightCurveElement.contains(element)) {
-            return PolygonUtils.contains(this.heightCurveElement.getCoordinates(), element.getCoordinates());
-        } else {
-            return false;
-        }
-    }
-
     public boolean contains(double lon, double lat) {
         if (
                 lon >= heightCurveElement.getMinLon() &&

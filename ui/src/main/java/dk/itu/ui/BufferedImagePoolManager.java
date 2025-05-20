@@ -44,8 +44,6 @@ public class BufferedImagePoolManager {
 
         var g2d = createGraphicsWaterBackgroundSingleBuffer(finalImageToDrawTo);
 
-        elements.parallelStream().forEach(element -> element.prepareDrawing(g2d));
-
         for (T element : elements) {
             element.draw(g2d, strokeBaseWidth);
         }
@@ -72,7 +70,6 @@ public class BufferedImagePoolManager {
                 }
                 Graphics2D g2d = createGraphicsTransparent(img);
 
-                partition.parallelStream().forEach(e -> e.prepareDrawing(g2d));
                 for (T element : partition) {
                     element.draw(g2d, strokeBaseWidth);
                 }
