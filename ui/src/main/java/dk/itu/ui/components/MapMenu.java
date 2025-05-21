@@ -58,7 +58,7 @@ public class MapMenu extends ContextMenu {
             } else{
                 try{
                     state.getRoutingConfiguration().setRoutingMethod(routeType);
-                    state.getRoutingConfiguration().calculateRoute(state.isWithDb());
+                    state.getRoutingConfiguration().calculateRoute();
                 } catch(RuntimeException ex){
                     displayAlert(ex.getMessage());
                 }

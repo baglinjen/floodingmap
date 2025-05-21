@@ -91,7 +91,7 @@ public class MouseEventOverlayComponent extends BorderPane {
                     break;
                 case "C":
                     try {
-                        state.getRoutingConfiguration().calculateRoute(state.isWithDb());
+                        state.getRoutingConfiguration().calculateRoute();
                     } catch (Exception e) {
                         var alert = new Alert(Alert.AlertType.ERROR);
                         alert.setTitle("Something went wrong");
