@@ -55,7 +55,7 @@ public class RoutingService {
     }
     public RoutingType getRoutingMethod(){return routingType;}
 
-    public OsmElement getRoute(boolean isWithDb, double currentWaterLevel){
+    public OsmElement getRoute(double currentWaterLevel){
         if(cachedRouteWaterLevel == currentWaterLevel) return cachedRoute;
 
         if(calculationThread != null && calculationThread.isAlive()){
@@ -64,7 +64,7 @@ public class RoutingService {
         }
 
         try{
-            var thread = calculateRoute(isWithDb);
+            var thread = calculateRoute();
             thread.join();
         } catch(InterruptedException e){
             logger.error("An exception occurred while awaiting route calculation: {}", e.getMessage());
@@ -81,7 +81,7 @@ public class RoutingService {
         return List.copyOf(touchedNodes);
     }
 
-    public Thread calculateRoute(boolean isWithDb) throws RuntimeException{
+    public Thread calculateRoute() throws RuntimeException{
         logger.info("Attempting to calculate route");
         if(calculationThread != null && calculationThread.isAlive()){
             logger.info("Can not compute route while thread is busy");
@@ -94,8 +94,6 @@ public class RoutingService {
                     stopCalculationFlag = false;
                     cachedRouteWaterLevel = waterLevel; //Register height for caching
 
-                    var nodes = services.getOsmService(isWithDb).getTraversableOsmNodes();
-
                     if (startNode == null || endNode == null)
                         throw new IllegalArgumentException("Start node and end node must be selected");
                     if (startNode.getId() == endNode.getId())
@@ -106,8 +104,8 @@ public class RoutingService {
 //                    nodes.removeIf(node -> node.getId() == startNode.getId() || node.getId() == endNode.getId());
 
                     var route = routingType == RoutingType.AStarBidirectional ?
-                            createAStarBidirectional(startNode, endNode, nodes, services) :
-                            createPath(createCoordinateList(createRoute(startNode, endNode, nodes, services, null), startNode, endNode));
+                            createAStarBidirectional(startNode, endNode, services) :
+                            createPath(createCoordinateList(createRoute(startNode, endNode, services, null), startNode, endNode));
 
                     if (route == null)
                         logger.warn("No possible route could be found between: {}, {}", startNode.getId(), endNode.getId());
@@ -125,7 +123,7 @@ public class RoutingService {
         return calculationThread;
     }
 
-    private OsmElement createAStarBidirectional(OsmNode startNode, OsmNode endNode, List<OsmNode> nodes, Services services){
+    private OsmElement createAStarBidirectional(OsmNode startNode, OsmNode endNode, Services services){
         logger.info("Beginning A-star bidirectional route");
         try{
             sharedNode = null;
@@ -134,8 +132,8 @@ public class RoutingService {
             var forwardSet = Collections.synchronizedSet(new HashSet<OsmNode>());
             var backwardSet = Collections.synchronizedSet(new HashSet<OsmNode>());
 
-            Callable<Map<OsmNode, OsmNode>> forwardTask = () -> createRoute(startNode, endNode, nodes, services, new Pair<>(forwardSet, backwardSet));
-            Callable<Map<OsmNode, OsmNode>> backwardTask = () -> createRoute(endNode, startNode, nodes, services, new Pair<>(backwardSet, forwardSet));
+            Callable<Map<OsmNode, OsmNode>> forwardTask = () -> createRoute(startNode, endNode, services, new Pair<>(forwardSet, backwardSet));
+            Callable<Map<OsmNode, OsmNode>> backwardTask = () -> createRoute(endNode, startNode, services, new Pair<>(backwardSet, forwardSet));
 
             Future<Map<OsmNode, OsmNode>> forwardFuture = executorService.submit(forwardTask);
             Future<Map<OsmNode, OsmNode>> backwardFuture = executorService.submit(backwardTask);
@@ -146,7 +144,7 @@ public class RoutingService {
             if(sharedNode == startNode || sharedNode == endNode){
                 //Routing is too short for multithreading -> fallback to regular A*
                 logger.info("Falling back to regular A* - route was to short to efficiently calculate with multithreading");
-                return createPath(createCoordinateList(createRoute(startNode, endNode, nodes, services, null), startNode, endNode));
+                return createPath(createCoordinateList(createRoute(startNode, endNode, services, null), startNode, endNode));
             }
 
             var forwardsRoute = createCoordinateList(forwardsRouteMap, startNode, sharedNode);
@@ -161,18 +159,16 @@ public class RoutingService {
         }
     }
 
-    private Map<OsmNode, OsmNode> createRoute(OsmNode startNode, OsmNode endNode, List<OsmNode> nodes, Services services, Pair<Set<OsmNode>, Set<OsmNode>> connectionSet){
+    private Map<OsmNode, OsmNode> createRoute(OsmNode startNode, OsmNode endNode, Services services, Pair<Set<OsmNode>, Set<OsmNode>> connectionSet){
         logger.debug("Starting routing from {} to {}", startNode.getId(), endNode.getId());
         Map<OsmNode, OsmNode> previousConnections = new HashMap<>();
-        Map<OsmNode, Double> knownDistances = new HashMap<>();
-        Map<OsmNode, Double> heuristicDistances = new HashMap<>();
+        Map<OsmNode, Float> knownDistances = new HashMap<>();
+        Map<OsmNode, Float> heuristicDistances = new HashMap<>();
 
-        PriorityQueue<OsmNode> pq = new PriorityQueue<>(Comparator.comparingDouble(n -> heuristicDistances.getOrDefault(n, Double.MAX_VALUE)));
+        PriorityQueue<OsmNode> pq = new PriorityQueue<>(Comparator.comparingDouble(n -> heuristicDistances.getOrDefault(n, Float.MAX_VALUE)));
 
-        for (OsmNode n : nodes) {
-            knownDistances.put(n, n == startNode ? 0.0 : Double.MAX_VALUE);
-            heuristicDistances.put(n, n == endNode ? 0.0 : Double.MAX_VALUE);
-        }
+        knownDistances.put(startNode, 0f);
+        heuristicDistances.put(endNode, 0f);
 
         pq.offer(startNode);
 
@@ -212,9 +208,9 @@ public class RoutingService {
                 return previousConnections;
             }
 
-            var nodeDistance = knownDistances.get(node);
+            var nodeDistance = knownDistances.putIfAbsent(node, Float.MAX_VALUE);
 
-            Pair<OsmNode[],double[]> connections = node.getConnections();
+            Pair<OsmNode[],float[]> connections = node.getConnections();
             var nodeConnections = connections.getFirst();
             var nodeDistances = connections.getSecond();
 
@@ -231,12 +227,12 @@ public class RoutingService {
 
                 if(nextNodeCurve != null && !nextNodeCurve.getIsAboveWater()) continue;//Road is flooded
 
-                double connDistance = nodeDistances[i];
-                double distance = connDistance + nodeDistance;
-                if(distance < knownDistances.get(nextNode)){
+                float connDistance = nodeDistances[i];
+                float distance = connDistance + nodeDistance;
+                if (distance < knownDistances.getOrDefault(nextNode, Float.MAX_VALUE)) {
                     knownDistances.put(nextNode, distance);
                     previousConnections.put(nextNode, node);
-                    heuristicDistances.put(nextNode, distance + (routingType == RoutingType.Dijkstra ? 0.0 : RoutingUtils.distanceMeters(nextNode.getLat(), nextNode.getLon(), endNode.getLat(), endNode.getLon())));
+                    heuristicDistances.put(nextNode, distance + (routingType == RoutingType.Dijkstra ? 0f : RoutingUtils.distanceMetersFloat(nextNode.getLat(), nextNode.getLon(), endNode.getLat(), endNode.getLon())));
                     pq.offer(nextNode);
                 }
             }

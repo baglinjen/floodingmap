@@ -6,23 +6,22 @@ import kotlin.Pair;
 
 import java.awt.*;
 
-import static dk.itu.data.utils.RoutingUtils.distanceMeters;
+import static dk.itu.data.utils.RoutingUtils.distanceMetersFloat;
 
 public class OsmNode extends OsmElement {
     private final double lat, lon;
-    private final Pair<OsmNode[], double[]> connections;
+    private OsmNode[] connections;
+    private float[] distances;
     private HeightCurveElement containingCurve = null;
 
     public OsmNode(long id, double lon, double lat, double[] boundingBox, int connectionsCount) {
         super(id, boundingBox);
         this.lon = lon;
         this.lat = lat;
-        connections = connectionsCount > 0 ?
-                new Pair<>(
-                        new OsmNode[connectionsCount],
-                        new double[connectionsCount]
-                )
-                : null;
+        if (connectionsCount > 0) {
+            this.connections = new OsmNode[connectionsCount];
+            this.distances = new float[connectionsCount];
+        }
     }
 
     public static OsmNode mapToOsmNode(ParserOsmNode parserOsmNode) {
@@ -40,13 +39,12 @@ public class OsmNode extends OsmElement {
 
     public void addConnection(OsmNode connection) {
         if (connections == null) return;
-        var nodeConnections = connections.getFirst();
         int i = 0;
-        for (; i < nodeConnections.length; i++) {
-            if (nodeConnections[i] == null) break;
+        for (; i < connections.length; i++) {
+            if (connections[i] == null) break;
         }
-        nodeConnections[i] = connection;
-        connections.getSecond()[i] = distanceMeters(this.lat, this.lon, connection.getLat(), connection.getLon());
+        connections[i] = connection;
+        distances[i] = distanceMetersFloat(this.lat, this.lon, connection.getLat(), connection.getLon());
     }
 
     public void setContainingCurve(HeightCurveElement containingCurve){
@@ -64,8 +62,8 @@ public class OsmNode extends OsmElement {
         return lon;
     }
 
-    public Pair<OsmNode[], double[]> getConnections() {
-        return connections;
+    public Pair<OsmNode[], float[]> getConnections() {
+        return new Pair<>(connections, distances);
     }
 
     @Override
