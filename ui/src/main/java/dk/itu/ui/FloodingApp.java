@@ -19,6 +19,7 @@ import java.awt.geom.Ellipse2D;
 import java.awt.image.*;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -58,7 +59,7 @@ public class FloodingApp extends GameApplication {
             CompletableFuture<Void>[] dataFetchFutures = new CompletableFuture[3];
 
             List<Colored> drawables = new ArrayList<>();
-            List<OsmElement> osmElements = new ReferenceArrayList<>();
+            List<OsmElement> osmElements = Collections.synchronizedList(new ReferenceArrayList<>());
             List<BoundingBox> spatialNodes = new ReferenceArrayList<>();
             List<HeightCurveElement> heightCurves = new ReferenceArrayList<>();
 
@@ -71,16 +72,15 @@ public class FloodingApp extends GameApplication {
                     // Adding OSM Elements
                     dataFetchFutures[0] = CompletableFuture.runAsync(() -> {
                         osmElements.clear();
-                        osmElements.addAll(
-                                services
-                                        .getOsmService(state.isWithDb())
-                                        .getOsmElementsToBeDrawnScaled(
-                                                window[0],
-                                                window[1],
-                                                window[2],
-                                                window[3]
-                                        )
-                        );
+                        services
+                                .getOsmService(state.isWithDb())
+                                .getOsmElementsToBeDrawnScaled(
+                                        window[0],
+                                        window[1],
+                                        window[2],
+                                        window[3],
+                                        osmElements
+                                );
                     }, executor);
 
                     // Adding Bounding Boxes
@@ -143,7 +143,7 @@ public class FloodingApp extends GameApplication {
                     drawables.addAll(heightCurves);
 
                     // Add routing if there is one
-                    var dijkstraRoute = state.getRoutingConfiguration().getRoute(state.isWithDb(), state.getActualWaterLevel());
+                    var dijkstraRoute = state.getRoutingConfiguration().getRoute(state.getActualWaterLevel());
                     if (dijkstraRoute != null){
                         drawables.add(dijkstraRoute);
                     }
@@ -153,8 +153,6 @@ public class FloodingApp extends GameApplication {
                         var nodes = state.getRoutingConfiguration().getTouchedNodes();
                         for (var n : nodes) {
                             drawables.add(new Colored() {
-                                @Override
-                                public void prepareDrawing(Graphics2D g2d) {}
                                 @Override
                                 public void draw(Graphics2D g2d, float strokeBaseWidth) {
                                     g2d.setColor(Color.MAGENTA);
@@ -169,9 +167,6 @@ public class FloodingApp extends GameApplication {
                     if (startNode != null) {
                         drawables.add(new Colored() {
                             @Override
-                            public void prepareDrawing(Graphics2D g2d) {}
-
-                            @Override
                             public void draw(Graphics2D g2d, float strokeBaseWidth) {
                                 g2d.setColor(Color.GREEN);
                                 g2d.fill(new Ellipse2D.Double(0.56 * startNode.getLon() - strokeBaseWidth * 8 / 2, -startNode.getLat() - strokeBaseWidth * 8 / 2, strokeBaseWidth * 8, strokeBaseWidth * 8));
@@ -181,9 +176,6 @@ public class FloodingApp extends GameApplication {
                     var endNode = state.getRoutingConfiguration().getEndNode();
                     if (endNode != null) {
                         drawables.add(new Colored() {
-                            @Override
-                            public void prepareDrawing(Graphics2D g2d) {}
-
                             @Override
                             public void draw(Graphics2D g2d, float strokeBaseWidth) {
                                 g2d.setColor(Color.RED);
