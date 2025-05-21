@@ -71,6 +71,7 @@ public class OsmParser {
                 }
             }
 
+            elementBuilder.clear();
             logger.info("Finished parsing file {} in {}ms", fileName, String.format("%.3f", (System.nanoTime() - startTime) / 1_000_000d));
 
         } catch (IOException | XMLStreamException e) {

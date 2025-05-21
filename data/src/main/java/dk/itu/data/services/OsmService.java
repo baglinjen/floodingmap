@@ -55,10 +55,12 @@ public class OsmService {
             logger.info("Started inserting drawable elements to repository");
             long startTime = System.currentTimeMillis();
             osmElementRepository.add(osmParserResult.getElementsToBeDrawn());
+            osmParserResult.clearElementsToBeDrawn();
             logger.info("Finished inserting drawable elements to repository in {} ms", System.currentTimeMillis() - startTime);
             logger.info("Started inserting traversable elements to repository");
             startTime = System.currentTimeMillis();
             osmElementRepository.addTraversable(osmParserResult.getTraversals());
+            osmParserResult.clearTraversals();
             logger.info("Finished inserting traversable elements to repository in {} ms", System.currentTimeMillis() - startTime);
         }
     }

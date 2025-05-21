@@ -15,41 +15,51 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectAVLTreeMap;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class OsmParserResult {
-    private final List<ParserOsmNode> nodes = new ArrayList<>();
-    private final List<ParserOsmElement> ways = new ArrayList<>();
-    private final List<ParserOsmElement> relations = new ArrayList<>();
+    private final ArrayList<ParserOsmNode> nodes = new ArrayList<>();
+    private final ArrayList<ParserOsmElement> ways = new ArrayList<>();
+    private final ArrayList<ParserOsmElement> relations = new ArrayList<>();
     private final Long2ObjectAVLTreeMap<ParserOsmNode> traversableNodes = new Long2ObjectAVLTreeMap<>();
 
-    private List<OsmElement> elementsToBeDrawn;
-    private List<OsmNode> traversals;
+    private ArrayList<OsmElement> elementsToBeDrawn;
+    private ArrayList<OsmNode> traversals;
 
     public List<OsmElement> getElementsToBeDrawn() {
         return elementsToBeDrawn;
     }
+    public void clearElementsToBeDrawn() {
+        elementsToBeDrawn.clear();
+        elementsToBeDrawn.trimToSize();
+    }
     public List<OsmNode> getTraversals() {
         return traversals;
+    }
+    public void clearTraversals() {
+        traversals.clear();
+        traversals.trimToSize();
     }
 
     public void sanitize() {
         List<OsmElement> allElements = new ArrayList<>();
         allElements.addAll(this.nodes.parallelStream().filter(ParserOsmElement::shouldBeDrawn).map(this::mapToOsmElement).toList());
         this.nodes.clear();
+        this.nodes.trimToSize();
         allElements.addAll(this.ways.parallelStream().filter(ParserOsmElement::shouldBeDrawn).map(this::mapToOsmElement).toList());
         this.ways.clear();
+        this.ways.trimToSize();
         allElements.addAll(this.relations.parallelStream().filter(ParserOsmElement::shouldBeDrawn).map(this::mapToOsmElement).toList());
         this.relations.clear();
+        this.relations.trimToSize();
 
-        this.elementsToBeDrawn = allElements.parallelStream().sorted(Comparator.comparing(BoundingBox::getArea)).toList();
+        this.elementsToBeDrawn = allElements.parallelStream().sorted(Comparator.comparing(BoundingBox::getArea)).collect(Collectors.toCollection(ArrayList::new));
 
         // Building connection map
-        List<ParserOsmNode> traversableNodesSorted = this.traversableNodes.values().stream().toList();
+        ArrayList<ParserOsmNode> traversableNodesSorted = new ArrayList<>(this.traversableNodes.values());
         this.traversableNodes.clear();
-        this.traversals = traversableNodesSorted.parallelStream().map(OsmNode::mapToOsmNode).toList();
-
-        final int[] hits = new int[] {0}; // 1800+ for Bornholm
+        this.traversals = traversableNodesSorted.parallelStream().map(OsmNode::mapToOsmNode).collect(Collectors.toCollection(ArrayList::new));
 
         IntStream.range(0, traversableNodesSorted.size())
                 .parallel()
@@ -60,19 +70,12 @@ public class OsmParserResult {
                             OsmNode node = findElement(connection, this.traversals);
                             if (node != null) {
                                 this.traversals.get(i).addConnection(node);
-                            } else {
-                                hits[0]++;
-                                // Should update connection with -1
                             }
                         }
-
-                        // Check if elements is still traversable
                     }
                 });
-
-
-
-        System.out.println(hits[0]);
+        traversableNodesSorted.clear();
+        traversableNodesSorted.trimToSize();
     }
 
     private OsmElement mapToOsmElement(ParserOsmElement osmElement) {
