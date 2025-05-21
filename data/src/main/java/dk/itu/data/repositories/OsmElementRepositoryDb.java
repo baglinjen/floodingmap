@@ -5,10 +5,6 @@ import dk.itu.data.models.osm.OsmElement;
 import dk.itu.data.models.osm.OsmNode;
 import dk.itu.data.models.osm.OsmRelation;
 import dk.itu.data.models.osm.OsmWay;
-import dk.itu.data.models.parser.ParserOsmElement;
-import dk.itu.data.models.parser.ParserOsmNode;
-import dk.itu.data.models.parser.ParserOsmRelation;
-import dk.itu.data.models.parser.ParserOsmWay;
 import org.apache.fury.Fury;
 import org.apache.fury.ThreadLocalFury;
 import org.apache.fury.ThreadSafeFury;
@@ -52,14 +48,14 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
     }
 
     @Override
-    public final void add(List<ParserOsmElement> osmElements) {
+    public final void add(List<OsmElement> osmElements) {
         ctx.batch(
                 osmElements
                         .parallelStream()
                         .map(e -> switch (e) {
-                            case ParserOsmNode osmNode -> addNodeNormalQuery(osmNode);
-                            case ParserOsmWay osmWay -> addWayQuery(osmWay);
-                            case ParserOsmRelation osmRelation -> addRelationQuery(osmRelation);
+                            case OsmNode osmNode -> addNodeNormalQuery(osmNode);
+                            case OsmWay osmWay -> addWayQuery(osmWay);
+                            case OsmRelation osmRelation -> addRelationQuery(osmRelation);
                             default -> null;
                         })
                         .filter(Objects::nonNull)
@@ -68,7 +64,7 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
     }
 
     @Override
-    public final void addTraversable(List<ParserOsmNode> osmElements) {
+    public final void addTraversable(List<OsmNode> osmElements) {
         ctx.batch(
                 osmElements
                         .parallelStream()
@@ -77,17 +73,16 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
         ).execute();
     }
 
-    private Query addNodeTraversableQuery(ParserOsmNode osmNode) {
+    private Query addNodeTraversableQuery(OsmNode osmNode) {
         return addNodeQuery(osmNode, "nodesTraversable");
     }
 
-    private Query addNodeNormalQuery(ParserOsmNode osmNode) {
+    private Query addNodeNormalQuery(OsmNode osmNode) {
         return addNodeQuery(osmNode, "nodes");
     }
 
-    private Query addNodeQuery(ParserOsmNode parserOsmNode, String table) {
-        var geoField = DSL.field("ST_GeomFromText({0}, {1})", DSL.val(String.format("POINT(%s %s)", parserOsmNode.getLon(), parserOsmNode.getLat())), DSL.val(4326), Geometry.class);
-        var osmNode = OsmNode.mapToOsmNode(parserOsmNode);
+    private Query addNodeQuery(OsmNode osmNode, String table) {
+        var geoField = DSL.field("ST_GeomFromText({0}, {1})", DSL.val(String.format("POINT(%s %s)", osmNode.getLon(), osmNode.getLat())), DSL.val(4326), Geometry.class);
 
         return ctx.insertInto(DSL.table(table),
                 DSL.field("id"),
@@ -102,9 +97,8 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
         ).onConflict(DSL.field("id")).doNothing();
     }
 
-    private Query addWayQuery(ParserOsmWay parserOsmWay) {
-        var geoField = parserOsmWay.isLine() ? getGeometryFieldFromShape("line", parserOsmWay.getCoordinates()) : getGeometryFieldFromShape("polygon", parserOsmWay.getCoordinates());
-        var osmWay = OsmWay.mapToOsmWay(parserOsmWay);
+    private Query addWayQuery(OsmWay osmWay) {
+        var geoField = osmWay.isLine() ? getGeometryFieldFromShape("line", osmWay.getOuterCoordinates()) : getGeometryFieldFromShape("polygon", osmWay.getOuterCoordinates());
 
         return ctx.insertInto(DSL.table("ways"),
                 DSL.field("id"),
@@ -113,31 +107,30 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
                 DSL.field("dbObj"),
                 DSL.field("area")
         ).values(
-                parserOsmWay.getId(),
-                parserOsmWay.isLine() ? geoField : null,
-                parserOsmWay.isLine() ? null : geoField,
+                osmWay.getId(),
+                osmWay.isLine() ? geoField : null,
+                osmWay.isLine() ? null : geoField,
                 fury.serializeJavaObject(osmWay),
                 DSL.field("ST_Area(ST_Envelope({0}::geometry), false)", geoField)
         ).onConflict(DSL.field("id")).doNothing();
     }
 
-    private Query addRelationQuery(ParserOsmRelation parserOsmRelation) {
-        var geoField = getMultipolygonGeometry(parserOsmRelation);
-        var osmRelation = OsmRelation.mapToOsmRelation(parserOsmRelation);
+    private Query addRelationQuery(OsmRelation osmRelation) {
+        var geoField = getMultipolygonGeometry(osmRelation);
         return ctx.insertInto(DSL.table("relations"),
                 DSL.field("id"),
                 DSL.field("shape"),
                 DSL.field("dbObj"),
                 DSL.field("area")
         ).values(
-                parserOsmRelation.getId(),
+                osmRelation.getId(),
                 geoField,
                 fury.serializeJavaObject(osmRelation),
                 DSL.field("ST_Area(ST_Envelope({0}::geometry), false)", geoField)
         ).onConflict(DSL.field("id")).doNothing();
     }
 
-    private Field<Geometry> getMultipolygonGeometry(ParserOsmRelation osmRelation) {
+    private Field<Geometry> getMultipolygonGeometry(OsmRelation osmRelation) {
         var outerPolygons = osmRelation.getOuterPolygons();
         var innerPolygons = osmRelation.getInnerPolygons();
 
@@ -206,10 +199,11 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
     }
 
     @Override
-    public List<OsmElement> getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
+    public void getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea, List<OsmElement> osmElements) {
         String condWays = String.format("COALESCE(w.line, w.polygon) && ST_MakeEnvelope(%s, %s, %s, %s, 4326) AND w.area >= %s", minLon, minLat, maxLon, maxLat, minBoundingBoxArea);
         String condRelations = String.format("r.shape && ST_MakeEnvelope(%s, %s, %s, %s, 4326) AND r.area >= %s", minLon, minLat, maxLon, maxLat, minBoundingBoxArea);
-        return ctx.select(
+        osmElements.addAll(
+                ctx.select(
                         DSL.field("n.dbObj", byte[].class),
                         DSL.field("'n' as type", String.class),
                         DSL.field("n.area", Float.class)
@@ -245,7 +239,8 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
                             default -> null;
                         };
                     }
-                });
+                })
+        );
     }
 
     @Override

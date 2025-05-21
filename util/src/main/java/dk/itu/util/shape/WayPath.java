@@ -9,20 +9,15 @@ import static dk.itu.util.DrawingUtils.calculateDistance;
 import static dk.itu.util.PolygonUtils.isClosed;
 
 public class WayPath implements Shape {
-    private static final AffineTransform projectionTransform = AffineTransform.getScaleInstance(0.56, -1);
     private final byte[] pointTypes;
     private final double[] outerCoordinates;
     private final PathIterator pathIteratorNodeSkip;
 
     private int pathIteratorPointer = 0;
-    private AffineTransform transform = new AffineTransform();
+    private final AffineTransform transform = new AffineTransform();
 
     public WayPath(double[] coordinates) {
         this.outerCoordinates = coordinates;
-        // Add projection
-        double[] coordinatesProjected = new double[coordinates.length];
-        projectionTransform.transform(coordinates, 0, coordinatesProjected, 0, coordinates.length / 2);
-
         // Set point types
         this.pointTypes = new byte[coordinates.length / 2];
         Arrays.fill(pointTypes, (byte) 1); // 1 is lineTo
@@ -53,19 +48,19 @@ public class WayPath implements Shape {
                 byte type = pointTypes[pathIteratorPointer];
                 if (pathIteratorPointer == 0) {
                     // First point
-                    transform.transform(coordinatesProjected, 0, coords, 0, 1);
+                    transform.transform(outerCoordinates, 0, coords, 0, 1);
                     lastCoordinateX = coords[0];
                     lastCoordinateY = coords[1];
                 } else {
                     // Nth point
-                    transform.transform(coordinatesProjected, pathIteratorPointer*2, coords, 0, 1);
+                    transform.transform(outerCoordinates, pathIteratorPointer*2, coords, 0, 1);
                     var distanceToLastPoint = calculateDistance(lastCoordinateX, lastCoordinateY, coords[0], coords[1]);
 
                     while (distanceToLastPoint < DRAWING_TOLERANCE && type == 1 && pathIteratorPointer < pointTypes.length-1) {
                         // Point not found and has not reached end of current polygon yet
                         pathIteratorPointer++;
                         type = pointTypes[pathIteratorPointer];
-                        transform.transform(coordinatesProjected, pathIteratorPointer * 2, coords, 0, 1);
+                        transform.transform(outerCoordinates, pathIteratorPointer * 2, coords, 0, 1);
                         distanceToLastPoint = calculateDistance(lastCoordinateX, lastCoordinateY, coords[0], coords[1]);
                     }
 
@@ -92,7 +87,10 @@ public class WayPath implements Shape {
     @Override
     public PathIterator getPathIterator(AffineTransform at) {
         this.pathIteratorPointer = 0;
-        this.transform = at;
+
+        transform.setToScale(0.56, -1);
+        transform.preConcatenate(at);
+
         return pathIteratorNodeSkip;
     }
 

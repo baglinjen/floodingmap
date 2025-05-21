@@ -178,7 +178,7 @@ public class State {
     /// This is called when loading height curves, and will spawn threads that process the nodes
     public void recalculateNodeHeight(){
         Services.withServices(s -> {
-            var nodes = s.getOsmService(isWithDb()).getTraversableOsmNodes().values().stream().toList();
+            var nodes = s.getOsmService(isWithDb()).getTraversableOsmNodes();
 
             //Distribute workload across N threads
             int threadPool = Runtime.getRuntime().availableProcessors();

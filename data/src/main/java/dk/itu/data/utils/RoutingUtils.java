@@ -8,16 +8,6 @@ import java.util.Map;
 public class RoutingUtils {
     private static final double EARTH_RADIUS_KM = 6371;
 
-    public static Map<Long, Double> buildConnectionMap(ParserOsmNode node){
-        var result = new HashMap<Long, Double>();
-
-        for (ParserOsmNode connection : node.getConnections()) {
-            result.put(connection.getId(), distanceMeters(node.getLat(), node.getLon(), connection.getLat(), connection.getLon()));
-        }
-
-        return result;
-    }
-
     // This is based on the haversine formula to calculate distance between two points while accounting for earths curvature
     public static Double distanceMeters(double lat1, double lon1, double lat2, double lon2){
         double lat1Rad = Math.toRadians(lat1);

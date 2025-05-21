@@ -1,22 +1,22 @@
 package dk.itu.data.models.parser;
 
+import dk.itu.util.shape.WayPath;
+
 import java.awt.*;
-import java.awt.geom.Path2D;
 import java.util.List;
 
 import static dk.itu.util.PolygonUtils.*;
 
 public class ParserOsmWay extends ParserOsmElement {
     private final double[] bounds = new double[4];
-    private final double[] coordinates;
-    private final Path2D.Double path = new Path2D.Double(Path2D.WIND_EVEN_ODD);
+    private final WayPath path;
 
     private final boolean isLine;
 
     public ParserOsmWay(long id, List<ParserOsmNode> nodes) {
         super(id);
         double minLat = nodes.getFirst().getLat(), minLon = nodes.getFirst().getLon(), maxLat = nodes.getFirst().getLat(), maxLon = nodes.getFirst().getLon();
-        var coordinatesRaw = new double[nodes.size()*2];
+        double[] coordinatesRaw = new double[nodes.size()*2];
 
         coordinatesRaw[0] = nodes.getFirst().getLon();
         coordinatesRaw[1] = nodes.getFirst().getLat();
@@ -38,7 +38,11 @@ public class ParserOsmWay extends ParserOsmElement {
 
         isLine = nodes.getFirst().getId() != nodes.getLast().getId();
 
-        coordinates = isLine ? coordinatesRaw : forceCounterClockwise(coordinatesRaw);
+        path = new WayPath(isLine ? coordinatesRaw : forceCounterClockwise(coordinatesRaw));
+    }
+
+    public WayPath getPath() {
+        return path;
     }
 
     @Override
@@ -56,7 +60,7 @@ public class ParserOsmWay extends ParserOsmElement {
     }
 
     public double[] getCoordinates() {
-        return coordinates;
+        return path.getOuterCoordinates();
     }
 
     @Override

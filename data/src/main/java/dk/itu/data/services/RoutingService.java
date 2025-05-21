@@ -103,10 +103,7 @@ public class RoutingService {
 
                     touchedNodes = Collections.synchronizedSet(new HashSet<>());
 
-                    nodes.remove(startNode.getId());
-                    nodes.remove(endNode.getId());
-                    nodes.put(startNode.getId(), startNode);
-                    nodes.put(endNode.getId(), endNode);
+//                    nodes.removeIf(node -> node.getId() == startNode.getId() || node.getId() == endNode.getId());
 
                     var route = routingType == RoutingType.AStarBidirectional ?
                             createAStarBidirectional(startNode, endNode, nodes, services) :
@@ -128,7 +125,7 @@ public class RoutingService {
         return calculationThread;
     }
 
-    private OsmElement createAStarBidirectional(OsmNode startNode, OsmNode endNode, Map<Long, OsmNode> nodes, Services services){
+    private OsmElement createAStarBidirectional(OsmNode startNode, OsmNode endNode, List<OsmNode> nodes, Services services){
         logger.info("Beginning A-star bidirectional route");
         try{
             sharedNode = null;
@@ -164,7 +161,7 @@ public class RoutingService {
         }
     }
 
-    private Map<OsmNode, OsmNode> createRoute(OsmNode startNode, OsmNode endNode, Map<Long, OsmNode> nodes, Services services, Pair<Set<OsmNode>, Set<OsmNode>> connectionSet){
+    private Map<OsmNode, OsmNode> createRoute(OsmNode startNode, OsmNode endNode, List<OsmNode> nodes, Services services, Pair<Set<OsmNode>, Set<OsmNode>> connectionSet){
         logger.debug("Starting routing from {} to {}", startNode.getId(), endNode.getId());
         Map<OsmNode, OsmNode> previousConnections = new HashMap<>();
         Map<OsmNode, Double> knownDistances = new HashMap<>();
@@ -172,10 +169,10 @@ public class RoutingService {
 
         PriorityQueue<OsmNode> pq = new PriorityQueue<>(Comparator.comparingDouble(n -> heuristicDistances.getOrDefault(n, Double.MAX_VALUE)));
 
-        nodes.values().forEach(n -> {
+        for (OsmNode n : nodes) {
             knownDistances.put(n, n == startNode ? 0.0 : Double.MAX_VALUE);
             heuristicDistances.put(n, n == endNode ? 0.0 : Double.MAX_VALUE);
-        });
+        }
 
         pq.offer(startNode);
 
@@ -217,15 +214,13 @@ public class RoutingService {
 
             var nodeDistance = knownDistances.get(node);
 
-            for(var conn : node.getConnectionMap().entrySet()){
-                OsmNode nextNode;
-                try{
-                    nextNode = nodes.get(conn.getKey());
-                    if(nextNode == null) throw new NoSuchElementException("No next node with chosen ID");
-                } catch(NoSuchElementException e){
-                    continue;
-                }
+            Pair<OsmNode[],double[]> connections = node.getConnections();
+            var nodeConnections = connections.getFirst();
+            var nodeDistances = connections.getSecond();
 
+            for (int i = 0; i < connections.getSecond().length; i++) {
+                var nextNode = nodeConnections[i];
+                if (nextNode == null) continue;
                 var nextNodeCurve = nextNode.getContainingCurve();
 
                 if(nextNodeCurve == null) {
@@ -236,7 +231,7 @@ public class RoutingService {
 
                 if(nextNodeCurve != null && !nextNodeCurve.getIsAboveWater()) continue;//Road is flooded
 
-                double connDistance = conn.getValue();
+                double connDistance = nodeDistances[i];
                 double distance = connDistance + nodeDistance;
                 if(distance < knownDistances.get(nextNode)){
                     knownDistances.put(nextNode, distance);

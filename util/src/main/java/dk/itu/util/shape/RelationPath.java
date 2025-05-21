@@ -2,6 +2,7 @@ package dk.itu.util.shape;
 
 import java.awt.*;
 import java.awt.geom.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -10,6 +11,7 @@ import static dk.itu.util.DrawingUtils.calculateDistance;
 
 public class RelationPath implements Shape {
     private static final AffineTransform projectionTransform = AffineTransform.getScaleInstance(0.56, -1);
+    private final List<double[]> outerCoordinates, innerCoordinates;
     private final byte[] pointTypes;
     private final PathIterator pathIteratorNodeSkip;
 
@@ -17,6 +19,11 @@ public class RelationPath implements Shape {
     private AffineTransform transform = new AffineTransform();
 
     public RelationPath(List<double[]> outerCoordinates, List<double[]> innerCoordinates) {
+        this.outerCoordinates = outerCoordinates;
+        if (this.outerCoordinates instanceof ArrayList<?>) ((ArrayList<?>) this.outerCoordinates).trimToSize();
+        this.innerCoordinates = innerCoordinates;
+        if (this.innerCoordinates instanceof ArrayList<?>) ((ArrayList<?>) this.innerCoordinates).trimToSize();
+
         int outerCoordinatesLength = outerCoordinates.stream().mapToInt(x -> x.length).sum();
         int innerCoordinatesLength = innerCoordinates.stream().mapToInt(x -> x.length).sum();
 
@@ -98,10 +105,20 @@ public class RelationPath implements Shape {
         };
     }
 
+    public List<double[]> getOuterPolygons() {
+        return this.outerCoordinates;
+    }
+    public List<double[]> getInnerPolygons() {
+        return this.innerCoordinates;
+    }
+
     @Override
     public PathIterator getPathIterator(AffineTransform at) {
         this.pathIteratorPointer = 0;
+
+        transform.setToScale(0.56, -1);
         this.transform = at;
+
         return pathIteratorNodeSkip;
     }
 

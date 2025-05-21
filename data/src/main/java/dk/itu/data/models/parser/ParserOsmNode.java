@@ -1,12 +1,12 @@
 package dk.itu.data.models.parser;
 
 import java.awt.*;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class ParserOsmNode extends ParserOsmElement {
     private final double lat, lon;
-    private final List<ParserOsmNode> connections = new ArrayList<>();
+    private long[] connectionIds;
 
     public ParserOsmNode(long id, double lat, double lon) {
         super(id);
@@ -14,11 +14,24 @@ public class ParserOsmNode extends ParserOsmElement {
         this.lon = lon;
     }
 
-    public void addConnection(ParserOsmNode connection){
-        connections.add(connection);
+    public int getConnectionIdsCount() {
+        return connectionIds == null ? 0 : connectionIds.length;
+    }
+    public List<Long> getConnectionIds() {
+        if (connectionIds == null) return null;
+        return Arrays.stream(connectionIds)
+                .boxed()
+                .toList();
     }
 
-    public List<ParserOsmNode> getConnections(){return connections;}
+    public void addConnectionId(long connection) {
+        if (connectionIds == null) {
+            connectionIds = new long[1];
+        } else {
+            connectionIds = Arrays.copyOf(connectionIds, connectionIds.length + 1);
+        }
+        connectionIds[connectionIds.length - 1] = connection;
+    }
 
     public double getLat() {
         return lat;

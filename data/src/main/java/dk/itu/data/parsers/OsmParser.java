@@ -8,6 +8,7 @@ import dk.itu.util.LoggerFactory;
 import org.apache.logging.log4j.Logger;
 import org.codehaus.stax2.XMLInputFactory2;
 
+import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import java.io.IOException;
@@ -24,8 +25,7 @@ public class OsmParser {
 
         try (InputStream is = CommonConfiguration.class.getClassLoader().getResourceAsStream("osm/"+fileName)) {
             // Reading utils
-            XMLInputFactory2 xmlInputFactory = (XMLInputFactory2) XMLInputFactory2.newInstance();
-            xmlInputFactory.configureForSpeed();
+            XMLInputFactory xmlInputFactory = XMLInputFactory2.newInstance();
             XMLStreamReader reader = xmlInputFactory.createXMLStreamReader(is);
 
             while (reader.hasNext()) {

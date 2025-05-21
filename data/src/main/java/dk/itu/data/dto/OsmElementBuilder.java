@@ -71,8 +71,8 @@ public class OsmElementBuilder {
                     // Connect the nodes between each other
                     for(int i = 0; i < wayNodes.size(); i++){
                         var curNode = wayNodes.get(i);
-                        if(i != 0) curNode.addConnection(wayNodes.get(i-1));
-                        if(i != wayNodes.size() - 1) curNode.addConnection(wayNodes.get(i+1));
+                        if(i != 0) curNode.addConnectionId(wayNodes.get(i-1).getId());
+                        if(i != wayNodes.size() - 1) curNode.addConnectionId(wayNodes.get(i+1).getId());
                     }
                 } else {
                     logger.warn("Parsing way with id {} is invalid", currentId);

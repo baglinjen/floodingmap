@@ -713,20 +713,25 @@ public class RStarTree {
         }
     }
 
-    public List<OsmElement> searchScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
-        List<OsmElement> elementsConcurrent = Collections.synchronizedList(new ReferenceArrayList<>());
+    public void searchScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea, List<OsmElement> osmElements) {
         double[] box = {minLon, minLat, maxLon, maxLat};
 
-        searchScaledRecursive(root, box, minBoundingBoxArea, elementsConcurrent);
+        searchScaledRecursive(root, box, minBoundingBoxArea, osmElements);
 
-        return elementsConcurrent
-                .parallelStream()
-                .filter(e -> e.intersects(box) && e.getArea() >= minBoundingBoxArea) // Slow => consider filtering on results.addAll
-                .sorted(Comparator.comparing((e1) -> switch (e1) {
-                    case OsmWay way -> way.isLine() ? way.getId() : -way.getArea();
-                    default -> -e1.getArea();
-                }))
-                .toList();
+        osmElements.removeIf(e -> !e.intersects(box) || e.getArea() < minBoundingBoxArea);
+        osmElements.sort(Comparator.comparing((e1) -> switch (e1) {
+            case OsmWay way -> way.isLine() ? way.getId() : -way.getArea();
+            default -> -e1.getArea();
+        }));
+
+//        return elementsConcurrent
+//                .parallelStream()
+//                .filter(e -> e.intersects(box) && e.getArea() >= minBoundingBoxArea) // Slow => consider filtering on results.addAll
+//                .sorted(Comparator.comparing((e1) -> switch (e1) {
+//                    case OsmWay way -> way.isLine() ? way.getId() : -way.getArea();
+//                    default -> -e1.getArea();
+//                }))
+//                .toList();
     }
     private void searchScaledRecursive(RTreeNode node, double[] queryBox, double minBoundingBoxArea, Collection<OsmElement> results) {
         if (node == null || !node.intersects(queryBox)) return; // No intersection, skip this branch

@@ -2,21 +2,27 @@ package dk.itu.data.models.osm;
 
 import dk.itu.data.models.heightcurve.HeightCurveElement;
 import dk.itu.data.models.parser.ParserOsmNode;
-import dk.itu.data.utils.RoutingUtils;
+import kotlin.Pair;
 
 import java.awt.*;
-import java.util.Map;
+
+import static dk.itu.data.utils.RoutingUtils.distanceMeters;
 
 public class OsmNode extends OsmElement {
     private final double lat, lon;
-    private final Map<Long, Double> connectionMap;
+    private final Pair<OsmNode[], double[]> connections;
     private HeightCurveElement containingCurve = null;
 
-    public OsmNode(long id, double lon, double lat, double[] boundingBox, Map<Long, Double> connectionMap) {
+    public OsmNode(long id, double lon, double lat, double[] boundingBox, int connectionsCount) {
         super(id, boundingBox);
         this.lon = lon;
         this.lat = lat;
-        this.connectionMap = connectionMap;
+        connections = connectionsCount > 0 ?
+                new Pair<>(
+                        new OsmNode[connectionsCount],
+                        new double[connectionsCount]
+                )
+                : null;
     }
 
     public static OsmNode mapToOsmNode(ParserOsmNode parserOsmNode) {
@@ -25,11 +31,22 @@ public class OsmNode extends OsmElement {
                 parserOsmNode.getLon(),
                 parserOsmNode.getLat(),
                 new double[]{parserOsmNode.getLon(), parserOsmNode.getLat(), parserOsmNode.getLon(), parserOsmNode.getLat()},
-                RoutingUtils.buildConnectionMap(parserOsmNode)
+                parserOsmNode.getConnectionIdsCount()
         );
         osmNode.setStyle(parserOsmNode.getColor(), parserOsmNode.getStroke());
 
         return osmNode;
+    }
+
+    public void addConnection(OsmNode connection) {
+        if (connections == null) return;
+        var nodeConnections = connections.getFirst();
+        int i = 0;
+        for (; i < nodeConnections.length; i++) {
+            if (nodeConnections[i] == null) break;
+        }
+        nodeConnections[i] = connection;
+        connections.getSecond()[i] = distanceMeters(this.lat, this.lon, connection.getLat(), connection.getLon());
     }
 
     public void setContainingCurve(HeightCurveElement containingCurve){
@@ -46,8 +63,9 @@ public class OsmNode extends OsmElement {
     public double getLon() {
         return lon;
     }
-    public Map<Long, Double> getConnectionMap() {
-        return connectionMap;
+
+    public Pair<OsmNode[], double[]> getConnections() {
+        return connections;
     }
 
     @Override

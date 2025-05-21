@@ -12,9 +12,7 @@ import dk.itu.util.LoggerFactory;
 import org.apache.logging.log4j.Logger;
 
 import java.sql.Connection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class OsmService {
     private static final double OSM_ELEMENT_PERCENT_SCREEN = 0.02 * 0.02;
@@ -32,16 +30,12 @@ public class OsmService {
         return osmElementRepository.getNearestTraversableOsmNode(lon, lat);
     }
 
-    public List<OsmElement> getOsmElementsToBeDrawnScaled(double minLon, double minLat, double maxLon, double maxLat) {
-        return osmElementRepository.getOsmElementsScaled(minLon, minLat, maxLon, maxLat, (maxLon - minLon) * (maxLat - minLat) * OSM_ELEMENT_PERCENT_SCREEN);
+    public void getOsmElementsToBeDrawnScaled(double minLon, double minLat, double maxLon, double maxLat, List<OsmElement> osmElements) {
+        osmElementRepository.getOsmElementsScaled(minLon, minLat, maxLon, maxLat, (maxLon - minLon) * (maxLat - minLat) * OSM_ELEMENT_PERCENT_SCREEN, osmElements);
     }
 
-    public Map<Long, OsmNode> getTraversableOsmNodes(){
-        var nodes = osmElementRepository.getTraversableOsmNodes();
-        Map<Long, OsmNode> result = new HashMap<>();
-
-        nodes.forEach(node -> result.put(node.getId(), node));
-        return result;
+    public List<OsmNode> getTraversableOsmNodes(){
+        return osmElementRepository.getTraversableOsmNodes();
     }
 
     public List<BoundingBox> getSpatialNodes() {
@@ -64,7 +58,7 @@ public class OsmService {
             logger.info("Finished inserting drawable elements to repository in {} ms", System.currentTimeMillis() - startTime);
             logger.info("Started inserting traversable elements to repository");
             startTime = System.currentTimeMillis();
-            osmElementRepository.addTraversable(osmParserResult.getTraversableNodes());
+            osmElementRepository.addTraversable(osmParserResult.getTraversals());
             logger.info("Finished inserting traversable elements to repository in {} ms", System.currentTimeMillis() - startTime);
         }
     }

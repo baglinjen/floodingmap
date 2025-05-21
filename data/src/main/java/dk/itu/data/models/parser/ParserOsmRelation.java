@@ -1,9 +1,9 @@
 package dk.itu.data.models.parser;
 
+import dk.itu.util.shape.RelationPath;
 import kotlin.Pair;
 
 import java.awt.*;
-import java.awt.geom.Path2D;
 import java.util.*;
 import java.util.List;
 
@@ -12,9 +12,7 @@ import static dk.itu.util.PolygonUtils.*;
 
 public class ParserOsmRelation extends ParserOsmElement {
     private final double[] bounds = new double[4];
-    private final List<double[]> innerPolygons = new ArrayList<>();
-    private final List<double[]> outerPolygons = new ArrayList<>();
-    private final Path2D.Double path = new Path2D.Double(Path2D.WIND_EVEN_ODD);
+    private RelationPath relationPath;
 
     public ParserOsmRelation(long id, List<Pair<ParserOsmElement, OsmRelationMemberType>> elements, OsmRelationType type) {
         super(id);
@@ -26,6 +24,8 @@ public class ParserOsmRelation extends ParserOsmElement {
 
         double minLat = Double.MAX_VALUE, minLon = Double.MAX_VALUE, maxLat = Double.MIN_VALUE, maxLon = Double.MIN_VALUE;
 
+        List<double[]> outerPolygons = new ArrayList<>();
+        List<double[]> innerPolygons = new ArrayList<>();
         List<double[]> openElements = new ArrayList<>();
 
         // Sort elements
@@ -179,6 +179,8 @@ public class ParserOsmRelation extends ParserOsmElement {
 
         if (!openElements.isEmpty() || outerPolygons.isEmpty()) {
             setShouldBeDrawn(false);
+        } else {
+            relationPath = new RelationPath(outerPolygons, innerPolygons);
         }
     }
 
@@ -192,11 +194,17 @@ public class ParserOsmRelation extends ParserOsmElement {
         return bounds;
     }
 
+    public RelationPath getPath() {
+        return relationPath;
+    }
+
     public List<double[]> getOuterPolygons() {
-        return outerPolygons;
+        if (relationPath == null) return List.of();
+        return relationPath.getOuterPolygons();
     }
     public List<double[]> getInnerPolygons() {
-        return innerPolygons;
+        if (relationPath == null) return List.of();
+        return relationPath.getInnerPolygons();
     }
 
     @Override

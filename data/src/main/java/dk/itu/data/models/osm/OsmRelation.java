@@ -7,21 +7,18 @@ import java.awt.*;
 import java.util.List;
 
 public class OsmRelation extends OsmElement {
-    private final RelationPath complexPathNodeSkip;
+    private final RelationPath path;
 
-    public OsmRelation(long id, double[] boundingBox, List<double[]> outerPolygons, List<double[]> innerPolygons) {
+    public OsmRelation(long id, double[] boundingBox, RelationPath relationPath) {
         super(id, boundingBox);
-        this.complexPathNodeSkip = new RelationPath(outerPolygons, innerPolygons);
+        this.path = relationPath;
     }
 
     public static OsmRelation mapToOsmRelation(ParserOsmRelation parserOsmRelation) {
-        var bounds = parserOsmRelation.getBounds();
-
         var osmRelation = new OsmRelation(
                 parserOsmRelation.getId(),
-                bounds,
-                parserOsmRelation.getOuterPolygons(),
-                parserOsmRelation.getInnerPolygons()
+                parserOsmRelation.getBounds(),
+                parserOsmRelation.getPath()
         );
 
         osmRelation.setStyle(parserOsmRelation.getColor(), parserOsmRelation.getStroke());
@@ -29,9 +26,17 @@ public class OsmRelation extends OsmElement {
         return osmRelation;
     }
 
+    public List<double[]> getOuterPolygons() {
+        return path.getOuterPolygons();
+    }
+
+    public List<double[]> getInnerPolygons() {
+        return path.getInnerPolygons();
+    }
+
     @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
         g2d.setColor(getColor());
-        g2d.fill(complexPathNodeSkip);
+        g2d.fill(path);
     }
 }
