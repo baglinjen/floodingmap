@@ -9,12 +9,12 @@ import static dk.itu.util.DrawingUtils.calculateDistance;
 import static dk.itu.util.PolygonUtils.isClosed;
 
 public class WayPath implements Shape {
+    private static final AffineTransform transform = new AffineTransform();
     private final byte[] pointTypes;
     private final double[] outerCoordinates;
     private final PathIterator pathIteratorNodeSkip;
 
-    private int pathIteratorPointer = 0;
-    private final AffineTransform transform = new AffineTransform();
+    private short pathIteratorPointer = 0;
 
     public WayPath(double[] coordinates) {
         this.outerCoordinates = coordinates;
@@ -60,7 +60,7 @@ public class WayPath implements Shape {
                         // Point not found and has not reached end of current polygon yet
                         pathIteratorPointer++;
                         type = pointTypes[pathIteratorPointer];
-                        transform.transform(outerCoordinates, pathIteratorPointer * 2, coords, 0, 1);
+                        transform.transform(outerCoordinates, pathIteratorPointer*2, coords, 0, 1);
                         distanceToLastPoint = calculateDistance(lastCoordinateX, lastCoordinateY, coords[0], coords[1]);
                     }
 
