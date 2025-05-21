@@ -20,10 +20,6 @@ public class BufferedImagePoolManager {
     private final List<BufferedImage> bufferedImages = new LinkedList<>();
 
     public BufferedImagePoolManager(State state) {
-        // Default 3 buffered images
-        for (int i = 0; i < 3; i++) {
-            bufferedImages.add(createBufferedImage());
-        }
         this.state = state;
     }
 
