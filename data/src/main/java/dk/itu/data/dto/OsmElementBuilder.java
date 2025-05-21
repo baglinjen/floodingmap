@@ -67,12 +67,13 @@ public class OsmElementBuilder {
                     //If the way is traversable -> modify the containing nodes
                     if (this.tags.containsKey("highway")) {
                         wayNodes.forEach(osmParserResult::addTraversableNode);
-                    }
-                    // Connect the nodes between each other
-                    for(int i = 0; i < wayNodes.size(); i++){
-                        var curNode = wayNodes.get(i);
-                        if(i != 0) curNode.addConnectionId(wayNodes.get(i-1).getId());
-                        if(i != wayNodes.size() - 1) curNode.addConnectionId(wayNodes.get(i+1).getId());
+
+                        // Connect the nodes between each other
+                        for(int i = 0; i < wayNodes.size(); i++){
+                            var curNode = wayNodes.get(i);
+                            if(i != 0) curNode.addConnectionId(wayNodes.get(i-1).getId());
+                            if(i != wayNodes.size() - 1) curNode.addConnectionId(wayNodes.get(i+1).getId());
+                        }
                     }
                 } else {
                     logger.warn("Parsing way with id {} is invalid", currentId);
@@ -171,6 +172,12 @@ public class OsmElementBuilder {
                 }
                 break;
         }
+    }
+
+    public void clear() {
+        tags.clear();
+        wayNodes.clear();
+        members.clear();
     }
 
     public enum OsmElementType {
