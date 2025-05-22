@@ -9,7 +9,9 @@ import dk.itu.data.models.osm.OsmElement;
 import dk.itu.data.services.Services;
 import dk.itu.ui.components.MouseEventOverlayComponent;
 import dk.itu.util.LoggerFactory;
-import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
+import it.unimi.dsi.fastutil.floats.Float2ReferenceRBTreeMap;
+import it.unimi.dsi.fastutil.floats.Float2ReferenceSortedMap;
+import it.unimi.dsi.fastutil.objects.*;
 import javafx.scene.image.*;
 import javafx.scene.layout.StackPane;
 import org.apache.logging.log4j.Logger;
@@ -19,7 +21,6 @@ import java.awt.geom.Ellipse2D;
 import java.awt.image.*;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -59,7 +60,8 @@ public class FloodingApp extends GameApplication {
             CompletableFuture<Void>[] dataFetchFutures = new CompletableFuture[3];
 
             List<Colored> drawables = new ArrayList<>();
-            List<OsmElement> osmElements = Collections.synchronizedList(new ReferenceArrayList<>());
+
+            Float2ReferenceSortedMap<OsmElement> osmElements = new Float2ReferenceRBTreeMap<>();
             List<BoundingBox> spatialNodes = new ReferenceArrayList<>();
             List<HeightCurveElement> heightCurves = new ReferenceArrayList<>();
 
@@ -138,7 +140,7 @@ public class FloodingApp extends GameApplication {
 
                     // Add all to final drawables in order
                     drawables.clear();
-                    drawables.addAll(osmElements);
+                    drawables.addAll(osmElements.values());
                     drawables.addAll(spatialNodes);
                     drawables.addAll(heightCurves);
 

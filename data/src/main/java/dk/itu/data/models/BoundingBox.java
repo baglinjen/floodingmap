@@ -4,7 +4,6 @@ import dk.itu.common.configurations.DrawingConfiguration;
 import dk.itu.common.models.Colored;
 
 import java.awt.*;
-import java.awt.geom.Rectangle2D;
 import java.io.Serializable;
 
 public abstract class BoundingBox extends Colored implements Serializable {

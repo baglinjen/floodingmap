@@ -5,6 +5,7 @@ import dk.itu.data.models.BoundingBox;
 import dk.itu.data.models.osm.OsmElement;
 import dk.itu.data.models.osm.OsmNode;
 import dk.itu.util.LoggerFactory;
+import it.unimi.dsi.fastutil.floats.Float2ReferenceMap;
 import org.apache.logging.log4j.Logger;
 
 import java.util.List;
@@ -48,7 +49,7 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     }
 
     @Override
-    public void getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea, List<OsmElement> osmElements) {
+    public void getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea, Float2ReferenceMap<OsmElement> osmElements) {
         rtree.searchScaled(minLon, minLat, maxLon, maxLat, minBoundingBoxArea, osmElements);
     }
 

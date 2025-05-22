@@ -5,6 +5,7 @@ import dk.itu.data.models.osm.OsmElement;
 import dk.itu.data.models.osm.OsmNode;
 import dk.itu.data.models.osm.OsmRelation;
 import dk.itu.data.models.osm.OsmWay;
+import it.unimi.dsi.fastutil.floats.Float2ReferenceMap;
 import org.apache.fury.Fury;
 import org.apache.fury.ThreadLocalFury;
 import org.apache.fury.ThreadSafeFury;
@@ -199,10 +200,10 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
     }
 
     @Override
-    public void getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea, List<OsmElement> osmElements) {
+    public void getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea, Float2ReferenceMap<OsmElement> osmElements) {
         String condWays = String.format("COALESCE(w.line, w.polygon) && ST_MakeEnvelope(%s, %s, %s, %s, 4326) AND w.area >= %s", minLon, minLat, maxLon, maxLat, minBoundingBoxArea);
         String condRelations = String.format("r.shape && ST_MakeEnvelope(%s, %s, %s, %s, 4326) AND r.area >= %s", minLon, minLat, maxLon, maxLat, minBoundingBoxArea);
-        osmElements.addAll(
+        osmElements.putAll(
                 ctx.select(
                         DSL.field("n.dbObj", byte[].class),
                         DSL.field("'n' as type", String.class),
@@ -227,19 +228,15 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
                                                 .where(condRelations)
                                 )
                 )
-                .orderBy(DSL.field("area").desc())
-                .fetch(new RecordMapper<>() {
-                    @Nullable
-                    @Override
-                    public OsmElement map(Record3<byte[], String, Float> r) {
-                        return switch (r.component2()) {
+                .fetchMap(
+                        Record3::component3,
+                        r -> switch (r.component2()) {
                             case "n" -> fury.deserializeJavaObject(r.component1(), OsmNode.class);
                             case "w" -> fury.deserializeJavaObject(r.component1(), OsmWay.class);
                             case "r" -> fury.deserializeJavaObject(r.component1(), OsmRelation.class);
                             default -> null;
-                        };
-                    }
-                })
+                        }
+                )
         );
     }
 

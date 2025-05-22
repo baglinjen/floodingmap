@@ -1,9 +1,9 @@
 package dk.itu.data.datastructure.rtree;
+
 import dk.itu.data.models.BoundingBox;
 import dk.itu.data.models.osm.OsmElement;
 import dk.itu.data.models.osm.OsmNode;
-import dk.itu.data.models.osm.OsmWay;
-import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
+import it.unimi.dsi.fastutil.floats.Float2ReferenceMap;
 import javafx.util.Pair;
 
 import java.util.*;
@@ -695,7 +695,7 @@ public class RStarTree {
         Collection<OsmElement> elementsConcurrent = new ConcurrentLinkedQueue<>();
         double[] box = {minLon, minLat, maxLon, maxLat};
 
-        searchRecursive(root, box, elementsConcurrent);
+        search(root, box, elementsConcurrent);
 
         return elementsConcurrent
                 .parallelStream()
@@ -703,48 +703,34 @@ public class RStarTree {
                 .sorted(Comparator.comparingDouble(OsmElement::getArea).reversed())
                 .toList();
     }
-    private void searchRecursive(RTreeNode node, double[] box, Collection<OsmElement> results) {
+    private void search(RTreeNode node, double[] box, Collection<OsmElement> results) {
         if (node == null || !node.intersects(box)) return; // No intersection, skip this branch
 
         if (node.isLeaf()) {
             results.addAll(node.elements);
         } else {
-            node.getChildren().parallelStream().forEach(child -> searchRecursive(child, box, results));
+            node.getChildren().parallelStream().forEach(child -> search(child, box, results));
         }
     }
 
-    public void searchScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea, List<OsmElement> osmElements) {
-        double[] box = {minLon, minLat, maxLon, maxLat};
-
-        searchScaledRecursive(root, box, minBoundingBoxArea, osmElements);
-
-        osmElements.removeIf(e -> !e.intersects(box) || e.getArea() < minBoundingBoxArea);
-        osmElements.sort(Comparator.comparing((e1) -> switch (e1) {
-            case OsmWay way -> way.isLine() ? way.getId() : -way.getArea();
-            default -> -e1.getArea();
-        }));
-
-//        return elementsConcurrent
-//                .parallelStream()
-//                .filter(e -> e.intersects(box) && e.getArea() >= minBoundingBoxArea) // Slow => consider filtering on results.addAll
-//                .sorted(Comparator.comparing((e1) -> switch (e1) {
-//                    case OsmWay way -> way.isLine() ? way.getId() : -way.getArea();
-//                    default -> -e1.getArea();
-//                }))
-//                .toList();
+    public void searchScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea, Float2ReferenceMap<OsmElement> osmElements) {
+        double[] queryBox = new double[]{minLon, minLat, maxLon, maxLat};
+        searchScaled(root, queryBox, minBoundingBoxArea, osmElements);
     }
-    private void searchScaledRecursive(RTreeNode node, double[] queryBox, double minBoundingBoxArea, Collection<OsmElement> results) {
-        if (node == null || !node.intersects(queryBox)) return; // No intersection, skip this branch
+    private void searchScaled(RTreeNode node, double[] queryBox, double minBoundingBoxArea, Float2ReferenceMap<OsmElement> results) {
+        if (node == null || node.getArea() < minBoundingBoxArea || !node.intersects(queryBox)) return; // No intersection, skip this branch
 
         if (node.isLeaf()) {
-            synchronized (results) {
-                results.addAll(node.elements);
+            for (int i = 0; i < node.elements.size(); i++) {
+                OsmElement element = node.elements.get(i);
+                if (element.intersects(queryBox) && element.getArea() >= minBoundingBoxArea) {
+                    results.put((float) -element.getArea(), element);
+                }
             }
         } else {
-            node.getChildren()
-                    .parallelStream()
-                    .filter(child -> child.getArea() >= minBoundingBoxArea)
-                    .forEach(child -> searchScaledRecursive(child, queryBox, minBoundingBoxArea, results));
+            for (int i = 0; i < node.getChildren().size(); i++) {
+                searchScaled(node.getChildren().get(i), queryBox, minBoundingBoxArea, results);
+            }
         }
     }
 

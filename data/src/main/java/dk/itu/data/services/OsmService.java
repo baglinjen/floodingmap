@@ -9,6 +9,7 @@ import dk.itu.data.repositories.OsmElementRepository;
 import dk.itu.data.repositories.OsmElementRepositoryDb;
 import dk.itu.data.repositories.OsmElementRepositoryMemory;
 import dk.itu.util.LoggerFactory;
+import it.unimi.dsi.fastutil.floats.Float2ReferenceMap;
 import org.apache.logging.log4j.Logger;
 
 import java.sql.Connection;
@@ -30,7 +31,7 @@ public class OsmService {
         return osmElementRepository.getNearestTraversableOsmNode(lon, lat);
     }
 
-    public void getOsmElementsToBeDrawnScaled(double minLon, double minLat, double maxLon, double maxLat, List<OsmElement> osmElements) {
+    public void getOsmElementsToBeDrawnScaled(double minLon, double minLat, double maxLon, double maxLat, Float2ReferenceMap<OsmElement> osmElements) {
         osmElementRepository.getOsmElementsScaled(minLon, minLat, maxLon, maxLat, (maxLon - minLon) * (maxLat - minLat) * OSM_ELEMENT_PERCENT_SCREEN, osmElements);
     }
 

@@ -13,7 +13,7 @@ import static dk.itu.ui.FloodingApp.HEIGHT;
 import static dk.itu.ui.FloodingApp.WIDTH;
 
 public class BufferedImagePoolManager {
-    private static final int ELEMENTS_PER_BUFFER = 2_000, ELEMENTS_BEFORE_SPLIT = ELEMENTS_PER_BUFFER * 2;
+    private static final int ELEMENTS_PER_BUFFER = 5_000, ELEMENTS_BEFORE_SPLIT = ELEMENTS_PER_BUFFER * 2;
     private final State state;
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
     private final BufferedImage finalImageToDrawTo = createBufferedImage();
@@ -28,6 +28,7 @@ public class BufferedImagePoolManager {
     }
 
     public <T extends Colored> void drawElements(List<T> elements) throws ExecutionException, InterruptedException {
+        // 60FPS is reached when 10_000 elements are drawn
         if (elements.size() > ELEMENTS_BEFORE_SPLIT) {
             drawElementsMultiBuffer(elements);
         } else {
@@ -50,23 +51,20 @@ public class BufferedImagePoolManager {
 
         Graphics2D finalG2d = createGraphicsWaterBackground(finalImageToDrawTo);
 
-        // Split as evenly as possibly with max of 1000
-        var splits = elements.size() / ELEMENTS_PER_BUFFER;
-        List<List<T>> partitions = Lists.partition(elements, elements.size() / splits);
+        int splits = Math.max(1, elements.size() / ELEMENTS_PER_BUFFER);
 
-        CompletableFuture<BufferedImage>[] bufferedImageFutures = new CompletableFuture[partitions.size()];
+        CompletableFuture<BufferedImage>[] bufferedImageFutures = new CompletableFuture[splits];
 
-        for (int i = 0; i < partitions.size(); i++) {
+        for (int i = 0; i < splits; i++) {
             int finalI = i;
             bufferedImageFutures[i] = CompletableFuture.supplyAsync(() -> {
-                List<T> partition = partitions.get(finalI);
                 BufferedImage img;
                 synchronized (bufferedImages) {
                     img = pollBufferedImage();
                 }
                 Graphics2D g2d = createGraphicsTransparent(img);
 
-                for (T element : partition) {
+                for (T element : elements.subList(finalI*ELEMENTS_PER_BUFFER, Math.min(elements.size(), (finalI+1)*ELEMENTS_PER_BUFFER))) {
                     element.draw(g2d, strokeBaseWidth);
                 }
 
