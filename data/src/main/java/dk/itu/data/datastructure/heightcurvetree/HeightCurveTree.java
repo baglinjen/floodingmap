@@ -97,18 +97,18 @@ public class HeightCurveTree {
     }
 
     private Optional<HeightCurveElement> getHeightCurveForPoint(HeightCurveTreeNode node, double lon, double lat) {
-        if (!node.contains(lon, lat)) {
-            return Optional.empty();
-        } else if (node.getChildren().isEmpty()) {
+        if (node.getChildren().isEmpty()) {
+            // Return the height curve if it doesn't have any children
             return Optional.of(node.getHeightCurveElement());
         } else {
-            return node
-                    .getChildren()
-                    .parallelStream()
-                    .map(child -> getHeightCurveForPoint(child, lon, lat))
-                    .filter(Objects::nonNull)
-                    .findFirst()
-                    .orElse(Optional.empty());
+            // Iterate through each child and find the first one containing
+            Optional<HeightCurveTreeNode> childContaining = Optional.empty();
+            for (int i = 0; i < node.getChildren().size() && childContaining.isEmpty(); i++) {
+                if (node.getChildren().get(i).contains(lon, lat)) {
+                    childContaining = Optional.of(node.getChildren().get(i));
+                }
+            }
+            return childContaining.map(child -> getHeightCurveForPoint(child, lon, lat).orElse(child.getHeightCurveElement()));
         }
     }
 
