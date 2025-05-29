@@ -1,6 +1,7 @@
 package dk.itu.data.repositories;
 
-import dk.itu.data.models.BoundingBox;
+import dk.itu.common.models.Drawable;
+import dk.itu.data.datastructure.rtree.RTreeNode;
 import dk.itu.data.models.osm.OsmElement;
 import dk.itu.data.models.osm.OsmNode;
 import dk.itu.data.models.osm.OsmRelation;
@@ -38,7 +39,6 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
         f.register(OsmWay.class);
         f.register(OsmRelation.class);
         f.register(Color.class);
-        f.register(BoundingBox.class);
         return f;
     });
 
@@ -195,12 +195,12 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
     }
 
     @Override
-    public List<BoundingBox> getSpatialNodes() {
+    public List<RTreeNode> getSpatialNodes() {
         return List.of();
     }
 
     @Override
-    public void getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea, Float2ReferenceMap<OsmElement> osmElements) {
+    public void getOsmElementsScaled(float minLon, float minLat, float maxLon, float maxLat, float minBoundingBoxArea, Float2ReferenceMap<Drawable> osmElements) {
         String condWays = String.format("COALESCE(w.line, w.polygon) && ST_MakeEnvelope(%s, %s, %s, %s, 4326) AND w.area >= %s", minLon, minLat, maxLon, maxLat, minBoundingBoxArea);
         String condRelations = String.format("r.shape && ST_MakeEnvelope(%s, %s, %s, %s, 4326) AND r.area >= %s", minLon, minLat, maxLon, maxLat, minBoundingBoxArea);
         osmElements.putAll(
@@ -231,7 +231,6 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
                 .fetchMap(
                         Record3::component3,
                         r -> switch (r.component2()) {
-                            case "n" -> fury.deserializeJavaObject(r.component1(), OsmNode.class);
                             case "w" -> fury.deserializeJavaObject(r.component1(), OsmWay.class);
                             case "r" -> fury.deserializeJavaObject(r.component1(), OsmRelation.class);
                             default -> null;
@@ -262,7 +261,7 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
     }
 
     @Override
-    public OsmNode getNearestTraversableOsmNode(double lon, double lat) {
+    public OsmNode getNearestTraversableOsmNode(float lon, float lat) {
         var distCond = String.format("n.coordinate <-> 'SRID=4326;POINT(%s %s)'::geometry", lon, lat);
         return ctx.select(
                 DSL.field("n.dbObj", byte[].class),
@@ -295,12 +294,12 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
     }
 
     @Override
-    public double[] getBounds() {
+    public float[] getBounds() {
         return ctx.select(
-                DSL.field("MIN(minLon)", double.class),
-                DSL.field("MIN(minLat)", double.class),
-                DSL.field("MAX(maxLon)", double.class),
-                DSL.field("MAX(maxLat)", double.class)
+                DSL.field("MIN(minLon)", float.class),
+                DSL.field("MIN(minLat)", float.class),
+                DSL.field("MAX(maxLon)", float.class),
+                DSL.field("MAX(maxLat)", float.class)
         ).from(
                 ctx.select(
                                 DSL.field("ST_XMin(n.coordinate)").as(DSL.field("minLon")),
@@ -329,9 +328,9 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
                 )
         ).fetchOne(r -> {
             if (r.component1() == null || r.component2() == null || r.component3() == null || r.component4() == null) {
-                return new double[]{-180, -90, 180, 90};
+                return new float[]{-180, -90, 180, 90};
             }
-            return new double[]{r.component1(), r.component2(), r.component3(), r.component4()};
+            return new float[]{r.component1(), r.component2(), r.component3(), r.component4()};
         });
     }
 }

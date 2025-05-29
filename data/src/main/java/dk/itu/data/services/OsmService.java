@@ -1,7 +1,8 @@
 package dk.itu.data.services;
 
+import dk.itu.common.models.Drawable;
+import dk.itu.data.datastructure.rtree.RTreeNode;
 import dk.itu.data.dto.OsmParserResult;
-import dk.itu.data.models.BoundingBox;
 import dk.itu.data.models.osm.OsmElement;
 import dk.itu.data.models.osm.OsmNode;
 import dk.itu.data.parsers.OsmParser;
@@ -16,7 +17,7 @@ import java.sql.Connection;
 import java.util.List;
 
 public class OsmService {
-    private static final double OSM_ELEMENT_PERCENT_SCREEN = 0.02 * 0.02;
+    private static final float OSM_ELEMENT_PERCENT_SCREEN = 0.02f * 0.02f;
     private static final Logger logger = LoggerFactory.getLogger();
     private final OsmElementRepository osmElementRepository;
 
@@ -27,11 +28,11 @@ public class OsmService {
         osmElementRepository = new OsmElementRepositoryDb(connection);
     }
 
-    public OsmNode getNearestTraversableOsmNode(double lon, double lat) {
+    public OsmNode getNearestTraversableOsmNode(float lon, float lat) {
         return osmElementRepository.getNearestTraversableOsmNode(lon, lat);
     }
 
-    public void getOsmElementsToBeDrawnScaled(double minLon, double minLat, double maxLon, double maxLat, Float2ReferenceMap<OsmElement> osmElements) {
+    public void getOsmElementsToBeDrawnScaled(float minLon, float minLat, float maxLon, float maxLat, Float2ReferenceMap<Drawable> osmElements) {
         osmElementRepository.getOsmElementsScaled(minLon, minLat, maxLon, maxLat, (maxLon - minLon) * (maxLat - minLat) * OSM_ELEMENT_PERCENT_SCREEN, osmElements);
     }
 
@@ -39,7 +40,7 @@ public class OsmService {
         return osmElementRepository.getTraversableOsmNodes();
     }
 
-    public List<BoundingBox> getSpatialNodes() {
+    public List<RTreeNode> getSpatialNodes() {
         return osmElementRepository.getSpatialNodes();
     }
 
@@ -66,7 +67,7 @@ public class OsmService {
         }
     }
 
-    public double[] getBounds() {
+    public float[] getBounds() {
         return osmElementRepository.getBounds();
     }
 

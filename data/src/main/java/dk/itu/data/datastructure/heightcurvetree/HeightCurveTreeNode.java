@@ -1,7 +1,6 @@
 package dk.itu.data.datastructure.heightcurvetree;
 
 import dk.itu.data.models.heightcurve.HeightCurveElement;
-import dk.itu.util.PolygonUtils;
 
 import java.util.*;
 
@@ -20,18 +19,5 @@ public class HeightCurveTreeNode {
 
     public HeightCurveElement getHeightCurveElement() {
         return heightCurveElement;
-    }
-
-    public boolean contains(double lon, double lat) {
-        if (
-                lon >= heightCurveElement.getMinLon() &&
-                lat >= heightCurveElement.getMinLat() &&
-                lon <= heightCurveElement.getMaxLon() &&
-                lat <= heightCurveElement.getMaxLat()
-        ) {
-            return PolygonUtils.isPointInPolygon(this.heightCurveElement.getCoordinates(), lon, lat);
-        } else {
-            return false;
-        }
     }
 }

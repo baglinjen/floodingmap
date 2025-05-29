@@ -3,26 +3,24 @@ package dk.itu.data.models.parser;
 import dk.itu.util.shape.RelationPath;
 import kotlin.Pair;
 
-import java.awt.*;
 import java.util.*;
 import java.util.List;
 
 import static dk.itu.util.ArrayUtils.appendExcludingN;
 import static dk.itu.util.PolygonUtils.*;
 
-public class ParserOsmRelation extends ParserOsmElement {
-    private final double[] bounds = new double[4];
+public class ParserOsmRelation implements ParserOsmElement {
+    private final long id;
+    private byte styleId;
     private RelationPath relationPath;
 
-    public ParserOsmRelation(long id, List<Pair<ParserOsmElement, OsmRelationMemberType>> elements, OsmRelationType type) {
-        super(id);
-
+    public ParserOsmRelation(long id, List<Pair<ParserOsmElement, OsmRelationMemberType>> elements, OsmRelationType type, byte styleId) {
+        this.id = id;
+        this.styleId = styleId;
         if (type != OsmRelationType.MULTIPOLYGON) {
-            setShouldBeDrawn(false);
+            setStyleId((byte) -1);
             return;
         }
-
-        double minLat = Double.MAX_VALUE, minLon = Double.MAX_VALUE, maxLat = Double.MIN_VALUE, maxLon = Double.MIN_VALUE;
 
         List<double[]> outerPolygons = new ArrayList<>();
         List<double[]> innerPolygons = new ArrayList<>();
@@ -34,14 +32,7 @@ public class ParserOsmRelation extends ParserOsmElement {
             var elementType = elementPair.getSecond();
 
             // Disable drawing since it is now part of the relation drawing
-            element.setShouldBeDrawn(false);
-
-            // Find bounds
-            double[] elementBounds = element.getBounds();
-            if (elementBounds[0] < minLon) minLon = elementBounds[0];
-            if (elementBounds[1] < minLat) minLat = elementBounds[1];
-            if (elementBounds[2] > maxLon) maxLon = elementBounds[2];
-            if (elementBounds[3] > maxLat) maxLat = elementBounds[3];
+            element.setStyleId((byte) -1);
 
             switch (element) {
                 case ParserOsmWay osmWay -> {
@@ -73,12 +64,6 @@ public class ParserOsmRelation extends ParserOsmElement {
                 default -> {}
             }
         }
-
-        // Set bounds
-        bounds[0] = minLon;
-        bounds[1] = minLat;
-        bounds[2] = maxLon;
-        bounds[3] = maxLat;
 
         // Stitch open elements
         for (int i = 0; i < openElements.size(); i++) {
@@ -178,20 +163,30 @@ public class ParserOsmRelation extends ParserOsmElement {
         }
 
         if (!openElements.isEmpty() || outerPolygons.isEmpty()) {
-            setShouldBeDrawn(false);
+            setStyleId((byte) -1);
         } else {
             relationPath = new RelationPath(outerPolygons, innerPolygons);
         }
     }
 
     @Override
-    public double getArea() {
-        return (bounds[2]-bounds[0]) * (bounds[3]-bounds[1]);
+    public long getId() {
+        return id;
     }
 
     @Override
-    public double[] getBounds() {
-        return bounds;
+    public void setStyleId(byte styleId) {
+        this.styleId = styleId;
+    }
+
+    @Override
+    public byte getStyleId() {
+        return this.styleId;
+    }
+
+    @Override
+    public boolean shouldBeDrawn() {
+        return this.styleId >= 0;
     }
 
     public RelationPath getPath() {
@@ -201,15 +196,6 @@ public class ParserOsmRelation extends ParserOsmElement {
     public List<double[]> getOuterPolygons() {
         if (relationPath == null) return List.of();
         return relationPath.getOuterPolygons();
-    }
-    public List<double[]> getInnerPolygons() {
-        if (relationPath == null) return List.of();
-        return relationPath.getInnerPolygons();
-    }
-
-    @Override
-    public void draw(Graphics2D g2d, float strokeBaseWidth) {
-        // No need to draw
     }
 
     public enum OsmRelationType {

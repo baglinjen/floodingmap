@@ -1,7 +1,8 @@
 package dk.itu.data.repositories;
 
+import dk.itu.common.models.Drawable;
 import dk.itu.data.datastructure.rtree.RStarTree;
-import dk.itu.data.models.BoundingBox;
+import dk.itu.data.datastructure.rtree.RTreeNode;
 import dk.itu.data.models.osm.OsmElement;
 import dk.itu.data.models.osm.OsmNode;
 import dk.itu.util.LoggerFactory;
@@ -49,12 +50,12 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     }
 
     @Override
-    public void getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea, Float2ReferenceMap<OsmElement> osmElements) {
+    public void getOsmElementsScaled(float minLon, float minLat, float maxLon, float maxLat, float minBoundingBoxArea, Float2ReferenceMap<Drawable> osmElements) {
         rtree.searchScaled(minLon, minLat, maxLon, maxLat, minBoundingBoxArea, osmElements);
     }
 
     @Override
-    public List<BoundingBox> getSpatialNodes() {
+    public List<RTreeNode> getSpatialNodes() {
         return rtree.getBoundingBoxes();
     }
 
@@ -64,7 +65,7 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     }
 
     @Override
-    public OsmNode getNearestTraversableOsmNode(double lon, double lat) {
+    public OsmNode getNearestTraversableOsmNode(float lon, float lat) {
         return traversable.getNearest(lon, lat);
     }
 
@@ -75,11 +76,11 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     }
 
     @Override
-    public double[] getBounds() {
+    public float[] getBounds() {
         if (rtree.isEmpty()) {
-            return new double[]{-180, -90, 180, 90};
+            return new float[]{-180, -90, 180, 90};
         } else {
-            return rtree.getRoot().getBoundingBoxWithArea();
+            return new float[]{rtree.getRoot().minLon(), rtree.getRoot().minLat(), rtree.getRoot().maxLon(),rtree.getRoot().maxLat()};
         }
     }
 }

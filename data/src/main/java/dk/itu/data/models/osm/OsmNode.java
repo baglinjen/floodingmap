@@ -4,18 +4,17 @@ import dk.itu.data.models.heightcurve.HeightCurveElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import kotlin.Pair;
 
-import java.awt.*;
-
 import static dk.itu.data.utils.RoutingUtils.distanceMetersFloat;
 
-public class OsmNode extends OsmElement {
-    private final double lat, lon;
+public class OsmNode implements OsmElement {
+    private final long id;
+    private final float lat, lon;
     private OsmNode[] connections;
     private float[] distances;
     private HeightCurveElement containingCurve = null;
 
-    public OsmNode(long id, double lon, double lat, double[] boundingBox, int connectionsCount) {
-        super(id, boundingBox);
+    public OsmNode(long id, float lon, float lat, int connectionsCount) {
+        this.id = id;
         this.lon = lon;
         this.lat = lat;
         if (connectionsCount > 0) {
@@ -25,16 +24,12 @@ public class OsmNode extends OsmElement {
     }
 
     public static OsmNode mapToOsmNode(ParserOsmNode parserOsmNode) {
-        var osmNode = new OsmNode(
+        return new OsmNode(
                 parserOsmNode.getId(),
                 parserOsmNode.getLon(),
                 parserOsmNode.getLat(),
-                new double[]{parserOsmNode.getLon(), parserOsmNode.getLat(), parserOsmNode.getLon(), parserOsmNode.getLat()},
                 parserOsmNode.getConnectionIdsCount()
         );
-        osmNode.setStyle(parserOsmNode.getColor(), parserOsmNode.getStroke());
-
-        return osmNode;
     }
 
     public void addConnection(OsmNode connection) {
@@ -51,14 +46,14 @@ public class OsmNode extends OsmElement {
         this.containingCurve = containingCurve;
     }
 
-    public HeightCurveElement getContainingCurve(){
+    public HeightCurveElement getContainingCurve() {
         return containingCurve;
     }
 
-    public double getLat() {
+    public float getLat() {
         return lat;
     }
-    public double getLon() {
+    public float getLon() {
         return lon;
     }
 
@@ -67,5 +62,32 @@ public class OsmNode extends OsmElement {
     }
 
     @Override
-    public void draw(Graphics2D g2d, float strokeBaseWidth) { /* Nodes are not drawn for now */ }
+    public long getId() {
+        return id;
+    }
+
+    @Override
+    public float minLon() {
+        return this.lon;
+    }
+
+    @Override
+    public float minLat() {
+        return this.lat;
+    }
+
+    @Override
+    public float maxLon() {
+        return this.lon;
+    }
+
+    @Override
+    public float maxLat() {
+        return this.lat;
+    }
+
+    @Override
+    public float getArea() {
+        return 0;
+    }
 }

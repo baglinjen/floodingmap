@@ -2,7 +2,6 @@ package dk.itu.data.services;
 
 import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.data.enums.RoutingType;
-import dk.itu.data.models.osm.OsmElement;
 import dk.itu.data.models.osm.OsmNode;
 import dk.itu.data.models.osm.OsmWay;
 import dk.itu.data.utils.RoutingUtils;
@@ -16,7 +15,7 @@ import java.util.concurrent.*;
 public class RoutingService {
     // Routing configurations
     private OsmNode startNode, endNode, sharedNode = null;
-    private OsmElement cachedRoute;
+    private OsmWay cachedRoute;
     private RoutingType routingType = RoutingType.Dijkstra;
     private double waterLevel, cachedRouteWaterLevel;
 
@@ -55,7 +54,7 @@ public class RoutingService {
     }
     public RoutingType getRoutingMethod(){return routingType;}
 
-    public OsmElement getRoute(double currentWaterLevel){
+    public OsmWay getRoute(double currentWaterLevel){
         if(cachedRouteWaterLevel == currentWaterLevel) return cachedRoute;
 
         if(calculationThread != null && calculationThread.isAlive()){
@@ -123,7 +122,7 @@ public class RoutingService {
         return calculationThread;
     }
 
-    private OsmElement createAStarBidirectional(OsmNode startNode, OsmNode endNode, Services services){
+    private OsmWay createAStarBidirectional(OsmNode startNode, OsmNode endNode, Services services){
         logger.info("Beginning A-star bidirectional route");
         try{
             sharedNode = null;
@@ -242,7 +241,7 @@ public class RoutingService {
         return null;
     }
 
-    private OsmElement createPath(double[] coordinateList){
+    private OsmWay createPath(double[] coordinateList){
         logger.info("Creating path with {} coordinates", coordinateList.length / 2);
         return OsmWay.createWayForRouting(coordinateList);
     }

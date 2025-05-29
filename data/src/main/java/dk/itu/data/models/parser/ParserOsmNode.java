@@ -1,15 +1,15 @@
 package dk.itu.data.models.parser;
 
-import java.awt.*;
 import java.util.Arrays;
 import java.util.List;
 
-public class ParserOsmNode extends ParserOsmElement {
-    private final double lat, lon;
+public class ParserOsmNode implements ParserOsmElement {
+    private final long id;
+    private final float lat, lon;
     private long[] connectionIds;
 
-    public ParserOsmNode(long id, double lat, double lon) {
-        super(id);
+    public ParserOsmNode(long id, float lat, float lon) {
+        this.id = id;
         this.lat = lat;
         this.lon = lon;
     }
@@ -33,24 +33,29 @@ public class ParserOsmNode extends ParserOsmElement {
         connectionIds[connectionIds.length - 1] = connection;
     }
 
-    public double getLat() {
+    public float getLat() {
         return lat;
     }
 
-    public double getLon() {
+    public float getLon() {
         return lon;
     }
 
     @Override
-    public double getArea() {
-        return 0;
+    public long getId() {
+        return id;
     }
 
     @Override
-    public double[] getBounds() {
-        return new double[]{lon, lat, lon, lat};
+    public void setStyleId(byte styleId) { /* Nodes have no style */ }
+
+    @Override
+    public byte getStyleId() {
+        return -1;
     }
 
     @Override
-    public void draw(Graphics2D g2d, float strokeBaseWidth) { /* Nodes are not drawn for now */ }
+    public boolean shouldBeDrawn() {
+        return false;
+    }
 }

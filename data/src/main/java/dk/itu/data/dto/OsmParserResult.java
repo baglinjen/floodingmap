@@ -1,7 +1,7 @@
 package dk.itu.data.dto;
 
+import dk.itu.common.models.WithBoundingBoxAndArea;
 import dk.itu.common.models.WithId;
-import dk.itu.data.models.BoundingBox;
 import dk.itu.data.models.osm.OsmElement;
 import dk.itu.data.models.osm.OsmNode;
 import dk.itu.data.models.osm.OsmRelation;
@@ -54,7 +54,7 @@ public class OsmParserResult {
         this.relations.clear();
         this.relations.trimToSize();
 
-        this.elementsToBeDrawn = allElements.parallelStream().sorted(Comparator.comparing(BoundingBox::getArea)).collect(Collectors.toCollection(ArrayList::new));
+        this.elementsToBeDrawn = allElements.parallelStream().sorted(Comparator.comparing(WithBoundingBoxAndArea::getArea)).collect(Collectors.toCollection(ArrayList::new));
 
         // Building connection map
         ArrayList<ParserOsmNode> traversableNodesSorted = new ArrayList<>(this.traversableNodes.values());

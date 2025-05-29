@@ -1,7 +1,6 @@
 package dk.itu.ui;
 
-import com.google.common.collect.Lists;
-import dk.itu.common.models.Colored;
+import dk.itu.common.models.Drawable;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -27,7 +26,7 @@ public class BufferedImagePoolManager {
         return finalImageToDrawTo;
     }
 
-    public <T extends Colored> void drawElements(List<T> elements) throws ExecutionException, InterruptedException {
+    public <T extends Drawable> void drawElements(List<T> elements) throws ExecutionException, InterruptedException {
         // 60FPS is reached when 10_000 elements are drawn
         if (elements.size() > ELEMENTS_BEFORE_SPLIT) {
             drawElementsMultiBuffer(elements);
@@ -36,7 +35,7 @@ public class BufferedImagePoolManager {
         }
     }
 
-    public <T extends Colored> void drawElementsSingleBuffer(List<T> elements) {
+    public <T extends Drawable> void drawElementsSingleBuffer(List<T> elements) {
         float strokeBaseWidth = state.getSuperAffine().getStrokeBaseWidth();
 
         var g2d = createGraphicsWaterBackgroundSingleBuffer(finalImageToDrawTo);
@@ -46,7 +45,7 @@ public class BufferedImagePoolManager {
         }
     }
 
-    public <T extends Colored> void drawElementsMultiBuffer(List<T> elements) throws ExecutionException, InterruptedException {
+    public <T extends Drawable> void drawElementsMultiBuffer(List<T> elements) throws ExecutionException, InterruptedException {
         float strokeBaseWidth = state.getSuperAffine().getStrokeBaseWidth();
 
         Graphics2D finalG2d = createGraphicsWaterBackground(finalImageToDrawTo);

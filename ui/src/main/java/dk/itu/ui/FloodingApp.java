@@ -2,10 +2,9 @@ package dk.itu.ui;
 
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
-import dk.itu.common.models.Colored;
-import dk.itu.data.models.BoundingBox;
+import dk.itu.common.models.Drawable;
+import dk.itu.data.datastructure.rtree.RTreeNode;
 import dk.itu.data.models.heightcurve.HeightCurveElement;
-import dk.itu.data.models.osm.OsmElement;
 import dk.itu.data.services.Services;
 import dk.itu.ui.components.MouseEventOverlayComponent;
 import dk.itu.util.LoggerFactory;
@@ -59,10 +58,10 @@ public class FloodingApp extends GameApplication {
 
             CompletableFuture<Void>[] dataFetchFutures = new CompletableFuture[3];
 
-            List<Colored> drawables = new ArrayList<>();
+            List<Drawable> drawables = new ArrayList<>();
 
-            Float2ReferenceSortedMap<OsmElement> osmElements = new Float2ReferenceRBTreeMap<>();
-            List<BoundingBox> spatialNodes = new ReferenceArrayList<>();
+            Float2ReferenceSortedMap<Drawable> osmElements = new Float2ReferenceRBTreeMap<>();
+            List<RTreeNode> spatialNodes = new ReferenceArrayList<>();
             List<HeightCurveElement> heightCurves = new ReferenceArrayList<>();
 
             try (ExecutorService executor = Executors.newCachedThreadPool()) {
@@ -154,12 +153,9 @@ public class FloodingApp extends GameApplication {
                     if (state.getRoutingConfiguration().getShouldVisualize()) {
                         var nodes = state.getRoutingConfiguration().getTouchedNodes();
                         for (var n : nodes) {
-                            drawables.add(new Colored() {
-                                @Override
-                                public void draw(Graphics2D g2d, float strokeBaseWidth) {
-                                    g2d.setColor(Color.MAGENTA);
-                                    g2d.fill(new Ellipse2D.Double(0.56 * n.getLon() - strokeBaseWidth * 8 / 2, -n.getLat() - strokeBaseWidth * 8 / 2, strokeBaseWidth * 8, strokeBaseWidth * 8));
-                                }
+                            drawables.add((g2d, strokeBaseWidth) -> {
+                                g2d.setColor(Color.MAGENTA);
+                                g2d.fill(new Ellipse2D.Double(0.56 * n.getLon() - strokeBaseWidth * 8 / 2, -n.getLat() - strokeBaseWidth * 8 / 2, strokeBaseWidth * 8, strokeBaseWidth * 8));
                             });
                         }
                     }
@@ -167,22 +163,16 @@ public class FloodingApp extends GameApplication {
                     // Add start/end nodes from routing
                     var startNode = state.getRoutingConfiguration().getStartNode();
                     if (startNode != null) {
-                        drawables.add(new Colored() {
-                            @Override
-                            public void draw(Graphics2D g2d, float strokeBaseWidth) {
-                                g2d.setColor(Color.GREEN);
-                                g2d.fill(new Ellipse2D.Double(0.56 * startNode.getLon() - strokeBaseWidth * 8 / 2, -startNode.getLat() - strokeBaseWidth * 8 / 2, strokeBaseWidth * 8, strokeBaseWidth * 8));
-                            }
+                        drawables.add((g2d, strokeBaseWidth) -> {
+                            g2d.setColor(Color.GREEN);
+                            g2d.fill(new Ellipse2D.Double(0.56 * startNode.getLon() - strokeBaseWidth * 8 / 2, -startNode.getLat() - strokeBaseWidth * 8 / 2, strokeBaseWidth * 8, strokeBaseWidth * 8));
                         });
                     }
                     var endNode = state.getRoutingConfiguration().getEndNode();
                     if (endNode != null) {
-                        drawables.add(new Colored() {
-                            @Override
-                            public void draw(Graphics2D g2d, float strokeBaseWidth) {
-                                g2d.setColor(Color.RED);
-                                g2d.fill(new Ellipse2D.Double(0.56 * endNode.getLon() - strokeBaseWidth * 8 / 2, -endNode.getLat() - strokeBaseWidth * 8 / 2, strokeBaseWidth * 8, strokeBaseWidth * 8));
-                            }
+                        drawables.add((g2d, strokeBaseWidth) -> {
+                            g2d.setColor(Color.RED);
+                            g2d.fill(new Ellipse2D.Double(0.56 * endNode.getLon() - strokeBaseWidth * 8 / 2, -endNode.getLat() - strokeBaseWidth * 8 / 2, strokeBaseWidth * 8, strokeBaseWidth * 8));
                         });
                     }
 

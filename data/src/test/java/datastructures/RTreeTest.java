@@ -117,8 +117,8 @@ public class RTreeTest {
             public void draw(Graphics2D g2d, float strokeBaseWidth) {}
         };
 
-        child1.setMBR(bbox1);
-        child2.setMBR(bbox2);
+        child1.setBoundingBox(bbox1);
+        child2.setBoundingBox(bbox2);
         root.getChildren().add(child1);
         root.getChildren().add(child2);
 
@@ -280,14 +280,14 @@ public class RTreeTest {
         RTreeNode child1 = new RTreeNode();
         RTreeNode child2 = new RTreeNode();
 
-        child1.setMBR(new BoundingBox(0, 0, 5, 5) {
+        child1.setBoundingBox(new BoundingBox(0, 0, 5, 5) {
 
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {
 
             }
         });
-        child2.setMBR(new BoundingBox(10, 10, 15, 15) {
+        child2.setBoundingBox(new BoundingBox(10, 10, 15, 15) {
 
             @Override
             public void draw(Graphics2D g2d, float strokeBaseWidth) {

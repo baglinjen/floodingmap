@@ -1,6 +1,6 @@
 package dk.itu.ui.drawables;
 
-import dk.itu.common.models.Colored;
+import dk.itu.common.models.Drawable;
 import dk.itu.data.models.osm.OsmNode;
 
 import java.awt.*;
@@ -8,7 +8,7 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 
-public class NearestNeighbour extends Colored {
+public class NearestNeighbour implements Drawable {
     private final OsmNode selectedOsmElement;
     private final Point2D.Double mousePos;
     public NearestNeighbour(OsmNode selectedOsmElement, Point2D.Double mouseLonLat) {

@@ -82,7 +82,7 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
     }
 
     @Override
-    public HeightCurveElement getHeightCurveForPoint(double lon, double lat) {
+    public HeightCurveElement getHeightCurveForPoint(float lon, float lat) {
         return heightCurveTree.getHeightCurveForPoint(lon, lat);
     }
 

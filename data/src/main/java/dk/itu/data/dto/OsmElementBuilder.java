@@ -20,7 +20,7 @@ public class OsmElementBuilder {
     private final OsmParserResult osmParserResult;
     // Fields
     private long currentId;
-    private double lat, lon;
+    private float lat, lon;
     private boolean idAdded = false, latLonAdded = false;
     private OsmElementType type = null;
     private final Map<String, String> tags = new HashMap<>();
@@ -36,7 +36,7 @@ public class OsmElementBuilder {
     }
 
     public void buildAndAddElement() {
-        DrawingConfiguration.Style style = DrawingConfiguration.getInstance().getStyle(tags);
+        byte styleId = DrawingConfiguration.getInstance().getStyle(tags);
 
         switch (type) {
             case NODE:
@@ -45,10 +45,7 @@ public class OsmElementBuilder {
                         latLonAdded &&
                         !invalidElement
                 ) {
-                    var newNode = new ParserOsmNode(currentId, lat, lon);
-                    newNode.setShouldBeDrawn(newNode.shouldBeDrawn() && style != null);
-                    newNode.setStyle(style);
-                    osmParserResult.addNode(newNode);
+                    osmParserResult.addNode(new ParserOsmNode(currentId, lat, lon));
                 } else {
                     logger.warn("Parsing node with id {} is invalid", currentId);
                 }
@@ -59,10 +56,7 @@ public class OsmElementBuilder {
                         !wayNodes.isEmpty() &&
                         !invalidElement
                 ) {
-                    var newWay = new ParserOsmWay(currentId, wayNodes);
-                    newWay.setShouldBeDrawn(newWay.shouldBeDrawn() && style != null);
-                    newWay.setStyle(style);
-                    osmParserResult.addWay(newWay);
+                    osmParserResult.addWay(new ParserOsmWay(currentId, wayNodes, styleId));
 
                     //If the way is traversable -> modify the containing nodes
                     if (this.tags.containsKey("highway")) {
@@ -85,10 +79,7 @@ public class OsmElementBuilder {
                         !members.isEmpty() &&
                         !invalidElement
                 ) {
-                    var newRelation = new ParserOsmRelation(currentId, members, ParserOsmRelation.OsmRelationType.fromTags(tags));
-                    newRelation.setShouldBeDrawn(newRelation.shouldBeDrawn() && style != null);
-                    newRelation.setStyle(style);
-                    osmParserResult.addRelation(newRelation);
+                    osmParserResult.addRelation(new ParserOsmRelation(currentId, members, ParserOsmRelation.OsmRelationType.fromTags(tags), styleId));
                 } else {
                     logger.warn("Parsing relation with id {} is invalid", currentId);
                 }
@@ -122,7 +113,7 @@ public class OsmElementBuilder {
     }
 
     // NODES
-    public OsmElementBuilder withCoordinates(double lat, double lon) {
+    public OsmElementBuilder withCoordinates(float lat, float lon) {
         this.lat = lat;
         this.lon = lon;
         this.latLonAdded = true;
@@ -136,7 +127,7 @@ public class OsmElementBuilder {
         ParserOsmElement node = osmParserResult.findNode(referencedNodeId);
         if (node instanceof ParserOsmNode) {
             wayNodes.add((ParserOsmNode) node);
-            node.setShouldBeDrawn(false);
+            node.setStyleId((byte) -1);
         } else {
             invalidElement = true;
         }

@@ -43,8 +43,8 @@ public class OsmParser {
                         case "node" -> elementBuilder
                                 .withType(OsmElementBuilder.OsmElementType.NODE)
                                 .withCoordinates(
-                                        Double.parseDouble(reader.getAttributeValue(null, "lat")),
-                                        Double.parseDouble(reader.getAttributeValue(null, "lon"))
+                                        Float.parseFloat(reader.getAttributeValue(null, "lat")),
+                                        Float.parseFloat(reader.getAttributeValue(null, "lon"))
                                 )
                                 .withId(Long.parseLong(reader.getAttributeValue(null, "id")));
                         case "way" -> elementBuilder
