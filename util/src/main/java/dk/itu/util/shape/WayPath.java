@@ -11,12 +11,12 @@ import static dk.itu.util.PolygonUtils.isClosed;
 public class WayPath implements Shape {
     private static final AffineTransform transform = new AffineTransform();
     private final byte[] pointTypes;
-    private final double[] outerCoordinates;
+    private final float[] outerCoordinates;
     private final PathIterator pathIteratorNodeSkip;
 
     private short pathIteratorPointer = 0;
 
-    public WayPath(double[] coordinates) {
+    public WayPath(float[] coordinates) {
         this.outerCoordinates = coordinates;
         // Set point types
         this.pointTypes = new byte[coordinates.length / 2];
@@ -26,7 +26,7 @@ public class WayPath implements Shape {
 
         // Create path iterator with node skipping
         this.pathIteratorNodeSkip = new PathIterator() {
-            double lastCoordinateX , lastCoordinateY; // Last transformed points that should be drawn
+            float lastCoordinateX , lastCoordinateY; // Last transformed points that should be drawn
 
             @Override
             public int getWindingRule() {
@@ -49,8 +49,8 @@ public class WayPath implements Shape {
                 if (pathIteratorPointer == 0) {
                     // First point
                     transform.transform(outerCoordinates, 0, coords, 0, 1);
-                    lastCoordinateX = coords[0];
-                    lastCoordinateY = coords[1];
+                    lastCoordinateX = (float) coords[0];
+                    lastCoordinateY = (float) coords[1];
                 } else {
                     // Nth point
                     transform.transform(outerCoordinates, pathIteratorPointer*2, coords, 0, 1);
@@ -66,8 +66,8 @@ public class WayPath implements Shape {
 
                     if (distanceToLastPoint >= DRAWING_TOLERANCE) {
                         // Point was found and it should be tracked
-                        lastCoordinateX = coords[0];
-                        lastCoordinateY = coords[1];
+                        lastCoordinateX = (float) coords[0];
+                        lastCoordinateY = (float) coords[1];
                     }
                 }
                 return type;
@@ -80,7 +80,7 @@ public class WayPath implements Shape {
         };
     }
 
-    public double[] getOuterCoordinates() {
+    public float[] getOuterCoordinates() {
         return outerCoordinates;
     }
 

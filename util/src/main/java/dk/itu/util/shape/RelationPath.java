@@ -11,14 +11,14 @@ import static dk.itu.util.DrawingUtils.calculateDistance;
 
 public class RelationPath implements Shape {
     private static final AffineTransform projectionTransform = AffineTransform.getScaleInstance(0.56, -1);
-    private final List<double[]> outerCoordinates, innerCoordinates;
+    private final List<float[]> outerCoordinates, innerCoordinates;
     private final byte[] pointTypes;
     private final PathIterator pathIteratorNodeSkip;
 
     private int pathIteratorPointer = 0;
     private AffineTransform transform = new AffineTransform();
 
-    public RelationPath(List<double[]> outerCoordinates, List<double[]> innerCoordinates) {
+    public RelationPath(List<float[]> outerCoordinates, List<float[]> innerCoordinates) {
         this.outerCoordinates = outerCoordinates;
         if (this.outerCoordinates instanceof ArrayList<?>) ((ArrayList<?>) this.outerCoordinates).trimToSize();
         this.innerCoordinates = innerCoordinates;
@@ -28,17 +28,17 @@ public class RelationPath implements Shape {
         int innerCoordinatesLength = innerCoordinates.stream().mapToInt(x -> x.length).sum();
 
         // Assemble coordinates
-        double[] coordinates = new double[outerCoordinatesLength + innerCoordinatesLength];
+        float[] coordinates = new float[outerCoordinatesLength + innerCoordinatesLength];
         this.pointTypes = new byte[coordinates.length / 2];
         int lastEmptyIndex = 0;
-        for (double[] outerCoordinate : outerCoordinates) {
+        for (float[] outerCoordinate : outerCoordinates) {
             System.arraycopy(outerCoordinate, 0, coordinates, lastEmptyIndex, outerCoordinate.length); // Copy coordinates to projected list
             pointTypes[lastEmptyIndex / 2] = (byte) 0; // moveTo
             Arrays.fill(pointTypes, lastEmptyIndex / 2 + 1, (lastEmptyIndex + outerCoordinate.length) / 2 - 1, (byte) 1); // lineTo
             pointTypes[(lastEmptyIndex + outerCoordinate.length) / 2 - 1] = (byte) 4; // closePath
             lastEmptyIndex += outerCoordinate.length;
         }
-        for (double[] innerCoordinate : innerCoordinates) {
+        for (float[] innerCoordinate : innerCoordinates) {
             System.arraycopy(innerCoordinate, 0, coordinates, lastEmptyIndex, innerCoordinate.length); // Copy coordinates to projected list
             pointTypes[lastEmptyIndex / 2] = (byte) 0; // moveTo
             Arrays.fill(pointTypes, lastEmptyIndex / 2 + 1, (lastEmptyIndex + innerCoordinate.length) / 2 - 1, (byte) 1); // lineTo
@@ -46,12 +46,12 @@ public class RelationPath implements Shape {
             lastEmptyIndex += innerCoordinate.length;
         }
 
-        double[] coordinatesProjected = new double[coordinates.length];
+        float[] coordinatesProjected = new float[coordinates.length];
         projectionTransform.transform(coordinates, 0, coordinatesProjected, 0, coordinates.length / 2);
 
         // Create path iterator with node skipping
         this.pathIteratorNodeSkip = new PathIterator() {
-            double lastCoordinateX, lastCoordinateY;
+            float lastCoordinateX, lastCoordinateY;
 
             @Override
             public int getWindingRule() {
@@ -74,8 +74,8 @@ public class RelationPath implements Shape {
                 if (pathIteratorPointer == 0) {
                     // First point
                     transform.transform(coordinatesProjected, 0, coords, 0, 1);
-                    lastCoordinateX = coords[0];
-                    lastCoordinateY = coords[1];
+                    lastCoordinateX = (float) coords[0];
+                    lastCoordinateY = (float) coords[1];
                 } else {
                     // Nth point
                     transform.transform(coordinatesProjected, pathIteratorPointer*2, coords, 0, 1);
@@ -91,8 +91,8 @@ public class RelationPath implements Shape {
 
                     if (distanceToLastPoint >= DRAWING_TOLERANCE) {
                         // Point was found and it should be tracked
-                        lastCoordinateX = coords[0];
-                        lastCoordinateY = coords[1];
+                        lastCoordinateX = (float) coords[0];
+                        lastCoordinateY = (float) coords[1];
                     }
                 }
                 return type;
@@ -105,10 +105,10 @@ public class RelationPath implements Shape {
         };
     }
 
-    public List<double[]> getOuterPolygons() {
+    public List<float[]> getOuterPolygons() {
         return this.outerCoordinates;
     }
-    public List<double[]> getInnerPolygons() {
+    public List<float[]> getInnerPolygons() {
         return this.innerCoordinates;
     }
 

@@ -20,7 +20,7 @@ import static dk.itu.data.datastructure.rtree.RStartTreeUtilities.*;
 public class RStarTree {
     private static final int MAX_ENTRIES = 100;  // Maximum entries in a node
     private static final int MIN_ENTRIES = MAX_ENTRIES / 2;  // Minimum entries (40-50% of max is typical)
-    private static final double REINSERT_PERCENTAGE = 0.3;  // Percentage of entries to reinsert (30% is typical)
+    private static final float REINSERT_PERCENTAGE = 0.3f;  // Percentage of entries to reinsert (30% is typical)
     private static final int MAX_CHILDREN = 10;
     private static final int MIN_CHILDREN = MAX_CHILDREN / 2;
 
@@ -35,16 +35,16 @@ public class RStarTree {
      */
     private static class NNEntry implements Comparable<NNEntry> {
         RTreeNode node;
-        double distance;
+        float distance;
 
-        public NNEntry(RTreeNode node, double distance) {
+        public NNEntry(RTreeNode node, float distance) {
             this.node = node;
             this.distance = distance;
         }
 
         @Override
         public int compareTo(NNEntry other) {
-            return Double.compare(this.distance, other.distance);
+            return Float.compare(this.distance, other.distance);
         }
     }
 
@@ -55,9 +55,9 @@ public class RStarTree {
      * @param box The bounding box
      * @return The minimum possible Euclidean distance
      */
-    private double minDist(double px, double py, WithBoundingBoxAndArea box) {
-        double dx = 0.0;
-        double dy = 0.0;
+    private float minDist(float px, float py, WithBoundingBoxAndArea box) {
+        float dx = 0;
+        float dy = 0;
 
         // Distance in x-dimension
         if (px < box.minLon()) {
@@ -74,7 +74,7 @@ public class RStarTree {
         }
 
         // Euclidean distance
-        return Math.sqrt(dx * dx + dy * dy);
+        return (float) Math.sqrt(dx * dx + dy * dy);
     }
 
     /**
@@ -383,7 +383,7 @@ public class RStarTree {
             List<OsmElement> elements = new ArrayList<>(node.elements);
 
             // Sort by distance from center in descending order
-            elements.sort((e1, e2) -> Double.compare(getDistance(e2, centerLon, centerLat), getDistance(e1, centerLon, centerLat)));
+            elements.sort((e1, e2) -> Float.compare(getDistance(e2, centerLon, centerLat), getDistance(e1, centerLon, centerLat)));
 
             // Select entries to reinsert (farthest p entries)
             int reinsertCount = Math.min(p, elements.size());
@@ -402,7 +402,7 @@ public class RStarTree {
             List<RTreeNode> children = new ArrayList<>(node.getChildren());
 
             // Sort by distance from center in descending order
-            children.sort((c1, c2) -> Double.compare(getDistance(c2, centerLon, centerLat), getDistance(c1, centerLon, centerLat)));
+            children.sort((c1, c2) -> Float.compare(getDistance(c2, centerLon, centerLat), getDistance(c1, centerLon, centerLat)));
 
             // Select entries to reinsert (farthest p entries)
             int reinsertCount = Math.min(p, children.size());
@@ -560,7 +560,7 @@ public class RStarTree {
         return elementsConcurrent
                 .parallelStream()
                 .filter(e -> intersects(e, minLon, minLat, maxLon, maxLat))
-                .sorted(Comparator.comparingDouble(OsmElement::getArea).reversed())
+                .sorted(Comparator.comparing(OsmElement::getArea).reversed())
                 .toList();
     }
     private void search(RTreeNode node, float minLon, float minLat, float maxLon, float maxLat, Collection<OsmElement> results) {
@@ -623,7 +623,7 @@ public class RStarTree {
      * @param lat Latitude of the query point
      * @return The nearest OsmNode or null if tree is empty
      */
-    public OsmNode getNearest(double lon, double lat) {
+    public OsmNode getNearest(float lon, float lat) {
         if (root == null) {
             return null;
         }
@@ -662,7 +662,7 @@ public class RStarTree {
             } else {
                 // Add all children to the queue
                 for (RTreeNode child : entry.node.getChildren()) {
-                    double childDist = minDist(lon, lat, child);
+                    float childDist = minDist(lon, lat, child);
 
                     // Only add if it could contain a closer point
                     if (childDist < nearestDist) {

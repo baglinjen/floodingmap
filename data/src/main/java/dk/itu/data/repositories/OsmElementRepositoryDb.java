@@ -34,7 +34,7 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
                 .withCompatibleMode(CompatibleMode.SCHEMA_CONSISTENT)
                 .withAsyncCompilation(true)
                 .build();
-        f.register(Path2D.Double.class);
+        f.register(Path2D.Float.class);
         f.register(OsmNode.class);
         f.register(OsmWay.class);
         f.register(OsmRelation.class);
@@ -152,7 +152,7 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
             sb.append(")"); // Polygon outer end
 
             // Check if there are any inner polygons
-            for (double[] innerPolygon : innerPolygons) {
+            for (float[] innerPolygon : innerPolygons) {
                 if (isPolygonContained(outerPolygons.get(i), innerPolygon)) {
                     sb.append(", ("); // Inner hole start
                     List<String> coordinatePairsInner = new ArrayList<>();
@@ -174,7 +174,7 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
         );
     }
 
-    private Field<Geometry> getGeometryFieldFromShape(String expected, double[] coordinates) {
+    private Field<Geometry> getGeometryFieldFromShape(String expected, float[] coordinates) {
         List<String> coordinatePairs = new ArrayList<>();
         for (int i = 0; i < coordinates.length; i+=2) {
             coordinatePairs.add(coordinates[i] + " " + coordinates[i+1]);

@@ -182,6 +182,6 @@ public class RTreeNode implements WithBoundingBoxAndArea, Drawable {
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
         g2d.setColor(DrawingConfiguration.getInstance().getColor((byte) 0));
         g2d.setStroke(new BasicStroke(strokeBaseWidth * DrawingConfiguration.getInstance().getStroke((byte) 0)));
-        g2d.draw(new Rectangle2D.Double(0.56*minLon, -minLat, 0.56*(maxLon - minLon), maxLat - minLat));
+        g2d.draw(new Rectangle2D.Double(0.56*minLon, -maxLat, 0.56*(maxLon - minLon), maxLat - minLat));
     }
 }

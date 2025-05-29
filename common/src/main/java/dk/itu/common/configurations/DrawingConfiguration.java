@@ -40,9 +40,9 @@ public class DrawingConfiguration {
         // Bounding box & above water style => 0
         addStyle(Color.BLACK, 1);
         // Below water style => 1
-        addStyle(Color.decode("#40739e80"), null);
+        addStyle(new Color(64, 115, 158, 127), null);
         // Selected style => 2
-        addStyle(Color.decode("#00FF0080"), null);
+        addStyle(new Color(0, 255, 0, 127), null);
         // Route style => 3
         addStyle(Color.yellow, 6);
     }

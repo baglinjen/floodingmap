@@ -32,7 +32,7 @@ public class HeightCurveParserResult {
 
     public void sanitize() {
         logger.info("Starting to sanitize {} height curve elements", elementsByHeight.values().stream().mapToInt(List::size).sum());
-        elementsByHeight.keySet().forEach(h -> this.closeHeightCurvesForH(h, elementsByHeight.get(h)));
+        elementsByHeight.keySet().parallelStream().forEach(h -> this.closeHeightCurvesForH(h, elementsByHeight.get(h)));
         elementsByHeight.clear();
         logger.info("Split in {} elements and {} unconnected elements - sorting by area", elements.size(), unconnectedElements.size());
         elements.sort(Comparator.comparing(hc -> hc.getCoordinates().length));

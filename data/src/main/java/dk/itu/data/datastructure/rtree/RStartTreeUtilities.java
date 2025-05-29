@@ -77,7 +77,7 @@ public class RStartTreeUtilities {
 
             @Override
             public float maxLon() {
-                return maxLat;
+                return maxLon;
             }
 
             @Override

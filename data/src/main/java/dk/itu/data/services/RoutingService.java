@@ -241,12 +241,12 @@ public class RoutingService {
         return null;
     }
 
-    private OsmWay createPath(double[] coordinateList){
+    private OsmWay createPath(float[] coordinateList){
         logger.info("Creating path with {} coordinates", coordinateList.length / 2);
         return OsmWay.createWayForRouting(coordinateList);
     }
 
-    private double[] createCoordinateList(Map<OsmNode, OsmNode> previousConnections, OsmNode startNode, OsmNode endNode) throws RuntimeException{
+    private float[] createCoordinateList(Map<OsmNode, OsmNode> previousConnections, OsmNode startNode, OsmNode endNode) throws RuntimeException{
         if(previousConnections == null) throw new RuntimeException("Previous connections can not be null");
 
         List<OsmNode> path = new ArrayList<>();
@@ -259,7 +259,7 @@ public class RoutingService {
 
         path.addFirst(startNode);
 
-        var coordinateList = new double[path.size() * 2];
+        var coordinateList = new float[path.size() * 2];
         var count = 0;
         for(var x : path){
             coordinateList[count] = x.getLon();
@@ -270,15 +270,16 @@ public class RoutingService {
         return coordinateList;
     }
 
-    private double[] reverseCoordinateList(double[] coordinates){
-        var result = new double[coordinates.length];
+    private float[] reverseCoordinateList(float[] coordinates){
+        // TODO: Revise coordinate reversal
+        var result = new float[coordinates.length];
 
-        List<List<Double>> pairs = new ArrayList<>();
+        List<List<Float>> pairs = new ArrayList<>();
         for(int i = 0; i < coordinates.length; i += 2){
             pairs.add(Arrays.asList(coordinates[i], coordinates[i+1]));
         }
 
-        var list = new ArrayList<Double>();
+        var list = new ArrayList<Float>();
         for(int i = pairs.size() - 1; i >=0; i--){
             list.addAll(pairs.get(i));
         }
@@ -290,10 +291,10 @@ public class RoutingService {
         return result;
     }
 
-    private double[] stitchCoordinates(double[] firstList, double[] secondList){
+    private float[] stitchCoordinates(float[] firstList, float[] secondList){
         boolean removeDuplicate = (firstList[firstList.length - 2] == secondList[0] && firstList[firstList.length - 1] == secondList[1]);
 
-        var result = new double[
+        var result = new float[
                 removeDuplicate ? firstList.length + secondList.length - 2 :
                 firstList.length + secondList.length
         ];

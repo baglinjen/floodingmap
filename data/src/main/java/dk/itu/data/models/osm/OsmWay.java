@@ -36,7 +36,7 @@ public class OsmWay implements OsmElement, Drawable {
         this.styleId = styleId;
     }
 
-    public double[] getOuterCoordinates(){
+    public float[] getOuterCoordinates(){
         return this.path.getOuterCoordinates();
     }
 
@@ -48,7 +48,7 @@ public class OsmWay implements OsmElement, Drawable {
         );
     }
 
-    public static OsmWay createWayForRouting(double[] coordinates) {
+    public static OsmWay createWayForRouting(float[] coordinates) {
         return new OsmWay(
                 0,
                 new WayPath(coordinates),

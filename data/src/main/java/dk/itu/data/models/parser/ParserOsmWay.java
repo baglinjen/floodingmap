@@ -13,7 +13,7 @@ public class ParserOsmWay implements ParserOsmElement {
 
     public ParserOsmWay(long id, List<ParserOsmNode> nodes, byte styleId) {
         this.id = id;
-        double[] coordinatesRaw = new double[nodes.size()*2];
+        float[] coordinatesRaw = new float[nodes.size()*2];
         for (int i = 0; i < nodes.size(); i++) {
             coordinatesRaw[i*2] = nodes.get(i).getLon();
             coordinatesRaw[i*2 + 1] = nodes.get(i).getLat();
@@ -27,7 +27,7 @@ public class ParserOsmWay implements ParserOsmElement {
         return path;
     }
 
-    public double[] getCoordinates() {
+    public float[] getCoordinates() {
         return path.getOuterCoordinates();
     }
 

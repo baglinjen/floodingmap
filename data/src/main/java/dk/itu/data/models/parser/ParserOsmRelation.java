@@ -22,9 +22,9 @@ public class ParserOsmRelation implements ParserOsmElement {
             return;
         }
 
-        List<double[]> outerPolygons = new ArrayList<>();
-        List<double[]> innerPolygons = new ArrayList<>();
-        List<double[]> openElements = new ArrayList<>();
+        List<float[]> outerPolygons = new ArrayList<>();
+        List<float[]> innerPolygons = new ArrayList<>();
+        List<float[]> openElements = new ArrayList<>();
 
         // Sort elements
         for (var elementPair : elements) {
@@ -52,7 +52,7 @@ public class ParserOsmRelation implements ParserOsmElement {
                     if (elementType == OsmRelationMemberType.INNER) {
                         innerPolygons.addAll(osmRelation.getOuterPolygons());
                     } else {
-                        for (double[] polygon : osmRelation.getOuterPolygons()) {
+                        for (float[] polygon : osmRelation.getOuterPolygons()) {
                             if (isClosed(polygon)) {
                                 outerPolygons.add(polygon);
                             } else {
@@ -193,7 +193,7 @@ public class ParserOsmRelation implements ParserOsmElement {
         return relationPath;
     }
 
-    public List<double[]> getOuterPolygons() {
+    public List<float[]> getOuterPolygons() {
         if (relationPath == null) return List.of();
         return relationPath.getOuterPolygons();
     }

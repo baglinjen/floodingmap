@@ -10,7 +10,7 @@ import java.util.stream.IntStream;
 public class HeightCurveTree {
     private final HeightCurveTreeNode root = new HeightCurveTreeNode(
             new HeightCurveElement(
-                    new double[] {
+                    new float[] {
                             -180, -90, // BL SW
                             180, -90,  // BR SE
                             180, 90, // TR NE

@@ -21,8 +21,8 @@ public class OsmRelation implements OsmElement, Drawable {
         this.id = id;
         this.styleId = styleId;
 
-        minLon = maxLon = (float) relationPath.getOuterPolygons().getFirst()[0];
-        minLat = maxLat = (float) relationPath.getOuterPolygons().getFirst()[1];
+        minLon = maxLon = relationPath.getOuterPolygons().getFirst()[0];
+        minLat = maxLat = relationPath.getOuterPolygons().getFirst()[1];
 
         // Calculate Bounding Box
         for (int i = 0; i < relationPath.getOuterPolygons().size(); i++) {
@@ -48,11 +48,11 @@ public class OsmRelation implements OsmElement, Drawable {
         );
     }
 
-    public List<double[]> getOuterPolygons() {
+    public List<float[]> getOuterPolygons() {
         return path.getOuterPolygons();
     }
 
-    public List<double[]> getInnerPolygons() {
+    public List<float[]> getInnerPolygons() {
         return path.getInnerPolygons();
     }
 

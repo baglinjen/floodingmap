@@ -14,10 +14,11 @@ import java.util.List;
 
 import static dk.itu.util.PolygonUtils.forceCounterClockwise;
 
+
 public class HeightCurveElement implements WithBoundingBox, Drawable, WithStyle {
     // Path
-    private final double[] outerPolygon;
-    private final List<double[]> innerPolygons = new ArrayList<>();
+    private final float[] outerPolygon;
+    private final List<float[]> innerPolygons = new ArrayList<>();
     private HeightCurvePath heightCurvePath; // TODO: Remove the double[] outerPolygon field and only have it on the HeightCurvePath object. OuterPolygon should never change
     // Bounding Box
     private final float minLon, minLat, maxLon, maxLat;
@@ -26,28 +27,28 @@ public class HeightCurveElement implements WithBoundingBox, Drawable, WithStyle 
     private byte styleId;
     private boolean isAboveWater = true;
 
-    public HeightCurveElement(double[] outerPolygon, float height) {
+    public HeightCurveElement(float[] outerPolygon, float height) {
         this.outerPolygon = outerPolygon;
         this.height = height;
 
         // Calculate Bounding Box
-        double minLon = Double.MAX_VALUE;
-        double minLat = Double.MAX_VALUE;
-        double maxLon = Double.MIN_VALUE;
-        double maxLat = Double.MIN_VALUE;
+        float minLon = Float.MAX_VALUE;
+        float minLat = Float.MAX_VALUE;
+        float maxLon = Float.MIN_VALUE;
+        float maxLat = Float.MIN_VALUE;
         for (int i = 0; i < outerPolygon.length; i+=2) {
-            double lon = outerPolygon[i];
-            double lat = outerPolygon[i+1];
+            float lon = outerPolygon[i];
+            float lat = outerPolygon[i+1];
 
             if (lon < minLon) minLon = lon;
             if (lat < minLat) minLat = lat;
             if (lon > maxLon) maxLon = lon;
             if (lat > maxLat) maxLat = lat;
         }
-        this.minLon = (float) minLon;
-        this.minLat = (float) minLat;
-        this.maxLon = (float) maxLon;
-        this.maxLat = (float) maxLat;
+        this.minLon = minLon;
+        this.minLat = minLat;
+        this.maxLon = maxLon;
+        this.maxLat = maxLat;
 
         setAboveWater();
     }
@@ -63,7 +64,7 @@ public class HeightCurveElement implements WithBoundingBox, Drawable, WithStyle 
         return isAboveWater;
     }
 
-    public double[] getCoordinates() {
+    public float[] getCoordinates() {
         return outerPolygon;
     }
 
@@ -72,12 +73,12 @@ public class HeightCurveElement implements WithBoundingBox, Drawable, WithStyle 
     }
 
     // Bounding Box and Path related functions
-    public void addInnerPolygon(double[] innerPolygon) {
+    public void addInnerPolygon(float[] innerPolygon) {
         innerPolygons.add(innerPolygon);
         heightCurvePath = null;
     }
 
-    public void removeInnerPolygon(double[] innerPolygon) {
+    public void removeInnerPolygon(float[] innerPolygon) {
         innerPolygons.remove(innerPolygon);
         heightCurvePath = null;
     }
