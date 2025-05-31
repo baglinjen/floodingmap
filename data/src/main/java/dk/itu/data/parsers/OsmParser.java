@@ -41,9 +41,9 @@ public class OsmParser {
                         case "tag" -> {
                             String tagKey = reader.getAttributeValue(null, "k");
                             if (DrawingConfiguration.getInstance().getTagKeys().contains(tagKey)) {
-                                // Only add tags which have are drawable + highway (see DrawingConfiguration)
+                                // Only add tags which are drawable + highway + type (see DrawingConfiguration)
                                 elementBuilder.withTag(
-                                        reader.getAttributeValue(null, "k"),
+                                        tagKey,
                                         reader.getAttributeValue(null, "v")
                                 );
                             }
