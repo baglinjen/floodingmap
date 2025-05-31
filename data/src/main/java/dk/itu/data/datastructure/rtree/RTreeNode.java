@@ -15,8 +15,8 @@ import static dk.itu.common.models.WithBoundingBoxAndArea.calculateArea;
 
 public class RTreeNode implements WithBoundingBoxAndArea, Drawable {
     RTreeNode parent;
-    ObjectArrayList<OsmElement> elements = new ObjectArrayList<>();            // For leaf nodes
-    private ReferenceArrayList<RTreeNode> children = new ReferenceArrayList<>();  // For internal nodes
+    List<OsmElement> elements = new ObjectArrayList<>();            // For leaf nodes
+    private List<RTreeNode> children = new ReferenceArrayList<>();  // For internal nodes
     private float minLon = 0, minLat = 0, maxLon = 0, maxLat = 0, area = 0;
 
     public RTreeNode()  {
@@ -33,7 +33,7 @@ public class RTreeNode implements WithBoundingBoxAndArea, Drawable {
     public List<RTreeNode> getChildren() {
         return children;
     }
-    public void setChildren(ReferenceArrayList<RTreeNode> children) {
+    public void setChildren(List<RTreeNode> children) {
         this.children = children;
         this.children.forEach(child -> child.setParent(this));
     }
