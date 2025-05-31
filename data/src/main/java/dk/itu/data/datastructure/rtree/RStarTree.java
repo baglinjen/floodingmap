@@ -5,10 +5,16 @@ import dk.itu.common.models.WithBoundingBoxAndArea;
 import dk.itu.data.models.osm.OsmElement;
 import dk.itu.data.models.osm.OsmNode;
 import it.unimi.dsi.fastutil.floats.Float2ReferenceMap;
+import it.unimi.dsi.fastutil.objects.AbstractReferenceCollection;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectArrays;
+import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static dk.itu.data.datastructure.rtree.RStartTreeUtilities.*;
 
@@ -21,6 +27,7 @@ public class RStarTree {
     private static final int MAX_ENTRIES = 100;  // Maximum entries in a node
     private static final int MIN_ENTRIES = MAX_ENTRIES / 2;  // Minimum entries (40-50% of max is typical)
     private static final float REINSERT_PERCENTAGE = 0.3f;  // Percentage of entries to reinsert (30% is typical)
+//    private static final int MAX_CHILDREN = 750;
     private static final int MAX_CHILDREN = 10;
     private static final int MIN_CHILDREN = MAX_CHILDREN / 2;
 
@@ -146,7 +153,8 @@ public class RStarTree {
      */
     private RTreeNode splitLeaf(RTreeNode leaf) {
         // Calculate the level of this node to track reinsertions
-        int level = calculateLevel(leaf);
+//        int level = calculateLevel(leaf);
+        int level = calculateLevelUsingParent(leaf);
 
         // Check if we should do a forced reinsert instead of splitting
         if (!reinsertLevels.contains(level)) {
@@ -177,7 +185,13 @@ public class RStarTree {
         // Check both X and Y axes
         for (int axis = 0; axis < 2; axis++) {
             // Sort elements by their center along this axis
-            sortElementsByAxis(elements, axis);
+            if (elements instanceof ObjectArrayList<T> oal) {
+                sortElementsByAxis(oal, axis);
+            } else if (elements instanceof ReferenceArrayList<T> ral) {
+                sortElementsByAxis(ral, axis);
+            } else {
+                throw new IllegalArgumentException("Unsupported type: " + elements.getClass());
+            }
 
             // Compute S, the sum of all perimeter-values of the different distributions
             float perimeterSum = computeDistributionPerimeterSum(elements);
@@ -207,7 +221,13 @@ public class RStarTree {
 
     private <T extends WithBoundingBoxAndArea> int[] chooseSplitIndex(List<T> elements, int axis, int minElements) {
         // Sort by the chosen axis
-        sortElementsByAxis(elements, axis);
+        if (elements instanceof ObjectArrayList<T> oal) {
+            sortElementsByAxis(oal, axis);
+        } else if (elements instanceof ReferenceArrayList<T> ral) {
+            sortElementsByAxis(ral, axis);
+        } else {
+            throw new IllegalArgumentException("Unsupported type: " + elements.getClass());
+        }
 
         float minOverlap = Float.POSITIVE_INFINITY;
         float minArea = Float.POSITIVE_INFINITY;
@@ -237,8 +257,13 @@ public class RStarTree {
     /**
      * Sort elements/children by their center along the specified axis
      */
-    private <T extends WithBoundingBoxAndArea> void sortElementsByAxis(List<T> elements, int axis) {
-        elements.sort(Comparator.comparingDouble(e -> getCenterOfAxis(e, axis == 0)));
+    private <T extends WithBoundingBoxAndArea> void sortElementsByAxis(ReferenceArrayList<T> elements, int axis) {
+        Object[] elementsArray = elements.elements();
+        ObjectArrays.parallelQuickSort(elementsArray, Comparator.comparingDouble(e -> getCenterOfAxis((T) e, axis == 0)));
+    }
+    private <T extends WithBoundingBoxAndArea> void sortElementsByAxis(ObjectArrayList<T> elements, int axis) {
+        Object[] elementsArray = elements.elements();
+        ObjectArrays.parallelQuickSort(elementsArray, Comparator.comparingDouble(e -> getCenterOfAxis((T) e, axis == 0)));
     }
 
     /**
@@ -267,7 +292,7 @@ public class RStarTree {
 
         if (node.isLeaf()) {
             // Handle leaf node split
-            List<OsmElement> elements = new ArrayList<>(node.elements);
+            ObjectArrayList<OsmElement> elements = new ObjectArrayList<>(node.elements);
 
             // Choose split axis and distribution
             int bestAxis = chooseSplitAxis(elements);
@@ -277,15 +302,15 @@ public class RStarTree {
             sortElementsByAxis(elements, bestAxis);
 
             // Distribute elements
-            List<OsmElement> group1 = new ArrayList<>(elements.subList(0, distribution[0]));
-            List<OsmElement> group2 = new ArrayList<>(elements.subList(distribution[0], elements.size()));
+            ObjectArrayList<OsmElement> group1 = new ObjectArrayList<>(elements.subList(0, distribution[0]));
+            ObjectArrayList<OsmElement> group2 = new ObjectArrayList<>(elements.subList(distribution[0], elements.size()));
 
             // Update nodes
             node.elements = group1;
             newNode.elements = group2;
         } else {
             // Handle internal node split
-            List<RTreeNode> children = new ArrayList<>(node.getChildren());
+            ReferenceArrayList<RTreeNode> children = new ReferenceArrayList<>(node.getChildren());
 
             // Choose split axis and distribution
             int bestAxis = chooseSplitAxis(children);
@@ -295,8 +320,8 @@ public class RStarTree {
             sortElementsByAxis(children, bestAxis);
 
             // Distribute children
-            List<RTreeNode> group1 = new ArrayList<>(children.subList(0, distribution[0]));
-            List<RTreeNode> group2 = new ArrayList<>(children.subList(distribution[0], children.size()));
+            ReferenceArrayList<RTreeNode> group1 = new ReferenceArrayList<>(children.subList(0, distribution[0]));
+            ReferenceArrayList<RTreeNode> group2 = new ReferenceArrayList<>(children.subList(distribution[0], children.size()));
 
             // Update nodes
             node.setChildren(group1);
@@ -380,7 +405,7 @@ public class RStarTree {
 
         if (node.isLeaf()) {
             // Handle leaf node - work directly with elements list
-            List<OsmElement> elements = new ArrayList<>(node.elements);
+            ObjectArrayList<OsmElement> elements = new ObjectArrayList<>(node.elements);
 
             // Sort by distance from center in descending order
             elements.sort((e1, e2) -> Float.compare(getDistance(e2, centerLon, centerLat), getDistance(e1, centerLon, centerLat)));
@@ -390,7 +415,7 @@ public class RStarTree {
             List<OsmElement> entriesToReinsert = new ArrayList<>(elements.subList(0, reinsertCount));
 
             // Keep the rest
-            node.elements = new ArrayList<>(elements.subList(reinsertCount, elements.size()));
+            node.elements = new ObjectArrayList<>(elements.subList(reinsertCount, elements.size()));
             node.updateBoundingBox();
 
             // Reinsert entries
@@ -399,18 +424,17 @@ public class RStarTree {
             }
         } else {
             // Handle internal node - work directly with children list
-            List<RTreeNode> children = new ArrayList<>(node.getChildren());
+            ReferenceArrayList<RTreeNode> children = new ReferenceArrayList<>(node.getChildren());
 
             // Sort by distance from center in descending order
             children.sort((c1, c2) -> Float.compare(getDistance(c2, centerLon, centerLat), getDistance(c1, centerLon, centerLat)));
 
             // Select entries to reinsert (farthest p entries)
             int reinsertCount = Math.min(p, children.size());
-            List<RTreeNode> childrenToReinsert =
-                    new ArrayList<>(children.subList(0, reinsertCount));
+            ReferenceArrayList<RTreeNode> childrenToReinsert = new ReferenceArrayList<>(children.subList(0, reinsertCount));
 
             // Keep the rest
-            node.setChildren(new ArrayList<>(children.subList(reinsertCount, children.size())));
+            node.setChildren(new ReferenceArrayList<>(children.subList(reinsertCount, children.size())));
             node.updateBoundingBox();
 
             // Reinsert children
@@ -526,6 +550,16 @@ public class RStarTree {
                 .map(c -> calculateLevel(c, nodeToFind, level+1))
                 .max(Integer::compareTo)
                 .orElse(level);
+    }
+    private int calculateLevelUsingParent(RTreeNode node) {
+        int level = 0;
+        RTreeNode parent = node.getParent();
+        while (parent != null) {
+            level++;
+            parent = parent.getParent();
+        }
+
+        return level;
     }
 
     public void insert(OsmElement element) {

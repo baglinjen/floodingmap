@@ -6,10 +6,6 @@ import static dk.itu.common.models.WithBoundingBoxAndArea.calculateArea;
 
 public class RStartTreeUtilities {
     public static float getEnlargementArea(WithBoundingBoxAndArea b1, WithBoundingBoxAndArea b2) {
-        return getEnlargedArea(b1, b2) - b1.getArea();
-    }
-
-    public static float getEnlargedArea(WithBoundingBoxAndArea b1, WithBoundingBoxAndArea b2) {
         return calculateArea(
                 Math.min(b1.minLon(), b2.minLon()),
                 Math.min(b1.minLat(), b2.minLat()),

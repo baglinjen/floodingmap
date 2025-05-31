@@ -15,8 +15,8 @@ import static dk.itu.common.models.WithBoundingBoxAndArea.calculateArea;
 
 public class RTreeNode implements WithBoundingBoxAndArea, Drawable {
     RTreeNode parent;
-    List<OsmElement> elements = new ObjectArrayList<>();            // For leaf nodes
-    private List<RTreeNode> children = new ReferenceArrayList<>();  // For internal nodes
+    ObjectArrayList<OsmElement> elements = new ObjectArrayList<>();            // For leaf nodes
+    private ReferenceArrayList<RTreeNode> children = new ReferenceArrayList<>();  // For internal nodes
     private float minLon = 0, minLat = 0, maxLon = 0, maxLat = 0, area = 0;
 
     public RTreeNode()  {
@@ -33,7 +33,7 @@ public class RTreeNode implements WithBoundingBoxAndArea, Drawable {
     public List<RTreeNode> getChildren() {
         return children;
     }
-    public void setChildren(List<RTreeNode> children) {
+    public void setChildren(ReferenceArrayList<RTreeNode> children) {
         this.children = children;
         this.children.forEach(child -> child.setParent(this));
     }
@@ -80,6 +80,8 @@ public class RTreeNode implements WithBoundingBoxAndArea, Drawable {
      */
     public void updateBoundingBox() {
         if (children.isEmpty()) {
+            // Consider using streams
+//            System.out.println("Updating bounding box from " + elements.size() + " elements");
             updateBoundingBoxFromList(elements);
         } else if (elements.isEmpty()) {
             updateBoundingBoxFromList(children);
@@ -96,13 +98,17 @@ public class RTreeNode implements WithBoundingBoxAndArea, Drawable {
             float minLon = Float.MAX_VALUE, minLat = Float.MAX_VALUE;
             float maxLon = Float.MIN_VALUE, maxLat = Float.MIN_VALUE;
 
-            // Using standard for loop to avoid Java overhead from iterators
-            for (int i = 0; i < elements.size(); i++) {
-                T element = elements.get(i);
-                minLon = Math.min(minLon, element.minLon());
-                minLat = Math.min(minLat, element.minLat());
-                maxLon = Math.max(maxLon, element.maxLon());
-                maxLat = Math.max(maxLat, element.maxLat());
+            for (T element : elements) {
+                if (element.minLon() < minLon) {
+                    minLon = element.minLon();
+                } else if (element.maxLon() > maxLon) {
+                    maxLon = element.maxLon();
+                }
+                if (element.minLat() < minLat) {
+                    minLat = element.minLat();
+                } else if (element.maxLat() > maxLat) {
+                    maxLat = element.maxLat();
+                }
             }
             setBoundingBox(minLon, minLat, maxLon, maxLat);
         } else {
