@@ -10,7 +10,8 @@ import dk.itu.data.models.parser.ParserOsmElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.models.parser.ParserOsmRelation;
 import dk.itu.data.models.parser.ParserOsmWay;
-import it.unimi.dsi.fastutil.longs.Long2ObjectAVLTreeMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectRBTreeMap;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -23,7 +24,7 @@ public class OsmParserResult {
     private final ArrayList<ParserOsmNode> nodes = new ArrayList<>();
     private final ArrayList<ParserOsmElement> ways = new ArrayList<>();
     private final ArrayList<ParserOsmElement> relations = new ArrayList<>();
-    private final Long2ObjectAVLTreeMap<ParserOsmNode> traversableNodes = new Long2ObjectAVLTreeMap<>();
+    private final Long2ObjectMap<ParserOsmNode> traversableNodes = new Long2ObjectRBTreeMap<>();
 
     private ArrayList<OsmElement> elementsToBeDrawn;
     private ArrayList<OsmNode> traversals;
@@ -92,7 +93,7 @@ public class OsmParserResult {
         this.nodes.add(node);
     }
     public void addTraversableNodes(List<ParserOsmNode> traversableNodes) {
-        this.traversableNodes.putAll(traversableNodes.stream().collect(Collectors.toMap(ParserOsmNode::getId, Function.identity())));
+        this.traversableNodes.putAll(traversableNodes.stream().collect(Collectors.toMap(ParserOsmNode::getId, Function.identity(), (existing, _) -> existing)));
     }
     public void addWay(ParserOsmWay way) {
         this.ways.add(way);
