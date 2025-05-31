@@ -15,6 +15,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectAVLTreeMap;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -90,8 +91,8 @@ public class OsmParserResult {
     public void addNode(ParserOsmNode node) {
         this.nodes.add(node);
     }
-    public void addTraversableNode(ParserOsmNode node) {
-        this.traversableNodes.put(node.getId(), node);
+    public void addTraversableNodes(List<ParserOsmNode> traversableNodes) {
+        this.traversableNodes.putAll(traversableNodes.stream().collect(Collectors.toMap(ParserOsmNode::getId, Function.identity())));
     }
     public void addWay(ParserOsmWay way) {
         this.ways.add(way);

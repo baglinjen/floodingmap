@@ -60,13 +60,12 @@ public class OsmElementBuilder {
 
                     //If the way is traversable -> modify the containing nodes
                     if (this.tags.containsKey("highway")) {
-                        wayNodes.forEach(osmParserResult::addTraversableNode);
-
+                        osmParserResult.addTraversableNodes(wayNodes);
                         // Connect the nodes between each other
-                        for(int i = 0; i < wayNodes.size(); i++){
+                        for (int i = 0; i < wayNodes.size(); i++){
                             var curNode = wayNodes.get(i);
-                            if(i != 0) curNode.addConnectionId(wayNodes.get(i-1).getId());
-                            if(i != wayNodes.size() - 1) curNode.addConnectionId(wayNodes.get(i+1).getId());
+                            if (i != 0) curNode.addConnectionId(wayNodes.get(i-1).getId());
+                            if (i != wayNodes.size() - 1) curNode.addConnectionId(wayNodes.get(i+1).getId());
                         }
                     }
                 } else {
