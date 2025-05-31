@@ -7,6 +7,7 @@ import dk.itu.util.shape.WayPath;
 
 import java.awt.*;
 
+import static dk.itu.util.PolygonUtils.forceCounterClockwise;
 import static dk.itu.util.PolygonUtils.isClosed;
 import static dk.itu.common.models.WithBoundingBoxAndArea.calculateArea;
 
@@ -43,7 +44,7 @@ public class OsmWay implements OsmElement, Drawable {
     public static OsmWay mapToOsmWay(ParserOsmWay parserOsmWay) {
         return new OsmWay(
                 parserOsmWay.getId(),
-                parserOsmWay.getPath(),
+                new WayPath(parserOsmWay.isLine() ? parserOsmWay.getCoordinates() : forceCounterClockwise(parserOsmWay.getCoordinates())),
                 parserOsmWay.getStyleId()
         );
     }

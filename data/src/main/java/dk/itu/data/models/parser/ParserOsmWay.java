@@ -1,7 +1,5 @@
 package dk.itu.data.models.parser;
 
-import dk.itu.util.shape.WayPath;
-
 import java.util.List;
 
 import static dk.itu.util.PolygonUtils.*;
@@ -9,26 +7,25 @@ import static dk.itu.util.PolygonUtils.*;
 public class ParserOsmWay implements ParserOsmElement {
     private final long id;
     private byte styleId;
-    private final WayPath path;
+    private final float[] coordinates;
 
     public ParserOsmWay(long id, List<ParserOsmNode> nodes, byte styleId) {
         this.id = id;
-        float[] coordinatesRaw = new float[nodes.size()*2];
+        coordinates = new float[nodes.size()*2];
         for (int i = 0; i < nodes.size(); i++) {
-            coordinatesRaw[i*2] = nodes.get(i).getLon();
-            coordinatesRaw[i*2 + 1] = nodes.get(i).getLat();
+            coordinates[i*2] = nodes.get(i).getLon();
+            coordinates[i*2 + 1] = nodes.get(i).getLat();
         }
 
-        path = new WayPath(!isClosed(coordinatesRaw) ? coordinatesRaw : forceCounterClockwise(coordinatesRaw));
         this.styleId = styleId;
     }
 
-    public WayPath getPath() {
-        return path;
+    public boolean isLine() {
+        return !isClosed(coordinates);
     }
 
     public float[] getCoordinates() {
-        return path.getOuterCoordinates();
+        return coordinates;
     }
 
     @Override
