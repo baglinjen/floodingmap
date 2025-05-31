@@ -21,6 +21,10 @@ public class DrawingConfiguration {
     @JsonIgnore
     private static final ObjectMapper yamlMapper = new YAMLMapper();
     @JsonIgnore
+    private final Map<String, Byte> tagsToStyleId = new HashMap<>();
+    @JsonIgnore
+    private final Set<String> tagKeys = new HashSet<>();
+    @JsonIgnore
     private final List<Style> styles = new ArrayList<>();
 
     public static DrawingConfiguration getInstance() {
@@ -28,6 +32,9 @@ public class DrawingConfiguration {
             try (InputStream is = DrawingConfiguration.class.getClassLoader().getResourceAsStream("drawingConfig.yaml")) {
                 instance = yamlMapper.readValue(is, DrawingConfiguration.class);
                 instance.addCommonStyles();
+                instance.tagKeys.add("highway"); // Highway should always be added => routing
+                instance.tagKeys.add("type"); // Type should always be added => relations
+                instance.createMapFromTagsToStyle();
             } catch (IOException e) {
                 LoggerFactory.getLogger().error("Failed to load drawingConfig.yaml", e);
                 throw new RuntimeException(e);
@@ -47,6 +54,32 @@ public class DrawingConfiguration {
         addStyle(Color.yellow, 6);
     }
 
+    private void createMapFromTagsToStyle() {
+        for (String featureTag : features.keySet()) {
+            var feature = features.get(featureTag);
+            tagKeys.add(featureTag);
+            if (feature.individuals != null) {
+                for (String individualTag : feature.individuals.keySet()) {
+                    var individual = feature.individuals.get(individualTag);
+                    tagsToStyleId.put(String.join("-", featureTag, individualTag), addStyle(specification.getColor(individual.rgba), individual.stroke));
+                }
+            }
+            if (feature.groupings != null) {
+                for (Feature.Grouping grouping : feature.groupings) {
+                    for (String groupingTag : grouping.tags) {
+                        String joinedTag = String.join("-", featureTag, groupingTag);
+                        tagKeys.add(joinedTag);
+                        tagsToStyleId.put(joinedTag, addStyle(specification.getColor(grouping.rgba), grouping.stroke));
+                    }
+                }
+            }
+            if (feature.def != null) {
+                tagKeys.add(featureTag);
+                tagsToStyleId.put(featureTag, addStyle(specification.getColor(feature.def.rgba), feature.def.stroke));
+            }
+        }
+    }
+
     public Color getColor(byte styleId) {
         if (styleId < 0) return null;
         return styles.get(styleId).rgba;
@@ -61,7 +94,7 @@ public class DrawingConfiguration {
             var style = this.styles.get(i);
             // TODO: Improve null checks
             if (
-                    (style.rgba == null && color == null || Objects.requireNonNull(style.rgba).hashCode() == color.hashCode()) &&
+                    (style.rgba == null && color == null || Objects.requireNonNull(style.rgba).hashCode() == Objects.requireNonNull(color).hashCode()) &&
                     (style.stroke == null && stroke == null || Objects.equals(style.stroke, stroke))
             ) {
                 // Duplicate found
@@ -73,41 +106,31 @@ public class DrawingConfiguration {
         return (byte) (this.styles.size() - 1);
     }
 
+    public Set<String> getTagKeys() {
+        return tagKeys;
+    }
+
+    public byte getStyle(Map<String, String> tags) {
+        byte styleId = -1;
+        for (Map.Entry<String, String> entry :  tags.entrySet()) {
+            styleId = tagsToStyleId.getOrDefault(String.join("-", entry.getKey(), entry.getValue()), styleId);
+            if (styleId >= 0) {
+                // Style found => stop
+                break;
+            } else {
+                // Style not yet found => check defaults
+                styleId = tagsToStyleId.getOrDefault(entry.getKey(), styleId);
+                if (styleId >= 0) break;
+            }
+        }
+        return styleId;
+    }
+
+    // JSON Mapping properties
     @JsonProperty
     private Specification specification;
     @JsonProperty
     private Map<String, Feature> features;
-
-    public byte getStyle(Map<String, String> tags) {
-        for (String key : tags.keySet()) {
-            if (features.containsKey(key)) {
-                // Found key
-                String value = tags.get(key);
-                Feature feature = features.get(key);
-                if (feature.individuals != null) {
-                    // Check individuals
-                    if (feature.individuals.containsKey(value)) {
-                        var style = feature.individuals.get(value);
-                        return addStyle(specification.getColor(style.rgba), style.stroke);
-                    }
-                }
-                if (feature.groupings != null) {
-                    // Check groupings if individuals not found
-                    for (Feature.Grouping grouping : feature.groupings) {
-                        if (grouping.tags.contains(value)) {
-                            return addStyle(specification.getColor(grouping.rgba), grouping.stroke);
-                        }
-                    }
-                }
-                if (feature.def != null) {
-                    // Check default if groupings not found
-                    return addStyle(specification.getColor(feature.def.rgba), feature.def.stroke);
-                }
-            }
-        }
-        // No color defined => shouldn't draw
-        return -1;
-    }
 
     public record Style(Color rgba, Integer stroke) {}
 
@@ -116,7 +139,7 @@ public class DrawingConfiguration {
         @JsonCreator
         public Specification(@JsonProperty("rgbaColors") Map<String, String> hexColors) {
             for(String key : hexColors.keySet()) {
-                rgbaColors.put(key, new Color(toARGB(javafx.scene.paint.Color.web(hexColors.get(key))), true)); // TODO: Check jfx color.web vs awt decode
+                rgbaColors.put(key, new Color(toARGB(javafx.scene.paint.Color.web(hexColors.get(key))), true));
             }
         }
         public Color getColor(String key) {

@@ -2,6 +2,7 @@ package dk.itu.data.parsers;
 
 import ch.randelshofer.fastdoubleparser.JavaFloatParser;
 import dk.itu.common.configurations.CommonConfiguration;
+import dk.itu.common.configurations.DrawingConfiguration;
 import dk.itu.data.models.parser.ParserOsmRelation;
 import dk.itu.data.dto.OsmElementBuilder;
 import dk.itu.data.dto.OsmParserResult;
@@ -37,10 +38,16 @@ public class OsmParser {
 
                 if (reader.isStartElement()) {
                     switch (reader.getLocalName()) {
-                        case "tag" -> elementBuilder.withTag(
-                                reader.getAttributeValue(null, "k"),
-                                reader.getAttributeValue(null, "v")
-                        );
+                        case "tag" -> {
+                            String tagKey = reader.getAttributeValue(null, "k");
+                            if (DrawingConfiguration.getInstance().getTagKeys().contains(tagKey)) {
+                                // Only add tags which have are drawable + highway (see DrawingConfiguration)
+                                elementBuilder.withTag(
+                                        reader.getAttributeValue(null, "k"),
+                                        reader.getAttributeValue(null, "v")
+                                );
+                            }
+                        }
                         case "node" -> elementBuilder
                                 .withType(OsmElementBuilder.OsmElementType.NODE)
                                 .withCoordinates(

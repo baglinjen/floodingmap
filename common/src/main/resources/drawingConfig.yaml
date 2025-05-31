@@ -5,7 +5,7 @@ specification:
     white: "#ffffff"
     blue: "#a9d3de"
     gray: "#d8d0c9"
-    red: "#0000ff"
+    red: "#ff0000"
     motorway: "#e990a0"
     trunk: "#fbc0ab"
     primary: "#fdd6a1"
