@@ -21,7 +21,6 @@ public class RStarTree {
     private static final int MAX_ENTRIES = 100;  // Maximum entries in a node
     private static final int MIN_ENTRIES = MAX_ENTRIES / 2;  // Minimum entries (40-50% of max is typical)
     private static final float REINSERT_PERCENTAGE = 0.3f;  // Percentage of entries to reinsert (30% is typical)
-//    private static final int MAX_CHILDREN = 750;
     private static final int MAX_CHILDREN = 10;
     private static final int MIN_CHILDREN = MAX_CHILDREN / 2;
 
@@ -175,11 +174,10 @@ public class RStarTree {
 
         List<T> entriesSortedByX = new ArrayList<>(entries);
         sortElementsByAxis(entriesSortedByX, 0);
-        float perimeterSumX = computeDistributionPerimeterSum(entriesSortedByX);
-
+        float perimeterSumX = computeDistributionPerimeterSum(entriesSortedByX, isForLeaf ? MIN_ENTRIES : MIN_CHILDREN);
         List<T> entriesSortedByY = new ArrayList<>(entries);
         sortElementsByAxis(entriesSortedByY, 1);
-        float perimeterSumY = computeDistributionPerimeterSum(entriesSortedByY);
+        float perimeterSumY = computeDistributionPerimeterSum(entriesSortedByY, isForLeaf ? MIN_ENTRIES : MIN_CHILDREN);
 
         if (perimeterSumX < perimeterSumY) {
             // Use x => clear y and make it GC eligible
@@ -240,10 +238,10 @@ public class RStarTree {
     /**
      * Compute the sum of perimeters for all possible distributions of internal nodes
      */
-    private <T extends WithBoundingBoxAndArea> float computeDistributionPerimeterSum(List<T> children) {
+    private <T extends WithBoundingBoxAndArea> float computeDistributionPerimeterSum(List<T> children, int minEntries) {
         float sum = 0;
 
-        for (int i = MIN_ENTRIES; i <= children.size() - MIN_ENTRIES; i++) {
+        for (int i = minEntries; i <= children.size() - minEntries; i++) {
             WithBoundingBoxAndArea mbr1 = computeMBRForElements(children.subList(0, i));
             WithBoundingBoxAndArea mbr2 = computeMBRForElements(children.subList(i, children.size()));
 
@@ -512,8 +510,34 @@ public class RStarTree {
         }
     }
 
-    public void searchScaled(float minLon, float minLat, float maxLon, float maxLat, float minBoundingBoxArea, Float2ReferenceMap<Drawable> osmElements) {
-        searchScaled(root, minLon, minLat, maxLon, maxLat, minBoundingBoxArea, osmElements);
+    public void searchScaled(float minLon, float minLat, float maxLon, float maxLat, float minBoundingBoxArea, Float2ReferenceMap<Drawable> results) {
+        Stack<RTreeNode> nodesToSearch = new Stack<>();
+        nodesToSearch.push(root);
+
+        while (!nodesToSearch.isEmpty()) {
+            RTreeNode node = nodesToSearch.pop();
+
+            // Skip node if it is too small
+            if (node.getArea() < minBoundingBoxArea) continue;
+
+            if (node.isLeaf()) {
+                // Add elements which are big enough
+                for (OsmElement element : node.getElements()) {
+                    if (element.getArea() >= minBoundingBoxArea) {
+                        results.put(-element.getArea(), (Drawable) element);
+                    }
+                }
+            } else {
+                // Look through children
+                for (int i = 0; i < node.getChildren().size(); i++) {
+                    RTreeNode child = node.getChildren().get(i);
+                    if (intersects(child, minLon, minLat, maxLon, maxLat)) {
+                        // If child intersects search box, look through it
+                        nodesToSearch.push(child);
+                    }
+                }
+            }
+        }
     }
     private void searchScaled(RTreeNode node, float minLon, float minLat, float maxLon, float maxLat, float minBoundingBoxArea, Float2ReferenceMap<Drawable> results) {
         if (node == null || node.getArea() < minBoundingBoxArea || !intersects(node, minLon, minLat, maxLon, maxLat)) return; // No intersection, skip this branch
