@@ -34,7 +34,7 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
         for (OsmElement osmElement : osmElements) {
             rtree.insert(osmElement);
             elementsAdded++;
-            if (elementsAdded % 100_000 == 0) logger.debug("Added {}/{} osm elements", elementsAdded, elementsToAdd);
+            if (elementsAdded % 1_000_000 == 0) logger.debug("Added {}/{} osm elements", elementsAdded, elementsToAdd);
         }
     }
 
@@ -45,7 +45,7 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
         for (OsmElement node : nodes) {
             traversable.insert(node);
             elementsAdded++;
-            if (elementsAdded % 100_000 == 0) logger.debug("Added {}/{} traversable elements", elementsAdded, elementsToAdd);
+            if (elementsAdded % 1_000_000 == 0) logger.debug("Added {}/{} traversable elements", elementsAdded, elementsToAdd);
         }
     }
 
