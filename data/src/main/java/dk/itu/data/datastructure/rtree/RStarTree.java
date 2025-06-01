@@ -168,48 +168,43 @@ public class RStarTree {
         return splitNodeR(node);
     }
 
-    /**
-     * Choose the split axis that minimizes the sum of perimeters for leaf nodes or elements
-     */
-    private <T extends WithBoundingBoxAndArea> int chooseSplitAxis(List<T> elements) {
-        float minPerimeterSum = Float.POSITIVE_INFINITY;
-        int bestAxis = 0;
+    private record DistributionAndSortedElements<T extends WithBoundingBoxAndArea>(List<T> entries, int[] distribution) {}
 
-        // Check both X and Y axes
-        for (int axis = 0; axis < 2; axis++) {
-            // Sort elements by their center along this axis
-            sortElementsByAxis(elements, axis);
+    private <T extends WithBoundingBoxAndArea> DistributionAndSortedElements<T> chooseSplitAxisAndGetSplitIndexAndElementsSorted(List<T> entries) {
+        boolean isForLeaf = entries.getFirst() instanceof OsmElement;
 
-            // Compute S, the sum of all perimeter-values of the different distributions
-            float perimeterSum = computeDistributionPerimeterSum(elements);
+        List<T> entriesSortedByX = new ArrayList<>(entries);
+        sortElementsByAxis(entriesSortedByX, 0);
+        float perimeterSumX = computeDistributionPerimeterSum(entriesSortedByX);
 
-            if (perimeterSum < minPerimeterSum) {
-                minPerimeterSum = perimeterSum;
-                bestAxis = axis;
+        List<T> entriesSortedByY = new ArrayList<>(entries);
+        sortElementsByAxis(entriesSortedByY, 1);
+        float perimeterSumY = computeDistributionPerimeterSum(entriesSortedByY);
+
+        if (perimeterSumX < perimeterSumY) {
+            // Use x => clear y and make it GC eligible
+            entriesSortedByY.clear();
+            entriesSortedByY = null;
+
+            if (isForLeaf) {
+                return new DistributionAndSortedElements<>(entriesSortedByX, chooseSplitIndex(entriesSortedByX, MIN_ENTRIES));
+            } else {
+                return new DistributionAndSortedElements<>(entriesSortedByX, chooseSplitIndex(entriesSortedByX, MIN_CHILDREN));
+            }
+        } else {
+            // Use y => clear x and make it GC eligible
+            entriesSortedByX.clear();
+            entriesSortedByX = null;
+
+            if (isForLeaf) {
+                return new DistributionAndSortedElements<>(entriesSortedByY, chooseSplitIndex(entriesSortedByY, MIN_ENTRIES));
+            } else {
+                return new DistributionAndSortedElements<>(entriesSortedByY, chooseSplitIndex(entriesSortedByY, MIN_CHILDREN));
             }
         }
-
-        return bestAxis;
     }
 
-    /**
-     * Choose the distribution with minimum overlap for leaf nodes
-     */
-    private int[] chooseSplitIndexForLeaf(List<OsmElement> elements, int axis) {
-        return chooseSplitIndex(elements, axis, MIN_ENTRIES);
-    }
-
-    /**
-     * Choose the distribution with minimum overlap for internal nodes
-     */
-    private int[] chooseSplitIndexForInternal(List<RTreeNode> children, int axis) {
-        return chooseSplitIndex(children, axis, MIN_CHILDREN);
-    }
-
-    private <T extends WithBoundingBoxAndArea> int[] chooseSplitIndex(List<T> elements, int axis, int minElements) {
-        // Sort by the chosen axis
-        sortElementsByAxis(elements, axis);
-
+    private <T extends WithBoundingBoxAndArea> int[] chooseSplitIndex(List<T> elements, int minElements) {
         float minOverlap = Float.POSITIVE_INFINITY;
         float minArea = Float.POSITIVE_INFINITY;
         int splitIndex = minElements;
@@ -267,37 +262,23 @@ public class RStarTree {
         RTreeNode newNode = new RTreeNode();
 
         if (node.isLeaf()) {
-            // Handle leaf node split
-            List<OsmElement> elements = new ArrayList<>(node.getElements());
-
             // Choose split axis and distribution
-            int bestAxis = chooseSplitAxis(elements);
-            int[] distribution = chooseSplitIndexForLeaf(elements, bestAxis);
-
-            // Sort elements by the chosen axis
-            sortElementsByAxis(elements, bestAxis);
+            DistributionAndSortedElements<OsmElement> distributionResult = chooseSplitAxisAndGetSplitIndexAndElementsSorted(node.getElements());
 
             // Distribute elements
-            List<OsmElement> group1 = new ArrayList<>(elements.subList(0, distribution[0]));
-            List<OsmElement> group2 = new ArrayList<>(elements.subList(distribution[0], elements.size()));
+            List<OsmElement> group1 = new ArrayList<>(distributionResult.entries.subList(0, distributionResult.distribution[0]));
+            List<OsmElement> group2 = new ArrayList<>(distributionResult.entries.subList(distributionResult.distribution[0], distributionResult.entries.size()));
 
             // Update nodes
             node.setElements(group1);
             newNode.setElements(group2);
         } else {
-            // Handle internal node split
-            List<RTreeNode> children = new ArrayList<>(node.getChildren());
-
             // Choose split axis and distribution
-            int bestAxis = chooseSplitAxis(children);
-            int[] distribution = chooseSplitIndexForInternal(children, bestAxis);
-
-            // Sort children by the chosen axis
-            sortElementsByAxis(children, bestAxis);
+            DistributionAndSortedElements<RTreeNode> distributionResult = chooseSplitAxisAndGetSplitIndexAndElementsSorted(node.getChildren());
 
             // Distribute children
-            List<RTreeNode> group1 = new ArrayList<>(children.subList(0, distribution[0]));
-            List<RTreeNode> group2 = new ArrayList<>(children.subList(distribution[0], children.size()));
+            List<RTreeNode> group1 = new ArrayList<>(distributionResult.entries.subList(0, distributionResult.distribution[0]));
+            List<RTreeNode> group2 = new ArrayList<>(distributionResult.entries.subList(distributionResult.distribution[0], distributionResult.entries.size()));
 
             // Update nodes
             node.setChildren(group1);
@@ -566,6 +547,40 @@ public class RStarTree {
             int finalLevel = level;
             node.getChildren().forEach(child -> getBoundingBoxes(child, results, finalLevel, levelsToCheck));
         }
+    }
+
+    public boolean testBoundingBoxesAreValid() {
+        Deque<RTreeNode> boundingBoxesToCheck = new ArrayDeque<>();
+        boolean areBoundingBoxesValid = true;
+        boundingBoxesToCheck.push(root);
+        while (!boundingBoxesToCheck.isEmpty()) {
+            RTreeNode node = boundingBoxesToCheck.pop();
+            areBoundingBoxesValid = areBoundingBoxesValid && testBoundingBoxesAreValid(node);
+            node.getChildren().forEach(boundingBoxesToCheck::push);
+        }
+        return areBoundingBoxesValid;
+    }
+    private boolean testBoundingBoxesAreValid(RTreeNode node) {
+        List<WithBoundingBoxAndArea> entries = new ArrayList<>(node.isLeaf() ? node.getElements() : node.getChildren());
+        if (entries.isEmpty()) {
+            throw new IllegalStateException("RTreeNode must have children or elements");
+        }
+        float minLon = entries.getFirst().minLon();
+        float minLat = entries.getFirst().minLat();
+        float maxLon = entries.getFirst().maxLon();
+        float maxLat = entries.getFirst().maxLat();
+        for (int i = 1; i < entries.size(); i++) {
+            var entry = entries.get(i);
+            if (entry.minLon() < minLon) minLon = entry.minLon();
+            if (entry.minLat() < minLat) minLat = entry.minLat();
+            if (entry.maxLon() > maxLon) maxLon = entry.maxLon();
+            if (entry.maxLat() > maxLat) maxLat = entry.maxLat();
+        }
+        return
+                minLon == node.minLon() &&
+                minLat == node.minLat() &&
+                maxLon == node.maxLon() &&
+                maxLat == node.maxLat();
     }
 
     /*
