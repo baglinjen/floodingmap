@@ -196,7 +196,7 @@ public class FloodingApp extends GameApplication {
                     System.arraycopy(pixels, 0, buffer.getBuffer().array(), 0, pixels.length);
                     view.setImage(new WritableImage(buffer));
 
-                    logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
+//                    logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
                 }
             }
         });
