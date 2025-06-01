@@ -28,10 +28,10 @@ public class OsmRelation implements OsmElement, Drawable {
         for (int i = 0; i < relationPath.getOuterPolygons().size(); i++) {
             var outerPolygon = relationPath.getOuterPolygons().get(i);
             for (int j = 2; j < outerPolygon.length; j+=2) {
-                if (outerPolygon[j] < minLon) minLon = (float) outerPolygon[j];
-                if (outerPolygon[j] > maxLon) maxLon = (float) outerPolygon[i];
-                if (outerPolygon[j+1] < minLat) minLat = (float) outerPolygon[j+1];
-                if (outerPolygon[j+1] > maxLat) maxLat = (float) outerPolygon[j+1];
+                if (outerPolygon[j] < minLon) minLon = outerPolygon[j];
+                if (outerPolygon[j] > maxLon) maxLon = outerPolygon[j];
+                if (outerPolygon[j+1] < minLat) minLat = outerPolygon[j+1];
+                if (outerPolygon[j+1] > maxLat) maxLat = outerPolygon[j+1];
             }
         }
 
