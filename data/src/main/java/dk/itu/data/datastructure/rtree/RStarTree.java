@@ -4,7 +4,7 @@ import dk.itu.common.models.Drawable;
 import dk.itu.common.models.WithBoundingBoxAndArea;
 import dk.itu.data.models.osm.OsmElement;
 import dk.itu.data.models.osm.OsmNode;
-import it.unimi.dsi.fastutil.doubles.Double2ReferenceMap;
+import it.unimi.dsi.fastutil.floats.Float2ReferenceMap;
 
 import java.util.*;
 import java.util.List;
@@ -35,16 +35,16 @@ public class RStarTree {
      */
     private static class NNEntry implements Comparable<NNEntry> {
         RTreeNode node;
-        double distance;
+        float distance;
 
-        public NNEntry(RTreeNode node, double distance) {
+        public NNEntry(RTreeNode node, float distance) {
             this.node = node;
             this.distance = distance;
         }
 
         @Override
         public int compareTo(NNEntry other) {
-            return Double.compare(this.distance, other.distance);
+            return Float.compare(this.distance, other.distance);
         }
     }
 
@@ -55,9 +55,9 @@ public class RStarTree {
      * @param box The bounding box
      * @return The minimum possible Euclidean distance
      */
-    private double minDist(double px, double py, WithBoundingBoxAndArea box) {
-        double dx = 0;
-        double dy = 0;
+    private float minDist(float px, float py, WithBoundingBoxAndArea box) {
+        float dx = 0;
+        float dy = 0;
 
         // Distance in x-dimension
         if (px < box.minLon()) {
@@ -74,7 +74,7 @@ public class RStarTree {
         }
 
         // Euclidean distance
-        return Math.sqrt(dx * dx + dy * dy);
+        return (float) Math.sqrt(dx * dx + dy * dy);
     }
 
     /**
@@ -121,13 +121,13 @@ public class RStarTree {
         }
 
         RTreeNode bestChild = null;
-        double minEnlargement = Double.POSITIVE_INFINITY;
-        double minArea = Double.POSITIVE_INFINITY;
+        float minEnlargement = Float.POSITIVE_INFINITY;
+        float minArea = Float.POSITIVE_INFINITY;
 
         for (RTreeNode child : node.getChildren()) {
             // Calculate how much the child's MBR would need to be enlarged
-            double enlargement = getEnlargementArea(elementBox, child);
-            double area = child.getArea();
+            float enlargement = getEnlargementArea(elementBox, child);
+            float area = child.getArea();
 
             // Choose the child that requires the least enlargement
             if (enlargement < minEnlargement || (Math.abs(enlargement - minEnlargement) < 1e-10 && area < minArea)) {
@@ -174,10 +174,10 @@ public class RStarTree {
 
         List<T> entriesSortedByX = new ArrayList<>(entries);
         sortElementsByAxis(entriesSortedByX, 0);
-        double perimeterSumX = computeDistributionPerimeterSum(entriesSortedByX, isForLeaf ? MIN_ENTRIES : MIN_CHILDREN);
+        float perimeterSumX = computeDistributionPerimeterSum(entriesSortedByX, isForLeaf ? MIN_ENTRIES : MIN_CHILDREN);
         List<T> entriesSortedByY = new ArrayList<>(entries);
         sortElementsByAxis(entriesSortedByY, 1);
-        double perimeterSumY = computeDistributionPerimeterSum(entriesSortedByY, isForLeaf ? MIN_ENTRIES : MIN_CHILDREN);
+        float perimeterSumY = computeDistributionPerimeterSum(entriesSortedByY, isForLeaf ? MIN_ENTRIES : MIN_CHILDREN);
 
         if (perimeterSumX < perimeterSumY) {
             // Use x => clear y and make it GC eligible
@@ -203,8 +203,8 @@ public class RStarTree {
     }
 
     private <T extends WithBoundingBoxAndArea> int[] chooseSplitIndex(List<T> elements, int minElements) {
-        double minOverlap = Double.POSITIVE_INFINITY;
-        double minArea = Double.POSITIVE_INFINITY;
+        float minOverlap = Float.POSITIVE_INFINITY;
+        float minArea = Float.POSITIVE_INFINITY;
         int splitIndex = minElements;
 
         // Try distributions and pick the one with minimum overlap
@@ -214,8 +214,8 @@ public class RStarTree {
             WithBoundingBoxAndArea mbr2 = computeMBRForElements(elements.subList(i, elements.size()));
 
             // Calculate overlap
-            double overlap = getOverlap(mbr1, mbr2);
-            double area = mbr1.getArea() + mbr2.getArea();
+            float overlap = getOverlap(mbr1, mbr2);
+            float area = mbr1.getArea() + mbr2.getArea();
 
             // Choose distribution with minimum overlap, breaking ties with minimum area
             if (overlap < minOverlap || (Math.abs(overlap - minOverlap) < 1e-10 && area < minArea)) {
@@ -238,8 +238,8 @@ public class RStarTree {
     /**
      * Compute the sum of perimeters for all possible distributions of internal nodes
      */
-    private <T extends WithBoundingBoxAndArea> double computeDistributionPerimeterSum(List<T> children, int minEntries) {
-        double sum = 0;
+    private <T extends WithBoundingBoxAndArea> float computeDistributionPerimeterSum(List<T> children, int minEntries) {
+        float sum = 0;
 
         for (int i = minEntries; i <= children.size() - minEntries; i++) {
             WithBoundingBoxAndArea mbr1 = computeMBRForElements(children.subList(0, i));
@@ -294,7 +294,7 @@ public class RStarTree {
             return createWithBoundingBoxAndArea(0, 0, 0, 0);
         }
 
-        double minLon = elements.getFirst().minLon(), minLat = elements.getFirst().minLat(), maxLon = elements.getFirst().maxLon(), maxLat = elements.getFirst().maxLat();
+        float minLon = elements.getFirst().minLon(), minLat = elements.getFirst().minLat(), maxLon = elements.getFirst().maxLon(), maxLat = elements.getFirst().maxLat();
 
         for (int i = 1; i < elements.size(); i++) {
             minLon = Math.min(minLon, elements.get(i).minLon());
@@ -324,15 +324,15 @@ public class RStarTree {
 
         // Number of entries to reinsert
         int p = (int) Math.ceil(REINSERT_PERCENTAGE * MAX_ENTRIES);
-        double centerLon = getCenterOfAxis(node, true);
-        double centerLat = getCenterOfAxis(node, false);
+        float centerLon = getCenterOfAxis(node, true);
+        float centerLat = getCenterOfAxis(node, false);
 
         if (node.isLeaf()) {
             // Handle leaf node - work directly with elements list
             List<OsmElement> elements = new ArrayList<>(node.getElements());
 
             // Sort by distance from center in descending order
-            elements.sort((e1, e2) -> Double.compare(getDistance(e2, centerLon, centerLat), getDistance(e1, centerLon, centerLat)));
+            elements.sort((e1, e2) -> Float.compare(getDistance(e2, centerLon, centerLat), getDistance(e1, centerLon, centerLat)));
 
             // Select entries to reinsert (farthest p entries)
             int reinsertCount = Math.min(p, elements.size());
@@ -350,7 +350,7 @@ public class RStarTree {
             List<RTreeNode> children = new ArrayList<>(node.getChildren());
 
             // Sort by distance from center in descending order
-            children.sort((c1, c2) -> Double.compare(getDistance(c2, centerLon, centerLat), getDistance(c1, centerLon, centerLat)));
+            children.sort((c1, c2) -> Float.compare(getDistance(c2, centerLon, centerLat), getDistance(c1, centerLon, centerLat)));
 
             // Select entries to reinsert (farthest p entries)
             int reinsertCount = Math.min(p, children.size());
@@ -404,10 +404,10 @@ public class RStarTree {
 
         // Choose the best child based on minimum enlargement
         RTreeNode bestChild = null;
-        double minEnlargement = Double.POSITIVE_INFINITY;
+        float minEnlargement = Float.POSITIVE_INFINITY;
 
         for (RTreeNode child : node.getChildren()) {
-            double enlargement = getEnlargementArea(child, mbr);
+            float enlargement = getEnlargementArea(child, mbr);
             if (bestChild == null || enlargement < minEnlargement) {
                 minEnlargement = enlargement;
                 bestChild = child;
@@ -489,7 +489,7 @@ public class RStarTree {
     }
 
 
-    public List<OsmElement> search(double minLon, double minLat, double maxLon, double maxLat) {
+    public List<OsmElement> search(float minLon, float minLat, float maxLon, float maxLat) {
         Collection<OsmElement> elementsConcurrent = new ConcurrentLinkedQueue<>();
 
         search(root, minLon, minLat, maxLon, maxLat, elementsConcurrent);
@@ -500,7 +500,7 @@ public class RStarTree {
                 .sorted(Comparator.comparing(OsmElement::getArea).reversed())
                 .toList();
     }
-    private void search(RTreeNode node, double minLon, double minLat, double maxLon, double maxLat, Collection<OsmElement> results) {
+    private void search(RTreeNode node, float minLon, float minLat, float maxLon, float maxLat, Collection<OsmElement> results) {
         if (node == null || !intersects(node, minLon, minLat, maxLon, maxLat)) return; // No intersection, skip this branch
 
         if (node.isLeaf()) {
@@ -512,7 +512,7 @@ public class RStarTree {
 
     public static class RTreeSearchStats {
         private int nodeCheck, passedNodeCheck, startLeafCheck, elementInvestigated, elementPassed, startChildrenCheck, startChildCheck;
-        private double timeElapsed;
+        private float timeElapsed;
         private boolean hasBeenPrintedOnce = false;
 
         public void reset() {
@@ -576,20 +576,20 @@ public class RStarTree {
             startChildCheck++;
         }
 
-        public void setTimeElapsed(double timeElapsed) {
+        public void setTimeElapsed(float timeElapsed) {
             this.timeElapsed = timeElapsed;
         }
     }
 
     private static final RTreeSearchStats stats = new RTreeSearchStats();
-    public void searchScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea, Double2ReferenceMap<Drawable> results) {
+    public void searchScaled(float minLon, float minLat, float maxLon, float maxLat, float minBoundingBoxArea, Float2ReferenceMap<Drawable> results) {
         long startTime = System.nanoTime();
         searchScaled(root, minLon, minLat, maxLon, maxLat, minBoundingBoxArea, results);
         stats.setTimeElapsed(System.nanoTime() - startTime);
         System.out.println(stats);
         stats.reset();
     }
-    private void searchScaled(RTreeNode node, double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea, Double2ReferenceMap<Drawable> results) {
+    private void searchScaled(RTreeNode node, float minLon, float minLat, float maxLon, float maxLat, float minBoundingBoxArea, Float2ReferenceMap<Drawable> results) {
         stats.addNodeCheck();
         if (node == null || node.getArea() < minBoundingBoxArea || !intersects(node, minLon, minLat, maxLon, maxLat)) return; // No intersection, skip this branch
         stats.addPassedNodeCheck();
@@ -644,10 +644,10 @@ public class RStarTree {
         if (entries.isEmpty()) {
             throw new IllegalStateException("RTreeNode must have children or elements");
         }
-        double minLon = entries.getFirst().minLon();
-        double minLat = entries.getFirst().minLat();
-        double maxLon = entries.getFirst().maxLon();
-        double maxLat = entries.getFirst().maxLat();
+        float minLon = entries.getFirst().minLon();
+        float minLat = entries.getFirst().minLat();
+        float maxLon = entries.getFirst().maxLon();
+        float maxLat = entries.getFirst().maxLat();
         for (int i = 1; i < entries.size(); i++) {
             var entry = entries.get(i);
             if (entry.minLon() < minLon) minLon = entry.minLon();
@@ -675,7 +675,7 @@ public class RStarTree {
      * @param lat Latitude of the query point
      * @return The nearest OsmNode or null if tree is empty
      */
-    public OsmNode getNearest(double lon, double lat) {
+    public OsmNode getNearest(float lon, float lat) {
         if (root == null) {
             return null;
         }
@@ -714,7 +714,7 @@ public class RStarTree {
             } else {
                 // Add all children to the queue
                 for (RTreeNode child : entry.node.getChildren()) {
-                    double childDist = minDist(lon, lat, child);
+                    float childDist = minDist(lon, lat, child);
 
                     // Only add if it could contain a closer point
                     if (childDist < nearestDist) {

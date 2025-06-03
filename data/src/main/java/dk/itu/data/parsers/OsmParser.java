@@ -1,6 +1,6 @@
 package dk.itu.data.parsers;
 
-import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
+import ch.randelshofer.fastdoubleparser.JavaFloatParser;
 import dk.itu.common.configurations.CommonConfiguration;
 import dk.itu.common.configurations.DrawingConfiguration;
 import dk.itu.data.models.parser.ParserOsmRelation;
@@ -51,8 +51,8 @@ public class OsmParser {
                         case "node" -> elementBuilder
                                 .withType(OsmElementBuilder.OsmElementType.NODE)
                                 .withCoordinates(
-                                        JavaDoubleParser.parseDouble(reader.getAttributeValue(null, "lat")),
-                                        JavaDoubleParser.parseDouble(reader.getAttributeValue(null, "lon"))
+                                        JavaFloatParser.parseFloat(reader.getAttributeValue(null, "lat")),
+                                        JavaFloatParser.parseFloat(reader.getAttributeValue(null, "lon"))
                                 )
                                 .withId(fastParseLong(reader.getAttributeValue(null, "id")));
                         case "way" -> elementBuilder

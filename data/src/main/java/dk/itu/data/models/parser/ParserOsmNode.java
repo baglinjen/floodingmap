@@ -5,10 +5,10 @@ import java.util.List;
 
 public class ParserOsmNode implements ParserOsmElement {
     private final long id;
-    private final double lat, lon;
+    private final float lat, lon;
     private long[] connectionIds;
 
-    public ParserOsmNode(long id, double lat, double lon) {
+    public ParserOsmNode(long id, float lat, float lon) {
         this.id = id;
         this.lat = lat;
         this.lon = lon;
@@ -33,11 +33,11 @@ public class ParserOsmNode implements ParserOsmElement {
         connectionIds[connectionIds.length - 1] = connection;
     }
 
-    public double getLat() {
+    public float getLat() {
         return lat;
     }
 
-    public double getLon() {
+    public float getLon() {
         return lon;
     }
 

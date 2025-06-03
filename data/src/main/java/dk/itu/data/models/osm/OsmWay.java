@@ -14,22 +14,22 @@ import static dk.itu.common.models.WithBoundingBoxAndArea.calculateArea;
 public class OsmWay implements OsmElement, Drawable {
     private final long id;
     private final byte styleId;
-    private double minLon, minLat, maxLon, maxLat;
-    private final double area;
+    private float minLon, minLat, maxLon, maxLat;
+    private final float area;
     private final WayPath path;
 
     public OsmWay(long id, WayPath path, byte styleId) {
         this.id = id;
 
-        minLon = maxLon = path.getOuterCoordinates()[0];
-        minLat = maxLat = path.getOuterCoordinates()[1];
+        minLon = maxLon = (float) path.getOuterCoordinates()[0];
+        minLat = maxLat = (float) path.getOuterCoordinates()[1];
 
         // Calculate Bounding Box
         for (int i = 2; i < path.getOuterCoordinates().length; i+=2) {
-            if (path.getOuterCoordinates()[i] < minLon) minLon = path.getOuterCoordinates()[i];
-            if (path.getOuterCoordinates()[i] > maxLon) maxLon = path.getOuterCoordinates()[i];
-            if (path.getOuterCoordinates()[i+1] < minLat) minLat = path.getOuterCoordinates()[i+1];
-            if (path.getOuterCoordinates()[i+1] > maxLat) maxLat = path.getOuterCoordinates()[i+1];
+            if (path.getOuterCoordinates()[i] < minLon) minLon = (float) path.getOuterCoordinates()[i];
+            if (path.getOuterCoordinates()[i] > maxLon) maxLon = (float) path.getOuterCoordinates()[i];
+            if (path.getOuterCoordinates()[i+1] < minLat) minLat = (float) path.getOuterCoordinates()[i+1];
+            if (path.getOuterCoordinates()[i+1] > maxLat) maxLat = (float) path.getOuterCoordinates()[i+1];
         }
         this.area = calculateArea(minLon, minLat, maxLon, maxLat);
 
@@ -37,7 +37,7 @@ public class OsmWay implements OsmElement, Drawable {
         this.styleId = styleId;
     }
 
-    public double[] getOuterCoordinates(){
+    public float[] getOuterCoordinates(){
         return this.path.getOuterCoordinates();
     }
 
@@ -49,7 +49,7 @@ public class OsmWay implements OsmElement, Drawable {
         );
     }
 
-    public static OsmWay createWayForRouting(double[] coordinates) {
+    public static OsmWay createWayForRouting(float[] coordinates) {
         return new OsmWay(
                 0,
                 new WayPath(coordinates),
@@ -67,27 +67,27 @@ public class OsmWay implements OsmElement, Drawable {
     }
 
     @Override
-    public double minLon() {
+    public float minLon() {
         return this.minLon;
     }
 
     @Override
-    public double minLat() {
+    public float minLat() {
         return this.minLat;
     }
 
     @Override
-    public double maxLon() {
+    public float maxLon() {
         return this.maxLon;
     }
 
     @Override
-    public double maxLat() {
+    public float maxLat() {
         return this.maxLat;
     }
 
     @Override
-    public double getArea() {
+    public float getArea() {
         return this.area;
     }
 

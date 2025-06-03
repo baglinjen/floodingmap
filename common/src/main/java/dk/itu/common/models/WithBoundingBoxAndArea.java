@@ -1,9 +1,9 @@
 package dk.itu.common.models;
 
 public interface WithBoundingBoxAndArea extends WithBoundingBox {
-    double getArea();
+    float getArea();
 
-    static double calculateArea(double minLon, double minLat, double maxLon, double maxLat) {
+    static float calculateArea(float minLon, float minLat, float maxLon, float maxLat) {
         return (maxLon - minLon) * (maxLat - minLat);
     }
 }

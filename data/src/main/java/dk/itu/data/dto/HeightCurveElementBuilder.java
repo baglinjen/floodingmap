@@ -12,7 +12,7 @@ public class HeightCurveElementBuilder {
     private final HeightCurveParserResult result;
     // Fields
     private Long gmlId = null;
-    private double[] coordinates = null;
+    private float[] coordinates = null;
     private Float height = null;
     // Status
     private boolean valid = true;
@@ -76,20 +76,20 @@ public class HeightCurveElementBuilder {
     }
 
     public void withEPSG25832CoordsWithHeight(String[] coordsList) {
-        this.coordinates = new double[coordsList.length / 3 * 2];
+        this.coordinates = new float[coordsList.length / 3 * 2];
         int indexCoordinates = 0;
         for (int i = 0; i < coordsList.length; i+=3) {
-            var lonLat = utmToWgs(Double.parseDouble(coordsList[i]), Double.parseDouble(coordsList[i+1]));
+            var lonLat = utmToWgs(Float.parseFloat(coordsList[i]), Float.parseFloat(coordsList[i+1]));
             this.coordinates[indexCoordinates++] = lonLat[0];
             this.coordinates[indexCoordinates++] = lonLat[1];
         }
     }
 
     public void withEPSG25832CoordsWithoutHeight(String[] coordsList) {
-        this.coordinates = new double[coordsList.length];
+        this.coordinates = new float[coordsList.length];
         int indexCoordinates = 0;
         for (int i = 0; i < coordsList.length; i+=2) {
-            var lonLat = utmToWgs(Double.parseDouble(coordsList[i]), Double.parseDouble(coordsList[i+1]));
+            var lonLat = utmToWgs(Float.parseFloat(coordsList[i]), Float.parseFloat(coordsList[i+1]));
             this.coordinates[indexCoordinates++] = lonLat[0];
             this.coordinates[indexCoordinates++] = lonLat[1];
         }

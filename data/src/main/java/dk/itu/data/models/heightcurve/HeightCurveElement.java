@@ -17,28 +17,28 @@ import static dk.itu.util.PolygonUtils.forceCounterClockwise;
 
 public class HeightCurveElement implements WithBoundingBox, Drawable, WithStyle {
     // Path
-    private final double[] outerPolygon;
-    private final List<double[]> innerPolygons = new ArrayList<>();
+    private final float[] outerPolygon;
+    private final List<float[]> innerPolygons = new ArrayList<>();
     private HeightCurvePath heightCurvePath; // TODO: Remove the double[] outerPolygon field and only have it on the HeightCurvePath object. OuterPolygon should never change
     // Bounding Box
-    private final double minLon, minLat, maxLon, maxLat;
+    private final float minLon, minLat, maxLon, maxLat;
     // Features
     private final float height;
     private byte styleId;
     private boolean isAboveWater = true;
 
-    public HeightCurveElement(double[] outerPolygon, float height) {
+    public HeightCurveElement(float[] outerPolygon, float height) {
         this.outerPolygon = outerPolygon;
         this.height = height;
 
         // Calculate Bounding Box
-        double minLon = Double.MAX_VALUE;
-        double minLat = Double.MAX_VALUE;
-        double maxLon = Double.MIN_VALUE;
-        double maxLat = Double.MIN_VALUE;
+        float minLon = Float.MAX_VALUE;
+        float minLat = Float.MAX_VALUE;
+        float maxLon = Float.MIN_VALUE;
+        float maxLat = Float.MIN_VALUE;
         for (int i = 0; i < outerPolygon.length; i+=2) {
-            double lon = outerPolygon[i];
-            double lat = outerPolygon[i+1];
+            float lon = outerPolygon[i];
+            float lat = outerPolygon[i+1];
 
             if (lon < minLon) minLon = lon;
             if (lat < minLat) minLat = lat;
@@ -64,7 +64,7 @@ public class HeightCurveElement implements WithBoundingBox, Drawable, WithStyle 
         return isAboveWater;
     }
 
-    public double[] getCoordinates() {
+    public float[] getCoordinates() {
         return outerPolygon;
     }
 
@@ -73,12 +73,12 @@ public class HeightCurveElement implements WithBoundingBox, Drawable, WithStyle 
     }
 
     // Bounding Box and Path related functions
-    public void addInnerPolygon(double[] innerPolygon) {
+    public void addInnerPolygon(float[] innerPolygon) {
         innerPolygons.add(innerPolygon);
         heightCurvePath = null;
     }
 
-    public void removeInnerPolygon(double[] innerPolygon) {
+    public void removeInnerPolygon(float[] innerPolygon) {
         innerPolygons.remove(innerPolygon);
         heightCurvePath = null;
     }
@@ -112,7 +112,7 @@ public class HeightCurveElement implements WithBoundingBox, Drawable, WithStyle 
      * @param lat the latitude of the point.
      * @return true if this contains the other Height Curve
      */
-    public boolean containsPoint(double lon, double lat) {
+    public boolean containsPoint(float lon, float lat) {
         if (
                 minLon <= lon &&
                 minLat <= lat &&
@@ -145,22 +145,22 @@ public class HeightCurveElement implements WithBoundingBox, Drawable, WithStyle 
     }
 
     @Override
-    public double minLon() {
+    public float minLon() {
         return this.minLon;
     }
 
     @Override
-    public double minLat() {
+    public float minLat() {
         return this.minLat;
     }
 
     @Override
-    public double maxLon() {
+    public float maxLon() {
         return this.maxLon;
     }
 
     @Override
-    public double maxLat() {
+    public float maxLat() {
         return this.maxLat;
     }
 

@@ -8,12 +8,12 @@ import static dk.itu.data.utils.RoutingUtils.distanceMetersFloat;
 
 public class OsmNode implements OsmElement {
     private final long id;
-    private final double lat, lon;
+    private final float lat, lon;
     private OsmNode[] connections;
     private float[] distances;
     private HeightCurveElement containingCurve = null;
 
-    public OsmNode(long id, double lon, double lat, int connectionsCount) {
+    public OsmNode(long id, float lon, float lat, int connectionsCount) {
         this.id = id;
         this.lon = lon;
         this.lat = lat;
@@ -50,10 +50,10 @@ public class OsmNode implements OsmElement {
         return containingCurve;
     }
 
-    public double getLat() {
+    public float getLat() {
         return lat;
     }
-    public double getLon() {
+    public float getLon() {
         return lon;
     }
 
@@ -67,27 +67,27 @@ public class OsmNode implements OsmElement {
     }
 
     @Override
-    public double minLon() {
+    public float minLon() {
         return this.lon;
     }
 
     @Override
-    public double minLat() {
+    public float minLat() {
         return this.lat;
     }
 
     @Override
-    public double maxLon() {
+    public float maxLon() {
         return this.lon;
     }
 
     @Override
-    public double maxLat() {
+    public float maxLat() {
         return this.lat;
     }
 
     @Override
-    public double getArea() {
+    public float getArea() {
         return 0;
     }
 }

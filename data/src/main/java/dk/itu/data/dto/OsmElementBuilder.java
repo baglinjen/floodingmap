@@ -20,7 +20,7 @@ public class OsmElementBuilder {
     private final OsmParserResult osmParserResult;
     // Fields
     private long currentId;
-    private double lat, lon;
+    private float lat, lon;
     private boolean idAdded = false, latLonAdded = false;
     private OsmElementType type = null;
     private final Map<String, String> tags = new HashMap<>();
@@ -112,7 +112,7 @@ public class OsmElementBuilder {
     }
 
     // NODES
-    public OsmElementBuilder withCoordinates(double lat, double lon) {
+    public OsmElementBuilder withCoordinates(float lat, float lon) {
         this.lat = lat;
         this.lon = lon;
         this.latLonAdded = true;
