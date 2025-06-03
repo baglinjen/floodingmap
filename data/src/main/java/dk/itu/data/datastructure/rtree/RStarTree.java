@@ -583,10 +583,14 @@ public class RStarTree {
 
     private static final RTreeSearchStats stats = new RTreeSearchStats();
     public void searchScaled(float minLon, float minLat, float maxLon, float maxLat, float minBoundingBoxArea, Float2ReferenceMap<Drawable> results) {
+        boolean boundingBoxValid = testBoundingBoxesAreValid();
+        int amountOfElements = getAmountOfElements();
+        int amountOfNodes = getAmountOfNodes();
+
         long startTime = System.nanoTime();
         searchScaled(root, minLon, minLat, maxLon, maxLat, minBoundingBoxArea, results);
         stats.setTimeElapsed(System.nanoTime() - startTime);
-        System.out.println(stats);
+//        System.out.println(stats);
         stats.reset();
     }
     private void searchScaled(RTreeNode node, float minLon, float minLat, float maxLon, float maxLat, float minBoundingBoxArea, Float2ReferenceMap<Drawable> results) {
@@ -660,6 +664,35 @@ public class RStarTree {
                 minLat == node.minLat() &&
                 maxLon == node.maxLon() &&
                 maxLat == node.maxLat();
+    }
+
+    public int getAmountOfElements() {
+        Deque<RTreeNode> nodesToCheck = new ArrayDeque<>();
+        int amountOfElements = 0;
+        nodesToCheck.push(root);
+        while (!nodesToCheck.isEmpty()) {
+            RTreeNode node = nodesToCheck.pop();
+            if (node.isLeaf()) {
+                amountOfElements += node.getElements().size();
+            } else {
+                nodesToCheck.addAll(node.getChildren());
+            }
+        }
+        return amountOfElements;
+    }
+
+    public int getAmountOfNodes() {
+        Deque<RTreeNode> nodesToCheck = new ArrayDeque<>();
+        int amountOfNodes = 1;
+        nodesToCheck.push(root);
+        while (!nodesToCheck.isEmpty()) {
+            RTreeNode node = nodesToCheck.pop();
+            amountOfNodes ++;
+            if (!node.isLeaf()) {
+                nodesToCheck.addAll(node.getChildren());
+            }
+        }
+        return amountOfNodes;
     }
 
     /*

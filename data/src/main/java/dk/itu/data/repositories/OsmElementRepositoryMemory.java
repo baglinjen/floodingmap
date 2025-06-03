@@ -36,6 +36,7 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
             elementsAdded++;
             if (elementsAdded % 1_000_000 == 0) logger.debug("Added {}/{} osm elements", elementsAdded, elementsToAdd);
         }
+        logger.debug("Added {} osm elements", elementsAdded);
     }
 
     @Override
@@ -47,6 +48,7 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
             elementsAdded++;
             if (elementsAdded % 1_000_000 == 0) logger.debug("Added {}/{} traversable elements", elementsAdded, elementsToAdd);
         }
+        logger.debug("Added {} traversable elements", elementsAdded);
     }
 
     @Override
