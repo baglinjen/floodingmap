@@ -34,6 +34,9 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
         for (OsmElement osmElement : osmElements) {
             rtree.insert(osmElement);
             elementsAdded++;
+            if (elementsAdded >= 250) {
+                break;
+            }
             if (elementsAdded % 1_000_000 == 0) logger.debug("Added {}/{} osm elements", elementsAdded, elementsToAdd);
         }
         logger.debug("Added {} osm elements", elementsAdded);
