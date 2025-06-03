@@ -5,7 +5,7 @@ import dk.itu.common.models.WithBoundingBoxAndArea;
 import static dk.itu.common.models.WithBoundingBoxAndArea.calculateArea;
 
 public class RStartTreeUtilities {
-    public static float getEnlargementArea(WithBoundingBoxAndArea b1, WithBoundingBoxAndArea b2) {
+    public static double getEnlargementArea(WithBoundingBoxAndArea b1, WithBoundingBoxAndArea b2) {
         return calculateArea(
                 Math.min(b1.minLon(), b2.minLon()),
                 Math.min(b1.minLat(), b2.minLat()),
@@ -14,21 +14,21 @@ public class RStartTreeUtilities {
         );
     }
 
-    public static float getOverlap(WithBoundingBoxAndArea b1, WithBoundingBoxAndArea b2) {
+    public static double getOverlap(WithBoundingBoxAndArea b1, WithBoundingBoxAndArea b2) {
         return
                 Math.max(Math.abs(b1.minLon()) - b2.maxLon(), Math.abs(b1.maxLon() - b2.minLon()))
                 *
                 Math.max(Math.abs(b1.minLat() - b2.maxLat()), Math.abs(b1.maxLat() - b2.minLat()));
     }
 
-    public static float getCenterOfAxis(WithBoundingBoxAndArea boundingBox, boolean isLonAxis) {
+    public static double getCenterOfAxis(WithBoundingBoxAndArea boundingBox, boolean isLonAxis) {
         return isLonAxis ?
                 (boundingBox.minLon() + boundingBox.maxLon()) / 2 :
                 (boundingBox.minLat() + boundingBox.maxLat()) / 2;
     }
 
-    public static float getDistance(WithBoundingBoxAndArea box, float centerLon, float centerLat) {
-        return (float) pointDistance(getCenterOfAxis(box, true), getCenterOfAxis(box, false), centerLon, centerLat);
+    public static double getDistance(WithBoundingBoxAndArea box, double centerLon, double centerLat) {
+        return pointDistance(getCenterOfAxis(box, true), getCenterOfAxis(box, false), centerLon, centerLat);
     }
 
     /**
@@ -50,7 +50,7 @@ public class RStartTreeUtilities {
         return intersects(b1, b2.minLon(), b2.minLat(), b2.maxLon(), b2.maxLat());
 
     }
-    public static boolean intersects(WithBoundingBoxAndArea b1, float minLon, float minLat, float maxLon, float maxLat) {
+    public static boolean intersects(WithBoundingBoxAndArea b1, double minLon, double minLat, double maxLon, double maxLat) {
         return !(
                 b1.minLon() > maxLon ||
                 b1.maxLon() < minLon ||
@@ -59,30 +59,30 @@ public class RStartTreeUtilities {
         );
     }
 
-    public static WithBoundingBoxAndArea createWithBoundingBoxAndArea(float minLon, float minLat, float maxLon, float maxLat) {
+    public static WithBoundingBoxAndArea createWithBoundingBoxAndArea(double minLon, double minLat, double maxLon, double maxLat) {
         return new WithBoundingBoxAndArea() {
             @Override
-            public float minLon() {
+            public double minLon() {
                 return minLon;
             }
 
             @Override
-            public float minLat() {
+            public double minLat() {
                 return minLat;
             }
 
             @Override
-            public float maxLon() {
+            public double maxLon() {
                 return maxLon;
             }
 
             @Override
-            public float maxLat() {
+            public double maxLat() {
                 return maxLat;
             }
 
             @Override
-            public float getArea() {
+            public double getArea() {
                 return (maxLon - minLon) * (maxLat - minLat);
             }
         };

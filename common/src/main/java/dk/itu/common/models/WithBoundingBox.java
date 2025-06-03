@@ -1,8 +1,8 @@
 package dk.itu.common.models;
 
 public interface WithBoundingBox {
-    float minLon();
-    float minLat();
-    float maxLon();
-    float maxLat();
+    double minLon();
+    double minLat();
+    double maxLon();
+    double maxLat();
 }

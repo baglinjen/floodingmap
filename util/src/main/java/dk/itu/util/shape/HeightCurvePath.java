@@ -16,11 +16,11 @@ public class HeightCurvePath implements Shape {
     private int pathIteratorPointer = 0;
     private AffineTransform transform = new AffineTransform();
 
-    public HeightCurvePath(float[] outerCoordinate, List<float[]> innerCoordinates) {
+    public HeightCurvePath(double[] outerCoordinate, List<double[]> innerCoordinates) {
         int innerCoordinatesLength = innerCoordinates.stream().mapToInt(x -> x.length).sum();
 
         // Assemble coordinates
-        float[] coordinates = new float[outerCoordinate.length + innerCoordinatesLength];
+        double[] coordinates = new double[outerCoordinate.length + innerCoordinatesLength];
         this.pointTypes = new byte[coordinates.length / 2];
         int lastEmptyIndex = 0;
 
@@ -30,7 +30,7 @@ public class HeightCurvePath implements Shape {
         pointTypes[(lastEmptyIndex + outerCoordinate.length) / 2 - 1] = (byte) 4; // closePath
         lastEmptyIndex += outerCoordinate.length;
 
-        for (float[] innerCoordinate : innerCoordinates) {
+        for (double[] innerCoordinate : innerCoordinates) {
             System.arraycopy(innerCoordinate, 0, coordinates, lastEmptyIndex, innerCoordinate.length); // Copy coordinates to projected list
             pointTypes[lastEmptyIndex / 2] = (byte) 0; // moveTo
             Arrays.fill(pointTypes, lastEmptyIndex / 2 + 1, (lastEmptyIndex + innerCoordinate.length) / 2 - 1, (byte) 1); // lineTo
@@ -38,12 +38,12 @@ public class HeightCurvePath implements Shape {
             lastEmptyIndex += innerCoordinate.length;
         }
 
-        float[] coordinatesProjected = new float[coordinates.length];
+        double[] coordinatesProjected = new double[coordinates.length];
         projectionTransform.transform(coordinates, 0, coordinatesProjected, 0, coordinates.length / 2);
 
         // Create path iterator with node skipping
         this.pathIteratorNodeSkip = new PathIterator() {
-            float lastCoordinateX, lastCoordinateY;
+            double lastCoordinateX, lastCoordinateY;
 
             @Override
             public int getWindingRule() {
@@ -66,8 +66,8 @@ public class HeightCurvePath implements Shape {
                 if (pathIteratorPointer == 0) {
                     // First point
                     transform.transform(coordinatesProjected, 0, coords, 0, 1);
-                    lastCoordinateX = (float) coords[0];
-                    lastCoordinateY = (float) coords[1];
+                    lastCoordinateX = coords[0];
+                    lastCoordinateY = coords[1];
                 } else {
                     // Nth point
                     transform.transform(coordinatesProjected, pathIteratorPointer*2, coords, 0, 1);
@@ -83,8 +83,8 @@ public class HeightCurvePath implements Shape {
 
                     if (distanceToLastPoint >= DRAWING_TOLERANCE) {
                         // Point was found and it should be tracked
-                        lastCoordinateX = (float) coords[0];
-                        lastCoordinateY = (float) coords[1];
+                        lastCoordinateX = coords[0];
+                        lastCoordinateY = coords[1];
                     }
                 }
                 return type;

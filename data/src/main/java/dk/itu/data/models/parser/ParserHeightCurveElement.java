@@ -5,12 +5,12 @@ import java.util.List;
 
 public class ParserHeightCurveElement {
     private final List<Long> gmlIds = new ArrayList<>();
-    private float[] coordinates;
+    private double[] coordinates;
     private final float height;
 
     public ParserHeightCurveElement(
             long gmlId,
-            float[] coordinates,
+            double[] coordinates,
             float height
     ) {
         this.gmlIds.add(gmlId);
@@ -21,7 +21,7 @@ public class ParserHeightCurveElement {
     public List<Long> getGmlIds() {
         return gmlIds;
     }
-    public float[] getCoordinates() {
+    public double[] getCoordinates() {
         return coordinates;
     }
     public float getHeight() {
@@ -31,7 +31,7 @@ public class ParserHeightCurveElement {
     public void addGmlIds(List<Long> gmlIds) {
         this.gmlIds.addAll(gmlIds);
     }
-    public void setCoordinates(float[] coordinates) {
+    public void setCoordinates(double[] coordinates) {
         this.coordinates = coordinates;
     }
 }

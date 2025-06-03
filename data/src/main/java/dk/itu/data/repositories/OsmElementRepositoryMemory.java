@@ -6,7 +6,7 @@ import dk.itu.data.datastructure.rtree.RTreeNode;
 import dk.itu.data.models.osm.OsmElement;
 import dk.itu.data.models.osm.OsmNode;
 import dk.itu.util.LoggerFactory;
-import it.unimi.dsi.fastutil.floats.Float2ReferenceMap;
+import it.unimi.dsi.fastutil.doubles.Double2ReferenceMap;
 import org.apache.logging.log4j.Logger;
 
 import java.util.List;
@@ -50,7 +50,7 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     }
 
     @Override
-    public void getOsmElementsScaled(float minLon, float minLat, float maxLon, float maxLat, float minBoundingBoxArea, Float2ReferenceMap<Drawable> osmElements) {
+    public void getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea, Double2ReferenceMap<Drawable> osmElements) {
         rtree.searchScaled(minLon, minLat, maxLon, maxLat, minBoundingBoxArea, osmElements);
     }
 
@@ -65,7 +65,7 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     }
 
     @Override
-    public OsmNode getNearestTraversableOsmNode(float lon, float lat) {
+    public OsmNode getNearestTraversableOsmNode(double lon, double lat) {
         return traversable.getNearest(lon, lat);
     }
 
@@ -76,11 +76,11 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     }
 
     @Override
-    public float[] getBounds() {
+    public double[] getBounds() {
         if (rtree.isEmpty()) {
-            return new float[]{-180, -90, 180, 90};
+            return new double[]{-180, -90, 180, 90};
         } else {
-            return new float[]{rtree.getRoot().minLon(), rtree.getRoot().minLat(), rtree.getRoot().maxLon(),rtree.getRoot().maxLat()};
+            return new double[]{rtree.getRoot().minLon(), rtree.getRoot().minLat(), rtree.getRoot().maxLon(),rtree.getRoot().maxLat()};
         }
     }
 }

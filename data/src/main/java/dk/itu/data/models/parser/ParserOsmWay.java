@@ -7,11 +7,11 @@ import static dk.itu.util.PolygonUtils.*;
 public class ParserOsmWay implements ParserOsmElement {
     private final long id;
     private byte styleId;
-    private final float[] coordinates;
+    private final double[] coordinates;
 
     public ParserOsmWay(long id, List<ParserOsmNode> nodes, byte styleId) {
         this.id = id;
-        coordinates = new float[nodes.size()*2];
+        coordinates = new double[nodes.size()*2];
         for (int i = 0; i < nodes.size(); i++) {
             coordinates[i*2] = nodes.get(i).getLon();
             coordinates[i*2 + 1] = nodes.get(i).getLat();
@@ -24,7 +24,7 @@ public class ParserOsmWay implements ParserOsmElement {
         return !isClosed(coordinates);
     }
 
-    public float[] getCoordinates() {
+    public double[] getCoordinates() {
         return coordinates;
     }
 

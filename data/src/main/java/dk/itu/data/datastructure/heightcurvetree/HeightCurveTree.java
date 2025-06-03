@@ -10,7 +10,7 @@ import java.util.stream.IntStream;
 public class HeightCurveTree {
     private final HeightCurveTreeNode root = new HeightCurveTreeNode(
             new HeightCurveElement(
-                    new float[] {
+                    new double[] {
                             -180, -90, // BL SW
                             180, -90,  // BR SE
                             180, 90, // TR NE
@@ -72,11 +72,11 @@ public class HeightCurveTree {
         }
     }
 
-    public HeightCurveElement getHeightCurveForPoint(float lon, float lat) {
+    public HeightCurveElement getHeightCurveForPoint(double lon, double lat) {
         return getHeightCurveForPoint(root, lon, lat).orElse(root.getHeightCurveElement());
     }
 
-    private Optional<HeightCurveElement> getHeightCurveForPoint(HeightCurveTreeNode node, float lon, float lat) {
+    private Optional<HeightCurveElement> getHeightCurveForPoint(HeightCurveTreeNode node, double lon, double lat) {
         if (node.getChildren().isEmpty()) {
             // Return the height curve if it doesn't have any children
             return Optional.of(node.getHeightCurveElement());

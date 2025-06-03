@@ -17,9 +17,9 @@ public class RTreeNode implements WithBoundingBoxAndArea, Drawable {
     private RTreeNode parent;
     private final List<OsmElement> elements = new ObjectArrayList<>();            // For leaf nodes
     private final List<RTreeNode> children = new ReferenceArrayList<>();  // For internal nodes
-    private float minLon = Float.MAX_VALUE, minLat = Float.MAX_VALUE;
-    private float maxLon = Float.MIN_VALUE, maxLat = Float.MIN_VALUE;
-    private float area = 0;
+    private double minLon = Double.MAX_VALUE, minLat = Double.MAX_VALUE;
+    private double maxLon = Double.MIN_VALUE, maxLat = Double.MIN_VALUE;
+    private double area = 0;
 
     public RTreeNode()  {
         super();
@@ -114,8 +114,8 @@ public class RTreeNode implements WithBoundingBoxAndArea, Drawable {
                 setBoundingBoxAndExpandParent(entries.getFirst());
             default:
                 // Calculate bounding box based off of entries
-                float minLon = Float.MAX_VALUE, minLat = Float.MAX_VALUE;
-                float maxLon = Float.MIN_VALUE, maxLat = Float.MIN_VALUE;
+                double minLon = Double.MAX_VALUE, minLat = Double.MAX_VALUE;
+                double maxLon = Double.MIN_VALUE, maxLat = Double.MIN_VALUE;
                 for (T entry : entries) {
                     if (entry.minLon() < minLon) {
                         minLon = entry.minLon();
@@ -176,7 +176,7 @@ public class RTreeNode implements WithBoundingBoxAndArea, Drawable {
         );
     }
 
-    private void setBoundingBoxAndExpandParent(float minLon, float minLat, float maxLon, float maxLat) {
+    private void setBoundingBoxAndExpandParent(double minLon, double minLat, double maxLon, double maxLat) {
         this.minLon = minLon;
         this.minLat = minLat;
         this.maxLon = maxLon;
@@ -188,7 +188,7 @@ public class RTreeNode implements WithBoundingBoxAndArea, Drawable {
         }
     }
 
-    private void setBoundingBoxAndUpdateParent(float minLon, float minLat, float maxLon, float maxLat) {
+    private void setBoundingBoxAndUpdateParent(double minLon, double minLat, double maxLon, double maxLat) {
         this.minLon = minLon;
         this.minLat = minLat;
         this.maxLon = maxLon;
@@ -201,10 +201,10 @@ public class RTreeNode implements WithBoundingBoxAndArea, Drawable {
     }
 
     private void resetBoundingBox() {
-        this.minLon = Float.MAX_VALUE;
-        this.minLat = Float.MAX_VALUE;
-        this.maxLon = Float.MIN_VALUE;
-        this.maxLat = Float.MIN_VALUE;
+        this.minLon = Double.MAX_VALUE;
+        this.minLat = Double.MAX_VALUE;
+        this.maxLon = Double.MIN_VALUE;
+        this.maxLat = Double.MIN_VALUE;
         this.area = 0;
         // Update parent bounding box
         if (this.parent != null) {
@@ -220,27 +220,27 @@ public class RTreeNode implements WithBoundingBoxAndArea, Drawable {
     }
 
     @Override
-    public float getArea() {
+    public double getArea() {
         return this.area;
     }
 
     @Override
-    public float minLon() {
+    public double minLon() {
         return minLon;
     }
 
     @Override
-    public float minLat() {
+    public double minLat() {
         return minLat;
     }
 
     @Override
-    public float maxLon() {
+    public double maxLon() {
         return maxLon;
     }
 
     @Override
-    public float maxLat() {
+    public double maxLat() {
         return maxLat;
     }
 

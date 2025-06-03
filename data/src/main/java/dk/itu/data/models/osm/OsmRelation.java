@@ -13,8 +13,8 @@ import static dk.itu.common.models.WithBoundingBoxAndArea.calculateArea;
 public class OsmRelation implements OsmElement, Drawable {
     private final long id;
     private final byte styleId;
-    private float minLon, minLat, maxLon, maxLat;
-    private final float area;
+    private double minLon, minLat, maxLon, maxLat;
+    private final double area;
     private final RelationPath path;
 
     public OsmRelation(long id, byte styleId, RelationPath relationPath) {
@@ -48,11 +48,11 @@ public class OsmRelation implements OsmElement, Drawable {
         );
     }
 
-    public List<float[]> getOuterPolygons() {
+    public List<double[]> getOuterPolygons() {
         return path.getOuterPolygons();
     }
 
-    public List<float[]> getInnerPolygons() {
+    public List<double[]> getInnerPolygons() {
         return path.getInnerPolygons();
     }
 
@@ -62,27 +62,27 @@ public class OsmRelation implements OsmElement, Drawable {
     }
 
     @Override
-    public float minLon() {
+    public double minLon() {
         return this.minLon;
     }
 
     @Override
-    public float minLat() {
+    public double minLat() {
         return this.minLat;
     }
 
     @Override
-    public float maxLon() {
+    public double maxLon() {
         return this.maxLon;
     }
 
     @Override
-    public float maxLat() {
+    public double maxLat() {
         return this.maxLat;
     }
 
     @Override
-    public float getArea() {
+    public double getArea() {
         return this.area;
     }
 

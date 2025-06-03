@@ -107,7 +107,7 @@ public class MouseEventOverlayComponent extends BorderPane {
                     break;
                 case "L":
                     Services.withServices(services -> {
-                        float[] wb = state.getWindowBounds();
+                        double[] wb = state.getWindowBounds();
                         services.getHeightCurveService().loadGmlData(wb[0], wb[1], wb[2], wb[3]);
                         state.updateMinMaxWaterLevels(services);
                     });
@@ -141,7 +141,7 @@ public class MouseEventOverlayComponent extends BorderPane {
 
     private static void selectHeightCurve(State state, Services services, Point2D.Double mousePos) {
         if (!state.getShowSelectedHeightCurve()) return;
-        var hc = services.getHeightCurveService().getHeightCurveForPoint((float) mousePos.getX(), (float) mousePos.getY());
+        var hc = services.getHeightCurveService().getHeightCurveForPoint( mousePos.getX(), mousePos.getY());
 
         if (state.getHcSelected() != null) {
             state.getHcSelected().setUnselected();
@@ -153,7 +153,7 @@ public class MouseEventOverlayComponent extends BorderPane {
     private static void selectNearestNeighbour(State state, Services services, Point2D.Double mousePos) {
         if (!state.getShowNearestNeighbour()) return;
         state.setSelectedOsmElement(
-                services.getOsmService(state.isWithDb()).getNearestTraversableOsmNode((float) mousePos.getX(), (float) mousePos.getY())
+                services.getOsmService(state.isWithDb()).getNearestTraversableOsmNode( mousePos.getX(), mousePos.getY())
         );
     }
 }

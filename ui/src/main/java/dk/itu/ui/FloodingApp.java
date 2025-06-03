@@ -8,8 +8,8 @@ import dk.itu.data.models.heightcurve.HeightCurveElement;
 import dk.itu.data.services.Services;
 import dk.itu.ui.components.MouseEventOverlayComponent;
 import dk.itu.util.LoggerFactory;
-import it.unimi.dsi.fastutil.floats.Float2ReferenceRBTreeMap;
-import it.unimi.dsi.fastutil.floats.Float2ReferenceSortedMap;
+import it.unimi.dsi.fastutil.doubles.Double2ReferenceRBTreeMap;
+import it.unimi.dsi.fastutil.doubles.Double2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.objects.*;
 import javafx.scene.image.*;
 import javafx.scene.layout.StackPane;
@@ -48,7 +48,7 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-            services.getOsmService(state.isWithDb()).loadOsmData("denmark.osm");
+            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
 
             state.resetWindowBounds();
             state.updateMinMaxWaterLevels(services);
@@ -60,7 +60,7 @@ public class FloodingApp extends GameApplication {
 
             List<Drawable> drawables = new ArrayList<>();
 
-            Float2ReferenceSortedMap<Drawable> osmElements = new Float2ReferenceRBTreeMap<>();
+            Double2ReferenceSortedMap<Drawable> osmElements = new Double2ReferenceRBTreeMap<>();
             List<RTreeNode> spatialNodes = new ReferenceArrayList<>();
             List<HeightCurveElement> heightCurves = new ReferenceArrayList<>();
 

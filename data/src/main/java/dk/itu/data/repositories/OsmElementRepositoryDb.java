@@ -6,7 +6,7 @@ import dk.itu.data.models.osm.OsmElement;
 import dk.itu.data.models.osm.OsmNode;
 import dk.itu.data.models.osm.OsmRelation;
 import dk.itu.data.models.osm.OsmWay;
-import it.unimi.dsi.fastutil.floats.Float2ReferenceMap;
+import it.unimi.dsi.fastutil.doubles.Double2ReferenceMap;
 import org.apache.fury.Fury;
 import org.apache.fury.ThreadLocalFury;
 import org.apache.fury.ThreadSafeFury;
@@ -34,7 +34,7 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
                 .withCompatibleMode(CompatibleMode.SCHEMA_CONSISTENT)
                 .withAsyncCompilation(true)
                 .build();
-        f.register(Path2D.Float.class);
+        f.register(Path2D.Double.class);
         f.register(OsmNode.class);
         f.register(OsmWay.class);
         f.register(OsmRelation.class);
@@ -152,7 +152,7 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
             sb.append(")"); // Polygon outer end
 
             // Check if there are any inner polygons
-            for (float[] innerPolygon : innerPolygons) {
+            for (double[] innerPolygon : innerPolygons) {
                 if (isPolygonContained(outerPolygons.get(i), innerPolygon)) {
                     sb.append(", ("); // Inner hole start
                     List<String> coordinatePairsInner = new ArrayList<>();
@@ -174,7 +174,7 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
         );
     }
 
-    private Field<Geometry> getGeometryFieldFromShape(String expected, float[] coordinates) {
+    private Field<Geometry> getGeometryFieldFromShape(String expected, double[] coordinates) {
         List<String> coordinatePairs = new ArrayList<>();
         for (int i = 0; i < coordinates.length; i+=2) {
             coordinatePairs.add(coordinates[i] + " " + coordinates[i+1]);
@@ -200,21 +200,21 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
     }
 
     @Override
-    public void getOsmElementsScaled(float minLon, float minLat, float maxLon, float maxLat, float minBoundingBoxArea, Float2ReferenceMap<Drawable> osmElements) {
+    public void getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea, Double2ReferenceMap<Drawable> osmElements) {
         String condWays = String.format("COALESCE(w.line, w.polygon) && ST_MakeEnvelope(%s, %s, %s, %s, 4326) AND w.area >= %s", minLon, minLat, maxLon, maxLat, minBoundingBoxArea);
         String condRelations = String.format("r.shape && ST_MakeEnvelope(%s, %s, %s, %s, 4326) AND r.area >= %s", minLon, minLat, maxLon, maxLat, minBoundingBoxArea);
         osmElements.putAll(
                 ctx.select(
                         DSL.field("n.dbObj", byte[].class),
                         DSL.field("'n' as type", String.class),
-                        DSL.field("n.area", Float.class)
+                        DSL.field("n.area", Double.class)
                 )
                 .from(DSL.table("nodes").as("n"))
                 .unionAll(
                         ctx.select(
                                         DSL.field("w.dbObj", byte[].class),
                                         DSL.field("'w' as type", String.class),
-                                        DSL.field("w.area", Float.class)
+                                        DSL.field("w.area", Double.class)
                                 )
                                 .from(DSL.table("ways").as("w"))
                                 .where(DSL.condition(condWays))
@@ -222,7 +222,7 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
                                         ctx.select(
                                                         DSL.field("r.dbObj", byte[].class),
                                                         DSL.field("'r' as type", String.class),
-                                                        DSL.field("r.area", Float.class)
+                                                        DSL.field("r.area", Double.class)
                                                 )
                                                 .from(DSL.table("relations").as("r"))
                                                 .where(condRelations)
@@ -244,13 +244,13 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
         return ctx.select(
                         DSL.field("n.dbObj", byte[].class),
                         DSL.field("'n' as type", String.class),
-                        DSL.field("n.area", Float.class)
+                        DSL.field("n.area", Double.class)
                 )
                 .from(DSL.table("nodesTraversable").as("n"))
                 .fetch(new RecordMapper<>() {
                     @Nullable
                     @Override
-                    public OsmNode map(Record3<byte[], String, Float> r) {
+                    public OsmNode map(Record3<byte[], String, Double> r) {
                         if (r.component2().equals("n")) {
                             return fury.deserializeJavaObject(r.component1(), OsmNode.class);
                         } else {
@@ -261,12 +261,12 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
     }
 
     @Override
-    public OsmNode getNearestTraversableOsmNode(float lon, float lat) {
+    public OsmNode getNearestTraversableOsmNode(double lon, double lat) {
         var distCond = String.format("n.coordinate <-> 'SRID=4326;POINT(%s %s)'::geometry", lon, lat);
         return ctx.select(
                 DSL.field("n.dbObj", byte[].class),
                 DSL.field("'n' as type", String.class),
-                DSL.field("n.area", Float.class)
+                DSL.field("n.area", Double.class)
         )
                 .from(DSL.table("nodesTraversable").as("n"))
                 .orderBy(DSL.condition(distCond))
@@ -274,7 +274,7 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
                 .fetchOne(new RecordMapper<>() {
                     @Nullable
                     @Override
-                    public OsmNode map(Record3<byte[], String, Float> r) {
+                    public OsmNode map(Record3<byte[], String, Double> r) {
                         if (r.component2().equals("n")) {
                             return fury.deserializeJavaObject(r.component1(), OsmNode.class);
                         } else {
@@ -294,12 +294,12 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
     }
 
     @Override
-    public float[] getBounds() {
+    public double[] getBounds() {
         return ctx.select(
-                DSL.field("MIN(minLon)", float.class),
-                DSL.field("MIN(minLat)", float.class),
-                DSL.field("MAX(maxLon)", float.class),
-                DSL.field("MAX(maxLat)", float.class)
+                DSL.field("MIN(minLon)", double.class),
+                DSL.field("MIN(minLat)", double.class),
+                DSL.field("MAX(maxLon)", double.class),
+                DSL.field("MAX(maxLat)", double.class)
         ).from(
                 ctx.select(
                                 DSL.field("ST_XMin(n.coordinate)").as(DSL.field("minLon")),
@@ -328,9 +328,9 @@ public class OsmElementRepositoryDb implements OsmElementRepository {
                 )
         ).fetchOne(r -> {
             if (r.component1() == null || r.component2() == null || r.component3() == null || r.component4() == null) {
-                return new float[]{-180, -90, 180, 90};
+                return new double[]{-180, -90, 180, 90};
             }
-            return new float[]{r.component1(), r.component2(), r.component3(), r.component4()};
+            return new double[]{r.component1(), r.component2(), r.component3(), r.component4()};
         });
     }
 }
