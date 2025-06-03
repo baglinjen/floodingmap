@@ -126,7 +126,7 @@ public class RStarTree {
 
         for (RTreeNode child : node.getChildren()) {
             // Calculate how much the child's MBR would need to be enlarged
-            float enlargement = getEnlargementArea(elementBox, child);
+            float enlargement = getEnlargementArea(child, elementBox) - child.getArea();
             float area = child.getArea();
 
             // Choose the child that requires the least enlargement
@@ -407,7 +407,7 @@ public class RStarTree {
         float minEnlargement = Float.POSITIVE_INFINITY;
 
         for (RTreeNode child : node.getChildren()) {
-            float enlargement = getEnlargementArea(child, mbr);
+            float enlargement = getEnlargementArea(child, mbr) - child.getArea();
             if (bestChild == null || enlargement < minEnlargement) {
                 minEnlargement = enlargement;
                 bestChild = child;
@@ -510,108 +510,22 @@ public class RStarTree {
         }
     }
 
-    public static class RTreeSearchStats {
-        private int nodeCheck, passedNodeCheck, startLeafCheck, elementInvestigated, elementPassed, startChildrenCheck, startChildCheck;
-        private float timeElapsed;
-        private boolean hasBeenPrintedOnce = false;
-
-        public void reset() {
-            nodeCheck = passedNodeCheck = startChildCheck = elementPassed = startLeafCheck = elementInvestigated = startChildrenCheck = 0;
-            hasBeenPrintedOnce = true;
-        }
-
-        @Override
-        public String toString() {
-            if (hasBeenPrintedOnce) {
-                return "timeElapsed: " + timeElapsed;
-            } else {
-                return String.format(
-                        """
-                                nodeCheck: %s,
-                                passedNodeCheck: %s,
-                                startLeafCheck: %s,
-                                elementInvestigated: %s,
-                                elementPassed: %s,
-                                startChildrenCheck: %s,
-                                startChildCheck: %s,
-                                timeElapsed: %s
-                                """,
-                        nodeCheck,
-                        passedNodeCheck,
-                        startLeafCheck,
-                        elementInvestigated,
-                        elementPassed,
-                        startChildrenCheck,
-                        startChildCheck,
-                        timeElapsed
-                );
-            }
-        }
-
-        public void addNodeCheck() {
-            nodeCheck++;
-        }
-
-        public void addPassedNodeCheck() {
-            passedNodeCheck++;
-        }
-
-        public void addStartLeafCheck() {
-            startLeafCheck++;
-        }
-
-        public void addElementInvestigated() {
-            elementInvestigated++;
-        }
-
-        public void addElementPassed() {
-            elementPassed++;
-        }
-
-        public void addStartChildrenCheck() {
-            startChildrenCheck++;
-        }
-
-        public void addStartChildCheck() {
-            startChildCheck++;
-        }
-
-        public void setTimeElapsed(float timeElapsed) {
-            this.timeElapsed = timeElapsed;
-        }
-    }
-
-    private static final RTreeSearchStats stats = new RTreeSearchStats();
     public void searchScaled(float minLon, float minLat, float maxLon, float maxLat, float minBoundingBoxArea, Float2ReferenceMap<Drawable> results) {
-        boolean boundingBoxValid = testBoundingBoxesAreValid();
-        int amountOfElements = getAmountOfElements();
-        int amountOfNodes = getAmountOfNodes();
 
-        long startTime = System.nanoTime();
         searchScaled(root, minLon, minLat, maxLon, maxLat, minBoundingBoxArea, results);
-        stats.setTimeElapsed(System.nanoTime() - startTime);
-//        System.out.println(stats);
-        stats.reset();
     }
     private void searchScaled(RTreeNode node, float minLon, float minLat, float maxLon, float maxLat, float minBoundingBoxArea, Float2ReferenceMap<Drawable> results) {
-        stats.addNodeCheck();
         if (node == null || node.getArea() < minBoundingBoxArea || !intersects(node, minLon, minLat, maxLon, maxLat)) return; // No intersection, skip this branch
-        stats.addPassedNodeCheck();
 
         if (node.isLeaf()) {
-            stats.addStartLeafCheck();
             for (int i = 0; i < node.getElements().size(); i++) {
-                stats.addElementInvestigated();
                 OsmElement element = node.getElements().get(i);
                 if (intersects(element, minLon, minLat, maxLon, maxLat) && element.getArea() >= minBoundingBoxArea) {
-                    stats.addElementPassed();
                     results.put(-element.getArea(), (Drawable) element);
                 }
             }
         } else {
-            stats.addStartChildrenCheck();
             for (int i = 0; i < node.getChildren().size(); i++) {
-                stats.addStartChildCheck();
                 searchScaled(node.getChildren().get(i), minLon, minLat, maxLon, maxLat, minBoundingBoxArea, results);
             }
         }
@@ -664,35 +578,6 @@ public class RStarTree {
                 minLat == node.minLat() &&
                 maxLon == node.maxLon() &&
                 maxLat == node.maxLat();
-    }
-
-    public int getAmountOfElements() {
-        Deque<RTreeNode> nodesToCheck = new ArrayDeque<>();
-        int amountOfElements = 0;
-        nodesToCheck.push(root);
-        while (!nodesToCheck.isEmpty()) {
-            RTreeNode node = nodesToCheck.pop();
-            if (node.isLeaf()) {
-                amountOfElements += node.getElements().size();
-            } else {
-                nodesToCheck.addAll(node.getChildren());
-            }
-        }
-        return amountOfElements;
-    }
-
-    public int getAmountOfNodes() {
-        Deque<RTreeNode> nodesToCheck = new ArrayDeque<>();
-        int amountOfNodes = 1;
-        nodesToCheck.push(root);
-        while (!nodesToCheck.isEmpty()) {
-            RTreeNode node = nodesToCheck.pop();
-            amountOfNodes ++;
-            if (!node.isLeaf()) {
-                nodesToCheck.addAll(node.getChildren());
-            }
-        }
-        return amountOfNodes;
     }
 
     /*
