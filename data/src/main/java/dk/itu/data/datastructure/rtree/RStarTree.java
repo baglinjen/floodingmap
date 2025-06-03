@@ -510,49 +510,89 @@ public class RStarTree {
         }
     }
 
-    public void searchScaled(float minLon, float minLat, float maxLon, float maxLat, float minBoundingBoxArea, Float2ReferenceMap<Drawable> results) {
-        Stack<RTreeNode> nodesToSearch = new Stack<>();
-        nodesToSearch.push(root);
+    public static class RTreeSearchStats {
+        private int nodeCheck, passedNodeCheck, startLeafCheck, elementInvestigated, elementPassed, startChildrenCheck, startChildCheck;
 
-        while (!nodesToSearch.isEmpty()) {
-            RTreeNode node = nodesToSearch.pop();
+        public void reset() {
+            nodeCheck = passedNodeCheck = startChildCheck = elementPassed = startLeafCheck = elementInvestigated = startChildrenCheck = 0;
+        }
 
-            // Skip node if it is too small
-            if (node.getArea() < minBoundingBoxArea) continue;
+        @Override
+        public String toString() {
+            return String.format(
+                    """
+                    nodeCheck: %s,
+                    passedNodeCheck: %s,
+                    startLeafCheck: %s,
+                    elementInvestigated: %s,
+                    elementPassed: %s,
+                    startChildrenCheck: %s,
+                    startChildCheck: %s
+                    """,
+                    nodeCheck,
+                    passedNodeCheck,
+                    startLeafCheck,
+                    elementInvestigated,
+                    elementPassed,
+                    startChildrenCheck,
+                    startChildCheck
+            );
+        }
 
-            if (node.isLeaf()) {
-                // Add elements which are big enough
-                for (OsmElement element : node.getElements()) {
-                    if (element.getArea() >= minBoundingBoxArea) {
-                        results.put(-element.getArea(), (Drawable) element);
-                    }
-                }
-            } else {
-                // Look through children
-                for (int i = 0; i < node.getChildren().size(); i++) {
-                    RTreeNode child = node.getChildren().get(i);
-                    if (intersects(child, minLon, minLat, maxLon, maxLat)) {
-                        // If child intersects search box, look through it
-                        nodesToSearch.push(child);
-                    }
-                }
-            }
+        public void addNodeCheck() {
+            nodeCheck++;
+        }
+
+        public void addPassedNodeCheck() {
+            passedNodeCheck++;
+        }
+
+        public void addStartLeafCheck() {
+            startLeafCheck++;
+        }
+
+        public void addElementInvestigated() {
+            elementInvestigated++;
+        }
+
+        public void addElementPassed() {
+            elementPassed++;
+        }
+
+        public void addStartChildrenCheck() {
+            startChildrenCheck++;
+        }
+
+        public void addStartChildCheck() {
+            startChildCheck++;
         }
     }
+
+    private static final RTreeSearchStats stats = new RTreeSearchStats();
+    public void searchScaled(float minLon, float minLat, float maxLon, float maxLat, float minBoundingBoxArea, Float2ReferenceMap<Drawable> results) {
+        searchScaled(root, minLon, minLat, maxLon, maxLat, minBoundingBoxArea, results);
+        System.out.println(stats);
+        stats.reset();
+    }
     private void searchScaled(RTreeNode node, float minLon, float minLat, float maxLon, float maxLat, float minBoundingBoxArea, Float2ReferenceMap<Drawable> results) {
+        stats.addNodeCheck();
         if (node == null || node.getArea() < minBoundingBoxArea || !intersects(node, minLon, minLat, maxLon, maxLat)) return; // No intersection, skip this branch
+        stats.addPassedNodeCheck();
 
         if (node.isLeaf()) {
+            stats.addStartLeafCheck();
             for (int i = 0; i < node.getElements().size(); i++) {
+                stats.addElementInvestigated();
                 OsmElement element = node.getElements().get(i);
-                if (element instanceof Drawable drawable) {
-                    if (intersects(element, minLon, minLat, maxLon, maxLat) && element.getArea() >= minBoundingBoxArea) {
-                        results.put(-element.getArea(), drawable);
-                    }
+                if (intersects(element, minLon, minLat, maxLon, maxLat) && element.getArea() >= minBoundingBoxArea) {
+                    stats.addElementPassed();
+                    results.put(-element.getArea(), (Drawable) element);
                 }
             }
         } else {
+            stats.addStartChildrenCheck();
             for (int i = 0; i < node.getChildren().size(); i++) {
+                stats.addStartChildCheck();
                 searchScaled(node.getChildren().get(i), minLon, minLat, maxLon, maxLat, minBoundingBoxArea, results);
             }
         }
