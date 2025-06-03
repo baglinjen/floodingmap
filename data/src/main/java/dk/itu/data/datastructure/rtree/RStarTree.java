@@ -512,31 +512,40 @@ public class RStarTree {
 
     public static class RTreeSearchStats {
         private int nodeCheck, passedNodeCheck, startLeafCheck, elementInvestigated, elementPassed, startChildrenCheck, startChildCheck;
+        private float timeElapsed;
+        private boolean hasBeenPrintedOnce = false;
 
         public void reset() {
             nodeCheck = passedNodeCheck = startChildCheck = elementPassed = startLeafCheck = elementInvestigated = startChildrenCheck = 0;
+            hasBeenPrintedOnce = true;
         }
 
         @Override
         public String toString() {
-            return String.format(
-                    """
-                    nodeCheck: %s,
-                    passedNodeCheck: %s,
-                    startLeafCheck: %s,
-                    elementInvestigated: %s,
-                    elementPassed: %s,
-                    startChildrenCheck: %s,
-                    startChildCheck: %s
-                    """,
-                    nodeCheck,
-                    passedNodeCheck,
-                    startLeafCheck,
-                    elementInvestigated,
-                    elementPassed,
-                    startChildrenCheck,
-                    startChildCheck
-            );
+            if (hasBeenPrintedOnce) {
+                return "timeElapsed: " + timeElapsed;
+            } else {
+                return String.format(
+                        """
+                                nodeCheck: %s,
+                                passedNodeCheck: %s,
+                                startLeafCheck: %s,
+                                elementInvestigated: %s,
+                                elementPassed: %s,
+                                startChildrenCheck: %s,
+                                startChildCheck: %s,
+                                timeElapsed: %s
+                                """,
+                        nodeCheck,
+                        passedNodeCheck,
+                        startLeafCheck,
+                        elementInvestigated,
+                        elementPassed,
+                        startChildrenCheck,
+                        startChildCheck,
+                        timeElapsed
+                );
+            }
         }
 
         public void addNodeCheck() {
@@ -566,11 +575,17 @@ public class RStarTree {
         public void addStartChildCheck() {
             startChildCheck++;
         }
+
+        public void setTimeElapsed(float timeElapsed) {
+            this.timeElapsed = timeElapsed;
+        }
     }
 
     private static final RTreeSearchStats stats = new RTreeSearchStats();
     public void searchScaled(float minLon, float minLat, float maxLon, float maxLat, float minBoundingBoxArea, Float2ReferenceMap<Drawable> results) {
+        long startTime = System.nanoTime();
         searchScaled(root, minLon, minLat, maxLon, maxLat, minBoundingBoxArea, results);
+        stats.setTimeElapsed(System.nanoTime() - startTime);
         System.out.println(stats);
         stats.reset();
     }
