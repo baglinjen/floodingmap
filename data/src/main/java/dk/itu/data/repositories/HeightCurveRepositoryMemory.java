@@ -98,6 +98,7 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
 
     @Override
     public synchronized void clear() {
+        parsedIds.clear();
         unconnectedElementsMap.clear();
         heightCurveTree.clear();
     }
