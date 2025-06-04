@@ -220,6 +220,7 @@ public class RoutingService {
 
                 if(nextNodeCurve == null) {
                     //If no curve has been mapped to node yet -> force load curve
+                    logger.debug("No curve loaded yet for node {}", nextNode.getId());
                     nextNodeCurve = services.getHeightCurveService().getHeightCurveForPoint(nextNode.getLon(), nextNode.getLat());
                     nextNode.setContainingCurve(nextNodeCurve);
                 }
