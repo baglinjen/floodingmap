@@ -179,4 +179,8 @@ public class GmlParser {
             throw new XMLStreamException(e);
         }
     }
+
+    public static void clearProcessedQuadrants() {
+        quadrantsProcessed.clear();
+    }
 }

@@ -10,16 +10,14 @@ import java.util.stream.IntStream;
 public class HeightCurveTree {
     private final HeightCurveTreeNode root = new HeightCurveTreeNode(
             new HeightCurveElement(
-                    new double[] {
+                    new float[] {
                             -180, -90, // BL SW
-                            -180, 90, // TL NW
-                            180, 90, // TR NE
                             180, -90,  // BR SE
+                            180, 90, // TR NE
+                            -180, 90, // TL NW
                             -180, -90 // BL SW
                     },
-                    0,
-                    Double.MAX_VALUE,
-                    new double[] {-180, -90, 180, 90}
+                    0
             )
     );
     private float minWaterLevel = 0, maxWaterLevel = 1;
@@ -40,25 +38,6 @@ public class HeightCurveTree {
     private void getElements(HeightCurveTreeNode node, Collection<HeightCurveElement> elements) {
         elements.add(node.getHeightCurveElement());
         node.getChildren().parallelStream().forEach(child -> getElements(child, elements));
-    }
-
-    public List<HeightCurveElement> searchScaled(double[] boundingBox, double minBoundingBoxArea) {
-        Collection<HeightCurveElement> elementsConcurrent = new ConcurrentLinkedQueue<>();
-
-        searchScaled(root, boundingBox, elementsConcurrent);
-
-        return elementsConcurrent
-                .parallelStream()
-                .filter(e -> e.getArea() >= minBoundingBoxArea)
-                .toList();
-    }
-    private void searchScaled(HeightCurveTreeNode node, double[] queryBox, Collection<HeightCurveElement> results) {
-        // If heightCurveElement intersects => add to list => Run with children
-        if (node.getHeightCurveElement().intersects(queryBox)) {
-            results.add(node.getHeightCurveElement());
-            node.getChildren().parallelStream().forEach(child -> searchScaled(child, queryBox, results));
-        }
-        // Else => nothing
     }
 
     public List<List<HeightCurveElement>> getFloodingSteps(float waterLevel) {
@@ -93,23 +72,23 @@ public class HeightCurveTree {
         }
     }
 
-    public HeightCurveElement getHeightCurveForPoint(double lon, double lat) {
+    public HeightCurveElement getHeightCurveForPoint(float lon, float lat) {
         return getHeightCurveForPoint(root, lon, lat).orElse(root.getHeightCurveElement());
     }
 
-    private Optional<HeightCurveElement> getHeightCurveForPoint(HeightCurveTreeNode node, double lon, double lat) {
-        if (!node.contains(lon, lat)) {
-            return Optional.empty();
-        } else if (node.getChildren().isEmpty()) {
+    private Optional<HeightCurveElement> getHeightCurveForPoint(HeightCurveTreeNode node, float lon, float lat) {
+        if (node.getChildren().isEmpty()) {
+            // Return the height curve if it doesn't have any children
             return Optional.of(node.getHeightCurveElement());
         } else {
-            return node
-                    .getChildren()
-                    .parallelStream()
-                    .map(child -> getHeightCurveForPoint(child, lon, lat))
-                    .filter(Objects::nonNull)
-                    .findFirst()
-                    .orElse(Optional.empty());
+            // Iterate through each child and find the first one containing
+            Optional<HeightCurveTreeNode> childContaining = Optional.empty();
+            for (int i = 0; i < node.getChildren().size() && childContaining.isEmpty(); i++) {
+                if (node.getChildren().get(i).getHeightCurveElement().containsPoint(lon, lat)) {
+                    childContaining = Optional.of(node.getChildren().get(i));
+                }
+            }
+            return childContaining.map(child -> getHeightCurveForPoint(child, lon, lat).orElse(child.getHeightCurveElement()));
         }
     }
 
@@ -124,34 +103,31 @@ public class HeightCurveTree {
             node.getChildren().add(new HeightCurveTreeNode(heightCurveElement));
             node.getHeightCurveElement().addInnerPolygon(heightCurveElement.getCoordinates());
         } else {
-            // Try to find first node which contains element
-            // Candidates are children which are bigger than element => might contain so sort by biggest first
-
-            var candidateNodes = node.getChildren()
+            // Try to find first node which contains element and add => otherwise add to current node
+            node.getChildren()
                     .parallelStream()
-                    .filter(e -> e.contains(heightCurveElement))
-                    .sorted(Comparator.comparing(HeightCurveTreeNode::getPolygonArea).reversed())
-                    .toList();
+                    .filter(e -> e.getHeightCurveElement().contains(heightCurveElement))
+                    .findFirst()
+                    .ifPresentOrElse(
+                            containingNode -> put(containingNode, heightCurveElement),
+                            () -> {
+                                // No child contains element => try to find children which the element contains
+                                var newNode = new HeightCurveTreeNode(heightCurveElement);
+                                node.getChildren()
+                                        .parallelStream()
+                                        .filter(e -> heightCurveElement.contains(e.getHeightCurveElement()))
+                                        .toList()
+                                        .forEach(child -> {
+                                            node.getChildren().remove(child);
+                                            node.getHeightCurveElement().removeInnerPolygon(child.getHeightCurveElement().getCoordinates());
+                                            newNode.getChildren().add(child);
+                                            newNode.getHeightCurveElement().addInnerPolygon(child.getHeightCurveElement().getCoordinates());
+                                        });
 
-            if (candidateNodes.isEmpty()) {
-                // No child contains element => try to find children which the element contains
-                var newNode = new HeightCurveTreeNode(heightCurveElement);
-                node.getChildren()
-                        .parallelStream()
-                        .filter(e -> heightCurveElement.contains(e.getHeightCurveElement()))
-                        .toList()
-                        .forEach(child -> {
-                            node.getChildren().remove(child);
-                            node.getHeightCurveElement().removeInnerPolygon(child.getHeightCurveElement().getCoordinates());
-                            newNode.getChildren().add(child);
-                            newNode.getHeightCurveElement().addInnerPolygon(child.getHeightCurveElement().getCoordinates());
-                        });
-
-                node.getChildren().add(newNode);
-                node.getHeightCurveElement().addInnerPolygon(newNode.getHeightCurveElement().getCoordinates());
-            } else {
-                put(candidateNodes.getFirst(), heightCurveElement);
-            }
+                                node.getChildren().add(newNode);
+                                node.getHeightCurveElement().addInnerPolygon(newNode.getHeightCurveElement().getCoordinates());
+                            }
+                    );
         }
     }
 

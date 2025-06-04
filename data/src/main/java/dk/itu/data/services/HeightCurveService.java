@@ -31,7 +31,7 @@ public class HeightCurveService {
         }
     }
     
-    public HeightCurveElement getHeightCurveForPoint(double lon, double lat) {
+    public HeightCurveElement getHeightCurveForPoint(float lon, float lat) {
         synchronized (this.repository) {
             return this.repository.getHeightCurveForPoint(lon, lat);
         }
@@ -151,6 +151,7 @@ public class HeightCurveService {
     public void clearAll() {
         synchronized (this.repository) {
             this.repository.clear();
+            GmlParser.clearProcessedQuadrants();
         }
     }
 }

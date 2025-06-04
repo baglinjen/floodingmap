@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dk.itu.data.enums.RoutingType;
 import dk.itu.data.models.heightcurve.HeightCurveElement;
 import dk.itu.data.models.osm.OsmNode;
-import dk.itu.data.models.osm.OsmWay;
 import dk.itu.data.services.Services;
 import dk.itu.data.services.RoutingService;
 import dk.itu.data.utils.RoutingUtils;
@@ -20,13 +19,12 @@ import org.junit.jupiter.params.provider.CsvSource;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class RoutingTest {
     private static final Logger logger = LoggerFactory.getLogger();
     private static RoutingService testConfiguration;
-    private static Map<Long, OsmNode> nodes;
+    private static List<OsmNode> nodes;
 
     @BeforeAll
     void setupGeneral(){
@@ -48,13 +46,13 @@ public class RoutingTest {
 
     @ParameterizedTest
     @CsvSource({
-            "1078669546, 1078669405, 450",
+            "1078669546, 1078669405, 451",
             "1079130218, 1078685441, 3166",
             "1078669228, 12568363317, 9"
     })
     void euclideanDistanceIsCorrect(long startNodeId, long endNodeId, double expectedDistance){
-        var startNode = nodes.get(startNodeId);
-        var endNode = nodes.get(endNodeId);
+        var startNode = getNodeFromId(startNodeId);
+        var endNode = getNodeFromId(endNodeId);
 
         var distance = RoutingUtils.distanceMeters(startNode.getLat(), startNode.getLon(), endNode.getLat(), endNode.getLon());
 
@@ -68,17 +66,17 @@ public class RoutingTest {
     })
     void routingCanFindShortestPath(long startNodeId, long endNodeId, String filename) throws InterruptedException {
         //Arrange
-        testConfiguration.setStartNode(nodes.get(startNodeId));
-        testConfiguration.setEndNode(nodes.get(endNodeId));
+        testConfiguration.setStartNode(getNodeFromId(startNodeId));
+        testConfiguration.setEndNode(getNodeFromId(endNodeId));
 
         var expectedRouteCoordinates = extractCoordinates(filename);
 
         //Act
-        var thread = testConfiguration.calculateRoute(false);
+        var thread = testConfiguration.calculateRoute();
         thread.join();
 
-        var route = testConfiguration.getRoute(false, 0.0);
-        var routeCoordinates = ((OsmWay)route).getOuterCoordinates();
+        var route = testConfiguration.getRoute(0.0);
+        var routeCoordinates = (route).getOuterCoordinates();
 
         //Assert
         assertThat(route).isNotNull();
@@ -87,8 +85,8 @@ public class RoutingTest {
 
         assertThat(testConfiguration.getTouchedNodes().size()).isPositive();
 
-        assertThat(testConfiguration.getStartNode()).isEqualTo(nodes.get(startNodeId));
-        assertThat(testConfiguration.getEndNode()).isEqualTo(nodes.get(endNodeId));
+        assertThat(testConfiguration.getStartNode()).isEqualTo(getNodeFromId(startNodeId));
+        assertThat(testConfiguration.getEndNode()).isEqualTo(getNodeFromId(endNodeId));
     }
 
     @ParameterizedTest
@@ -102,8 +100,8 @@ public class RoutingTest {
     })
     void routingWillAccountForRisingWater(String routingConfig, long startNodeId, long endNodeId, float waterLevel, String filename) throws InterruptedException {
         //Arrange
-        testConfiguration.setStartNode(nodes.get(startNodeId));
-        testConfiguration.setEndNode(nodes.get(endNodeId));
+        testConfiguration.setStartNode(getNodeFromId(startNodeId));
+        testConfiguration.setEndNode(getNodeFromId(endNodeId));
         testConfiguration.setRoutingMethod(Enum.valueOf(RoutingType.class, routingConfig));
 
         simulateFlooding(waterLevel);
@@ -112,11 +110,11 @@ public class RoutingTest {
         var expectedCoords = extractCoordinates(filename);
 
         //Act
-        var thread = testConfiguration.calculateRoute(false);
+        var thread = testConfiguration.calculateRoute();
         thread.join();
 
-        var route = testConfiguration.getRoute(false, waterLevel);
-        var routeCoordinates = ((OsmWay)route).getOuterCoordinates();
+        var route = testConfiguration.getRoute(waterLevel);
+        var routeCoordinates = route.getOuterCoordinates();
 
         //Assert
         assertThat(route).isNotNull();
@@ -132,8 +130,8 @@ public class RoutingTest {
     })
     void dijkstraAndAStarFindsEquallyCorrectRoute(long startNodeId, long endNodeId, String filename) throws InterruptedException{
         //Arrange
-        testConfiguration.setStartNode(nodes.get(startNodeId));
-        testConfiguration.setEndNode(nodes.get(endNodeId));
+        testConfiguration.setStartNode(getNodeFromId(startNodeId));
+        testConfiguration.setEndNode(getNodeFromId(endNodeId));
 
         var expectedRouteCoordinates = extractCoordinates(filename);
 
@@ -141,29 +139,29 @@ public class RoutingTest {
         testConfiguration.setRoutingMethod(RoutingType.Dijkstra);
         assertThat(testConfiguration.getRoutingMethod()).isEqualTo(RoutingType.Dijkstra);
 
-        var dijkstraThread = testConfiguration.calculateRoute(false);
+        var dijkstraThread = testConfiguration.calculateRoute();
         dijkstraThread.join();
 
-        var dijkstraRoute = testConfiguration.getRoute(false, 0.0);
-        var dijkstraCoordinates = ((OsmWay)dijkstraRoute).getOuterCoordinates();
+        var dijkstraRoute = testConfiguration.getRoute(0.0);
+        var dijkstraCoordinates = dijkstraRoute.getOuterCoordinates();
 
         testConfiguration.setRoutingMethod(RoutingType.AStar);
         assertThat(testConfiguration.getRoutingMethod()).isEqualTo(RoutingType.AStar);
 
-        var aStarThread = testConfiguration.calculateRoute(false);
+        var aStarThread = testConfiguration.calculateRoute();
         aStarThread.join();
 
-        var aStarRoute = testConfiguration.getRoute(false, 0.0);
-        var aStarCoordinates = ((OsmWay)aStarRoute).getOuterCoordinates();
+        var aStarRoute = testConfiguration.getRoute(0.0);
+        var aStarCoordinates = aStarRoute.getOuterCoordinates();
 
         testConfiguration.setRoutingMethod(RoutingType.AStarBidirectional);
         assertThat(testConfiguration.getRoutingMethod()).isEqualTo(RoutingType.AStarBidirectional);
 
-        var aStarBidirectionalThread = testConfiguration.calculateRoute(false);
+        var aStarBidirectionalThread = testConfiguration.calculateRoute();
         aStarBidirectionalThread.join();
 
-        var aStarBidirectionalRoute = testConfiguration.getRoute(false, 0.0);
-        var aStarBidirectionalCoordinates = ((OsmWay)aStarBidirectionalRoute).getOuterCoordinates();
+        var aStarBidirectionalRoute = testConfiguration.getRoute(0.0);
+        var aStarBidirectionalCoordinates = aStarBidirectionalRoute.getOuterCoordinates();
 
         //Assert
         assertThat(dijkstraRoute).isNotNull();
@@ -199,12 +197,12 @@ public class RoutingTest {
         var routingType = Enum.valueOf(RoutingType.class, routingEnum);
 
         testConfiguration.setRoutingMethod(routingType);
-        testConfiguration.setStartNode(nodes.get(startNodeId));
-        testConfiguration.setEndNode(nodes.get(endNodeId));
+        testConfiguration.setStartNode(getNodeFromId(startNodeId));
+        testConfiguration.setEndNode(getNodeFromId(endNodeId));
 
-        testConfiguration.calculateRoute(false);
+        testConfiguration.calculateRoute();
 
-        var route = testConfiguration.getRoute(false, 0.0);
+        var route = testConfiguration.getRoute(0.0);
 
         assertThat(route).isNull();
     }
@@ -220,19 +218,19 @@ public class RoutingTest {
         var routingType = Enum.valueOf(RoutingType.class, routingEnum);
         testConfiguration.setRoutingMethod(routingType);
 
-        testConfiguration.setStartNode(nodes.get(startNodeId));
-        testConfiguration.setEndNode(nodes.get(endNodeId));
+        testConfiguration.setStartNode(getNodeFromId(startNodeId));
+        testConfiguration.setEndNode(getNodeFromId(endNodeId));
 
         //Act
-        var initialCalculationThread = testConfiguration.calculateRoute(false);
+        var initialCalculationThread = testConfiguration.calculateRoute();
         initialCalculationThread.join();
 
-        var routeBeforeFlood = testConfiguration.getRoute(false, 0.0);
+        var routeBeforeFlood = testConfiguration.getRoute(0.0);
 
         testConfiguration.setWaterLevel(10);
         simulateFlooding(10);
 
-        var routeAfterFlood = testConfiguration.getRoute(false, 10);
+        var routeAfterFlood = testConfiguration.getRoute(10);
 
         //Assert
         assertThat(routeBeforeFlood).isNotNull();
@@ -243,35 +241,35 @@ public class RoutingTest {
     @Test
     void routingWillCalculateThenFailThenRecalculate() throws InterruptedException{
         //Arrange
-        testConfiguration.setStartNode(nodes.get(12260042387L));//Rønne
-        testConfiguration.setEndNode(nodes.get(10267226718L));//Gudhjem
+        testConfiguration.setStartNode(getNodeFromId(12260042387L));//Rønne
+        testConfiguration.setEndNode(getNodeFromId(10267226718L));//Gudhjem
         testConfiguration.setRoutingMethod(RoutingType.AStarBidirectional);
 
         //Act
-        var initialCalculation = testConfiguration.calculateRoute(false);
+        var initialCalculation = testConfiguration.calculateRoute();
         initialCalculation.join();
 
-        var initialRoute = testConfiguration.getRoute(false, 0.0);
+        var initialRoute = testConfiguration.getRoute(0.0);
         assertThat(initialRoute).isNotNull();
 
             //Simulate flooding
             testConfiguration.setWaterLevel(10);//Invalidate route
             simulateFlooding(10);
 
-        var floodedRoute = testConfiguration.getRoute(false, 10.0);
+        var floodedRoute = testConfiguration.getRoute(10.0);
         assertThat(floodedRoute).isNull();
 
             //Remove flooding
             testConfiguration.setWaterLevel(0);
             resetFlooding();
 
-        testConfiguration.setStartNode(nodes.get(5817871235L));//Rønne
-        testConfiguration.setEndNode(nodes.get(4823363926L));//Nexø
+        testConfiguration.setStartNode(getNodeFromId(5817871235L));//Rønne
+        testConfiguration.setEndNode(getNodeFromId(4823363926L));//Nexø
 
-        var newCalculation = testConfiguration.calculateRoute(false);
+        var newCalculation = testConfiguration.calculateRoute();
         newCalculation.join();
 
-        var newRoute = testConfiguration.getRoute(false, 0.0);
+        var newRoute = testConfiguration.getRoute(0.0);
         assertThat(newRoute).isNotNull();
         assertThat(newRoute).isNotEqualTo(initialRoute);
     }
@@ -279,22 +277,22 @@ public class RoutingTest {
     @Test
     void routingCanBeCancelledAndThenCalledAgain() throws InterruptedException{
         //Arrange
-        testConfiguration.setStartNode(nodes.get(12260042387L));//Rønne
-        testConfiguration.setEndNode(nodes.get(10267226718L));//Gudhjem
+        testConfiguration.setStartNode(getNodeFromId(12260042387L));//Rønne
+        testConfiguration.setEndNode(getNodeFromId(10267226718L));//Gudhjem
         testConfiguration.setRoutingMethod(RoutingType.AStarBidirectional);
 
         //Act
-        testConfiguration.calculateRoute(false);
+        testConfiguration.calculateRoute();
         testConfiguration.cancelRouteCalculation();
 
-        var cancelledRoute = testConfiguration.getRoute(false, 0.0);
+        var cancelledRoute = testConfiguration.getRoute(0.0);
 
         Thread.sleep(500);//Provide time for the calculation thread to die
 
-        var newCalculation = testConfiguration.calculateRoute(false);
+        var newCalculation = testConfiguration.calculateRoute();
         newCalculation.join();
 
-        var newRoute = testConfiguration.getRoute(false, 0.0);
+        var newRoute = testConfiguration.getRoute(0.0);
 
         //Assert
         assertThat(cancelledRoute).isNull();
@@ -318,27 +316,27 @@ public class RoutingTest {
         }
     }
 
-    private double[] extractCoordinates(List<OsmNode> nodes){
-        var res = new ArrayList<Double>();
+    private float[] extractCoordinates(List<OsmNode> nodes){
+        var res = new ArrayList<Float>();
 
-        for(var n : nodes){
+        for (var n : nodes) {
             res.add(n.getLon());
             res.add(n.getLat());
         }
 
-        var resArray = new double[res.size()];
-        for(int i = 0; i < res.size(); i++){
+        var resArray = new float[res.size()];
+        for (int i = 0; i < res.size(); i++){
             resArray[i] = res.get(i);
         }
 
         return resArray;
     }
 
-    private double[] extractCoordinates(String filename){
+    private float[] extractCoordinates(String filename){
         var returnNodes = new ArrayList<OsmNode>();
 
         for(var id : loadRouteData(filename)){
-            returnNodes.add(nodes.get(id));
+            returnNodes.add(getNodeFromId(id));
         }
 
         return extractCoordinates(returnNodes);
@@ -356,10 +354,12 @@ public class RoutingTest {
 
     }
 
-    private void resetFlooding(){
+    private void resetFlooding() {
         //Ensure flooded curves are reset upon each run
-        Services.withServices(s -> {
-            s.getHeightCurveService().getElements().parallelStream().forEach(HeightCurveElement::setAboveWater);
-        });
+        Services.withServices(s -> s.getHeightCurveService().getElements().parallelStream().forEach(HeightCurveElement::setAboveWater));
+    }
+
+    private OsmNode getNodeFromId(Long id) {
+        return nodes.stream().filter(node -> node.getId() == id).findFirst().orElseThrow();
     }
 }

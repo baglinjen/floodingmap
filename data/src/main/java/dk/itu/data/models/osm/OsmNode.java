@@ -2,57 +2,92 @@ package dk.itu.data.models.osm;
 
 import dk.itu.data.models.heightcurve.HeightCurveElement;
 import dk.itu.data.models.parser.ParserOsmNode;
-import dk.itu.data.utils.RoutingUtils;
+import kotlin.Pair;
 
-import java.awt.*;
-import java.util.Map;
+import static dk.itu.data.utils.RoutingUtils.distanceMeters;
 
-public class OsmNode extends OsmElement {
-    private final double lat, lon;
-    private final Map<Long, Double> connectionMap;
+public class OsmNode implements OsmElement {
+    private final long id;
+    private final float lat, lon;
+    private OsmNode[] connections;
+    private float[] distances;
     private HeightCurveElement containingCurve = null;
 
-    public OsmNode(long id, double lon, double lat, double[] boundingBox, Map<Long, Double> connectionMap) {
-        super(id, boundingBox);
+    public OsmNode(long id, float lon, float lat, int connectionsCount) {
+        this.id = id;
         this.lon = lon;
         this.lat = lat;
-        this.connectionMap = connectionMap;
+        if (connectionsCount > 0) {
+            this.connections = new OsmNode[connectionsCount];
+            this.distances = new float[connectionsCount];
+        }
     }
 
     public static OsmNode mapToOsmNode(ParserOsmNode parserOsmNode) {
-        var osmNode = new OsmNode(
+        return new OsmNode(
                 parserOsmNode.getId(),
                 parserOsmNode.getLon(),
                 parserOsmNode.getLat(),
-                new double[]{parserOsmNode.getLon(), parserOsmNode.getLat(), parserOsmNode.getLon(), parserOsmNode.getLat()},
-                RoutingUtils.buildConnectionMap(parserOsmNode)
+                parserOsmNode.getConnectionIdsCount()
         );
-        osmNode.setStyle(parserOsmNode.getColor(), parserOsmNode.getStroke());
+    }
 
-        return osmNode;
+    public void addConnection(OsmNode connection) {
+        if (connections == null) return;
+        int i = 0;
+        for (; i < connections.length; i++) {
+            if (connections[i] == null) break;
+        }
+        connections[i] = connection;
+        distances[i] = distanceMeters(this.lat, this.lon, connection.getLat(), connection.getLon());
     }
 
     public void setContainingCurve(HeightCurveElement containingCurve){
         this.containingCurve = containingCurve;
     }
 
-    public HeightCurveElement getContainingCurve(){
+    public HeightCurveElement getContainingCurve() {
         return containingCurve;
     }
 
-    public double getLat() {
+    public float getLat() {
         return lat;
     }
-    public double getLon() {
+    public float getLon() {
         return lon;
     }
-    public Map<Long, Double> getConnectionMap() {
-        return connectionMap;
+
+    public Pair<OsmNode[], float[]> getConnections() {
+        return new Pair<>(connections, distances);
     }
 
     @Override
-    public void prepareDrawing(Graphics2D g2d) { /* Nothing to prepare */ }
+    public long getId() {
+        return id;
+    }
 
     @Override
-    public void draw(Graphics2D g2d, float strokeBaseWidth) { /* Nodes are not drawn for now */ }
+    public float minLon() {
+        return this.lon;
+    }
+
+    @Override
+    public float minLat() {
+        return this.lat;
+    }
+
+    @Override
+    public float maxLon() {
+        return this.lon;
+    }
+
+    @Override
+    public float maxLat() {
+        return this.lat;
+    }
+
+    @Override
+    public float getArea() {
+        return 0;
+    }
 }

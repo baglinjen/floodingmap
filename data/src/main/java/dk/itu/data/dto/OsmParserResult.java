@@ -1,44 +1,97 @@
 package dk.itu.data.dto;
 
+import dk.itu.common.models.WithBoundingBoxAndArea;
+import dk.itu.common.models.WithId;
+import dk.itu.data.models.osm.OsmElement;
+import dk.itu.data.models.osm.OsmNode;
+import dk.itu.data.models.osm.OsmRelation;
+import dk.itu.data.models.osm.OsmWay;
 import dk.itu.data.models.parser.ParserOsmElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import dk.itu.data.models.parser.ParserOsmRelation;
 import dk.itu.data.models.parser.ParserOsmWay;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectRBTreeMap;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class OsmParserResult {
-    private final List<ParserOsmNode> nodes = new ArrayList<>();
-    private final List<ParserOsmElement> ways = new ArrayList<>();
-    private final List<ParserOsmElement> relations = new ArrayList<>();
-    private final List<ParserOsmNode> traversableNodes = new ArrayList<>();
-    private List<ParserOsmElement> elementsToBeDrawn;
+    private final ArrayList<ParserOsmNode> nodes = new ArrayList<>();
+    private final ArrayList<ParserOsmElement> ways = new ArrayList<>();
+    private final ArrayList<ParserOsmElement> relations = new ArrayList<>();
+    private final Long2ObjectMap<ParserOsmNode> traversableNodes = new Long2ObjectRBTreeMap<>();
 
-    public List<ParserOsmElement> getElementsToBeDrawn() {
+    private ArrayList<OsmElement> elementsToBeDrawn;
+    private ArrayList<OsmNode> traversals;
+
+    public List<OsmElement> getElementsToBeDrawn() {
         return elementsToBeDrawn;
     }
-    public List<ParserOsmNode> getTraversableNodes() {
-        return traversableNodes;
+    public void clearElementsToBeDrawn() {
+        elementsToBeDrawn.clear();
+        elementsToBeDrawn.trimToSize();
+    }
+    public List<OsmNode> getTraversals() {
+        return traversals;
+    }
+    public void clearTraversals() {
+        traversals.clear();
+        traversals.trimToSize();
     }
 
     public void sanitize() {
-        List<ParserOsmElement> allElements = new ArrayList<>(this.nodes.parallelStream().filter(ParserOsmElement::shouldBeDrawn).toList());
+        List<OsmElement> allElements = new ArrayList<>();
+        allElements.addAll(this.nodes.parallelStream().filter(ParserOsmElement::shouldBeDrawn).map(this::mapToOsmElement).toList());
         this.nodes.clear();
-        allElements.addAll(this.ways.parallelStream().filter(ParserOsmElement::shouldBeDrawn).toList());
+        this.nodes.trimToSize();
+        allElements.addAll(this.ways.parallelStream().filter(ParserOsmElement::shouldBeDrawn).map(this::mapToOsmElement).toList());
         this.ways.clear();
-        allElements.addAll(this.relations.parallelStream().filter(ParserOsmElement::shouldBeDrawn).toList());
+        this.ways.trimToSize();
+        allElements.addAll(this.relations.parallelStream().filter(ParserOsmElement::shouldBeDrawn).map(this::mapToOsmElement).toList());
         this.relations.clear();
+        this.relations.trimToSize();
 
-        this.elementsToBeDrawn = allElements.parallelStream().sorted(Comparator.comparing(ParserOsmElement::getArea).reversed()).toList();
+        this.elementsToBeDrawn = allElements.parallelStream().sorted(Comparator.comparing(WithBoundingBoxAndArea::getArea)).collect(Collectors.toCollection(ArrayList::new));
+
+        // Building connection map
+        ArrayList<ParserOsmNode> traversableNodesSorted = new ArrayList<>(this.traversableNodes.values());
+        this.traversableNodes.clear();
+        this.traversals = traversableNodesSorted.parallelStream().map(OsmNode::mapToOsmNode).collect(Collectors.toCollection(ArrayList::new));
+
+        IntStream.range(0, traversableNodesSorted.size())
+                .parallel()
+                .forEach(i -> {
+                    var connections = traversableNodesSorted.get(i).getConnectionIds();
+                    if (connections != null) {
+                        for (Long connection : traversableNodesSorted.get(i).getConnectionIds()) {
+                            OsmNode node = findElement(connection, this.traversals);
+                            if (node != null) {
+                                this.traversals.get(i).addConnection(node);
+                            }
+                        }
+                    }
+                });
+        traversableNodesSorted.clear();
+        traversableNodesSorted.trimToSize();
+    }
+
+    private OsmElement mapToOsmElement(ParserOsmElement osmElement) {
+        return switch (osmElement) {
+            case ParserOsmNode node -> OsmNode.mapToOsmNode(node);
+            case ParserOsmWay way -> OsmWay.mapToOsmWay(way);
+            case ParserOsmRelation relation -> OsmRelation.mapToOsmRelation(relation);
+            default -> null;
+        };
     }
 
     public void addNode(ParserOsmNode node) {
         this.nodes.add(node);
     }
-    public void addTraversableNode(ParserOsmNode node) {
-        this.traversableNodes.add(node);
+    public void addTraversableNodes(List<ParserOsmNode> traversableNodes) {
+        this.traversableNodes.putAll(traversableNodes.stream().collect(Collectors.toMap(ParserOsmNode::getId, Function.identity(), (existing, _) -> existing)));
     }
     public void addWay(ParserOsmWay way) {
         this.ways.add(way);
@@ -57,7 +110,7 @@ public class OsmParserResult {
         return findElement(id, this.relations);
     }
 
-    public <T extends ParserOsmElement> T findElement(long id, List<T> elements) {
+    public <T extends WithId> T findElement(long id, List<T> elements) {
         int left = 0;
         int right = elements.size() - 1;
 

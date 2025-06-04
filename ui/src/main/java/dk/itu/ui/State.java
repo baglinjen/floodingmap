@@ -157,10 +157,10 @@ public class State {
     }
 
     // Getter and updater for window bounds
-    public double[] getWindowBounds() {
+    public float[] getWindowBounds() {
         var min = this.superAffine.inverseTransform(0, 0);
         var max = this.superAffine.inverseTransform(FloodingApp.WIDTH, FloodingApp.HEIGHT);
-        return new double[] {min.getX()/0.56, -max.getY(), max.getX()/0.56, -min.getY()};
+        return new float[] {(float) (min.getX()/0.56), (float) -max.getY(), (float) (max.getX()/0.56), (float) -min.getY()};
     }
 
     public void resetWindowBounds() {
@@ -178,7 +178,7 @@ public class State {
     /// This is called when loading height curves, and will spawn threads that process the nodes
     public void recalculateNodeHeight(){
         Services.withServices(s -> {
-            var nodes = s.getOsmService(isWithDb()).getTraversableOsmNodes().values().stream().toList();
+            var nodes = s.getOsmService(isWithDb()).getTraversableOsmNodes();
 
             //Distribute workload across N threads
             int threadPool = Runtime.getRuntime().availableProcessors();

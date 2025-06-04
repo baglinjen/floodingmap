@@ -2,11 +2,7 @@ package dk.itu.data.dto;
 
 import dk.itu.data.models.parser.ParserHeightCurveElement;
 import dk.itu.util.LoggerFactory;
-import org.apache.commons.collections4.ListUtils;
 import org.apache.logging.log4j.Logger;
-
-import java.util.List;
-import java.util.stream.DoubleStream;
 
 import static dk.itu.util.CoordinateUtils.utmToWgs;
 
@@ -16,7 +12,7 @@ public class HeightCurveElementBuilder {
     private final HeightCurveParserResult result;
     // Fields
     private Long gmlId = null;
-    private double[] coordinates = null;
+    private float[] coordinates = null;
     private Float height = null;
     // Status
     private boolean valid = true;
@@ -79,26 +75,23 @@ public class HeightCurveElementBuilder {
         return firstPotentialHeight.equals(lastPotentialHeight);
     }
 
-
     public void withEPSG25832CoordsWithHeight(String[] coordsList) {
-        this.coordinates = ListUtils
-                .partition(List.of(coordsList), 3)
-                .parallelStream()
-                .flatMapToDouble(set -> {
-                    var lonLat = utmToWgs(Double.parseDouble(set.getFirst()), Double.parseDouble(set.get(1)));
-                    return DoubleStream.of(lonLat[0], lonLat[1]);
-                })
-                .toArray();
+        this.coordinates = new float[coordsList.length / 3 * 2];
+        int indexCoordinates = 0;
+        for (int i = 0; i < coordsList.length; i+=3) {
+            var lonLat = utmToWgs(Float.parseFloat(coordsList[i]), Float.parseFloat(coordsList[i+1]));
+            this.coordinates[indexCoordinates++] = lonLat[0];
+            this.coordinates[indexCoordinates++] = lonLat[1];
+        }
     }
 
     public void withEPSG25832CoordsWithoutHeight(String[] coordsList) {
-        this.coordinates = ListUtils
-                .partition(List.of(coordsList), 2)
-                .parallelStream()
-                .flatMapToDouble(set -> {
-                    var lonLat = utmToWgs(Double.parseDouble(set.getFirst()), Double.parseDouble(set.get(1)));
-                    return DoubleStream.of(lonLat[0], lonLat[1]);
-                })
-                .toArray();
+        this.coordinates = new float[coordsList.length];
+        int indexCoordinates = 0;
+        for (int i = 0; i < coordsList.length; i+=2) {
+            var lonLat = utmToWgs(Float.parseFloat(coordsList[i]), Float.parseFloat(coordsList[i+1]));
+            this.coordinates[indexCoordinates++] = lonLat[0];
+            this.coordinates[indexCoordinates++] = lonLat[1];
+        }
     }
 }

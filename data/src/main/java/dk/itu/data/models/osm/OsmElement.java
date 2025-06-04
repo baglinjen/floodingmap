@@ -1,14 +1,8 @@
 package dk.itu.data.models.osm;
 
-import dk.itu.data.models.BoundingBox;
+import dk.itu.common.models.WithId;
+import dk.itu.common.models.WithBoundingBoxAndArea;
 
-public abstract class OsmElement extends BoundingBox {
-    private final long id;
+import java.io.Serializable;
 
-    public OsmElement(long id, double[] boundingBox) {
-        super(boundingBox);
-        this.id = id;
-    }
-
-    public long getId() { return id; }
-}
+public interface OsmElement extends Serializable, WithId, WithBoundingBoxAndArea {}

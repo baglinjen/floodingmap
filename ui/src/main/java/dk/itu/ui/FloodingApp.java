@@ -2,13 +2,15 @@ package dk.itu.ui;
 
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
-import dk.itu.data.models.BoundingBox;
+import dk.itu.common.models.Drawable;
+import dk.itu.data.datastructure.rtree.RTreeNode;
 import dk.itu.data.models.heightcurve.HeightCurveElement;
-import dk.itu.data.models.osm.OsmElement;
 import dk.itu.data.services.Services;
 import dk.itu.ui.components.MouseEventOverlayComponent;
 import dk.itu.util.LoggerFactory;
-import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
+import it.unimi.dsi.fastutil.floats.Float2ReferenceRBTreeMap;
+import it.unimi.dsi.fastutil.floats.Float2ReferenceSortedMap;
+import it.unimi.dsi.fastutil.objects.*;
 import javafx.scene.image.*;
 import javafx.scene.layout.StackPane;
 import org.apache.logging.log4j.Logger;
@@ -17,6 +19,7 @@ import java.awt.*;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.*;
 import java.nio.IntBuffer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -30,7 +33,7 @@ public class FloodingApp extends GameApplication {
     private volatile State state;
 
     // Drawing related
-    private BufferedImage image;
+    private BufferedImagePoolManager bufferedImagePoolManager;
     private final PixelBuffer<IntBuffer> buffer = new PixelBuffer<>(
             WIDTH, HEIGHT,
             IntBuffer.allocate(WIDTH * HEIGHT),
@@ -45,7 +48,7 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
+            services.getOsmService(state.isWithDb()).loadOsmData("denmark.osm");
 
             state.resetWindowBounds();
             state.updateMinMaxWaterLevels(services);
@@ -55,8 +58,10 @@ public class FloodingApp extends GameApplication {
 
             CompletableFuture<Void>[] dataFetchFutures = new CompletableFuture[3];
 
-            List<OsmElement> osmElements = new ReferenceArrayList<>();
-            List<BoundingBox> spatialNodes = new ReferenceArrayList<>();
+            List<Drawable> drawables = new ArrayList<>();
+
+            Float2ReferenceSortedMap<Drawable> osmElements = new Float2ReferenceRBTreeMap<>();
+            List<RTreeNode> spatialNodes = new ReferenceArrayList<>();
             List<HeightCurveElement> heightCurves = new ReferenceArrayList<>();
 
             try (ExecutorService executor = Executors.newCachedThreadPool()) {
@@ -64,34 +69,19 @@ public class FloodingApp extends GameApplication {
                     long start = System.nanoTime();
 
                     var window = state.getWindowBounds();
-                    float strokeBaseWidth = state.getSuperAffine().getStrokeBaseWidth();
-
-                    image.flush();
-
-                    Graphics2D g2d =  image.createGraphics();
-                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
-                    g2d.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
-                    g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED);
-
-                    g2d.setBackground(Color.decode("#a9d3de"));
-                    g2d.clearRect(0, 0, WIDTH, HEIGHT);
-                    g2d.setTransform(state.getSuperAffine());
 
                     // Adding OSM Elements
                     dataFetchFutures[0] = CompletableFuture.runAsync(() -> {
                         osmElements.clear();
-                        osmElements.addAll(
-                                services
-                                        .getOsmService(state.isWithDb())
-                                        .getOsmElementsToBeDrawnScaled(
-                                                window[0],
-                                                window[1],
-                                                window[2],
-                                                window[3]
-                                        )
-                        );
-                        osmElements.parallelStream().forEach(e -> e.prepareDrawing(g2d));
+                        services
+                                .getOsmService(state.isWithDb())
+                                .getOsmElementsToBeDrawnScaled(
+                                        window[0],
+                                        window[1],
+                                        window[2],
+                                        window[3],
+                                        osmElements
+                                );
                     }, executor);
 
                     // Adding Bounding Boxes
@@ -147,56 +137,66 @@ public class FloodingApp extends GameApplication {
                         registeredWaterLevel = state.getWaterLevel();
                     }
 
-                    // Prepare drawable elements
-                    heightCurves.parallelStream().forEach(e -> e.prepareDrawing(g2d));
-                    // Draw elements
-                    osmElements.forEach(element -> element.draw(g2d, strokeBaseWidth));
-                    heightCurves.forEach(hc -> hc.draw(g2d, strokeBaseWidth));
-                    spatialNodes.forEach(bb -> bb.drawBoundingBox(g2d, strokeBaseWidth));
+                    // Add all to final drawables in order
+                    drawables.clear();
+                    drawables.addAll(osmElements.values());
+                    drawables.addAll(spatialNodes);
+                    drawables.addAll(heightCurves);
 
-                    // Draw routing if there is one
-                    var dijkstraRoute = state.getRoutingConfiguration().getRoute(state.isWithDb(), state.getActualWaterLevel());
+                    // Add routing if there is one
+                    var dijkstraRoute = state.getRoutingConfiguration().getRoute(state.getActualWaterLevel());
                     if (dijkstraRoute != null){
-                        dijkstraRoute.prepareDrawing(g2d);
-                        dijkstraRoute.draw(g2d, strokeBaseWidth);
+                        drawables.add(dijkstraRoute);
                     }
 
-                    //Draw visited nodes from route search
+                    // Add visited nodes from route search
                     if (state.getRoutingConfiguration().getShouldVisualize()) {
                         var nodes = state.getRoutingConfiguration().getTouchedNodes();
                         for (var n : nodes) {
-                            g2d.setColor(Color.MAGENTA);
-                            g2d.fill(new Ellipse2D.Double(0.56 * n.getLon() - strokeBaseWidth * 8 / 2, -n.getLat() - strokeBaseWidth * 8 / 2, strokeBaseWidth * 8, strokeBaseWidth * 8));
+                            drawables.add((g2d, strokeBaseWidth) -> {
+                                g2d.setColor(Color.MAGENTA);
+                                g2d.fill(new Ellipse2D.Double(0.56 * n.getLon() - strokeBaseWidth * 8 / 2, -n.getLat() - strokeBaseWidth * 8 / 2, strokeBaseWidth * 8, strokeBaseWidth * 8));
+                            });
                         }
                     }
 
+                    // Add start/end nodes from routing
                     var startNode = state.getRoutingConfiguration().getStartNode();
                     if (startNode != null) {
-                        g2d.setColor(Color.GREEN);
-                        g2d.fill(new Ellipse2D.Double(0.56 * startNode.getLon() - strokeBaseWidth * 8 / 2, -startNode.getLat() - strokeBaseWidth * 8 / 2, strokeBaseWidth * 8, strokeBaseWidth * 8));
+                        drawables.add((g2d, strokeBaseWidth) -> {
+                            g2d.setColor(Color.GREEN);
+                            g2d.fill(new Ellipse2D.Double(0.56 * startNode.getLon() - strokeBaseWidth * 8 / 2, -startNode.getLat() - strokeBaseWidth * 8 / 2, strokeBaseWidth * 8, strokeBaseWidth * 8));
+                        });
                     }
                     var endNode = state.getRoutingConfiguration().getEndNode();
                     if (endNode != null) {
-                        g2d.setColor(Color.RED);
-                        g2d.fill(new Ellipse2D.Double(0.56 * endNode.getLon() - strokeBaseWidth * 8 / 2, -endNode.getLat() - strokeBaseWidth * 8 / 2, strokeBaseWidth * 8, strokeBaseWidth * 8));
+                        drawables.add((g2d, strokeBaseWidth) -> {
+                            g2d.setColor(Color.RED);
+                            g2d.fill(new Ellipse2D.Double(0.56 * endNode.getLon() - strokeBaseWidth * 8 / 2, -endNode.getLat() - strokeBaseWidth * 8 / 2, strokeBaseWidth * 8, strokeBaseWidth * 8));
+                        });
                     }
 
-                    // Draw nearest neighbour if there is one
+                    // Add nearest neighbour if there is one
                     if (state.getShowNearestNeighbour()) {
                         var nn = state.getNearestNeighbour();
                         if (nn != null) {
-                            nn.draw(g2d, strokeBaseWidth);
+                            drawables.add(nn);
                         }
                     }
 
-                    g2d.dispose();
+                    // Draw all drawables in parallel
+                    try {
+                        bufferedImagePoolManager.drawElements(drawables);
+                    } catch (Exception ex) {
+                        logger.error(ex.getMessage(), ex);
+                    }
 
                     // Transfer BufferedImage pixels to WritableImage
-                    int[] pixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
+                    int[] pixels = ((DataBufferInt) bufferedImagePoolManager.getBufferedImage().getRaster().getDataBuffer()).getData();
                     System.arraycopy(pixels, 0, buffer.getBuffer().array(), 0, pixels.length);
                     view.setImage(new WritableImage(buffer));
 
-                    logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
+//                    logger.debug("Render loop took {} ms", String.format("%.3f", (System.nanoTime() - start) / 1000000f));
                 }
             }
         });
@@ -204,15 +204,11 @@ public class FloodingApp extends GameApplication {
 
     @Override
     protected void initGame() {
-        this.image = GraphicsEnvironment
-                .getLocalGraphicsEnvironment()
-                .getDefaultScreenDevice()
-                .getDefaultConfiguration()
-                .createCompatibleImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB_PRE);
-
         Services.withServices(services -> {
             this.state = new State(services);
         });
+
+        this.bufferedImagePoolManager = new BufferedImagePoolManager(this.state);
 
         StackPane root = new StackPane(
                 view,

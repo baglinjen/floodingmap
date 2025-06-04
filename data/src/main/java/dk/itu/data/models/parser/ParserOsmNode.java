@@ -1,46 +1,61 @@
 package dk.itu.data.models.parser;
 
-import java.awt.*;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
-public class ParserOsmNode extends ParserOsmElement {
-    private final double lat, lon;
-    private final List<ParserOsmNode> connections = new ArrayList<>();
+public class ParserOsmNode implements ParserOsmElement {
+    private final long id;
+    private final float lat, lon;
+    private long[] connectionIds;
 
-    public ParserOsmNode(long id, double lat, double lon) {
-        super(id);
+    public ParserOsmNode(long id, float lat, float lon) {
+        this.id = id;
         this.lat = lat;
         this.lon = lon;
     }
 
-    public void addConnection(ParserOsmNode connection){
-        connections.add(connection);
+    public int getConnectionIdsCount() {
+        return connectionIds == null ? 0 : connectionIds.length;
+    }
+    public List<Long> getConnectionIds() {
+        if (connectionIds == null) return null;
+        return Arrays.stream(connectionIds)
+                .boxed()
+                .toList();
     }
 
-    public List<ParserOsmNode> getConnections(){return connections;}
+    public void addConnectionId(long connection) {
+        if (connectionIds == null) {
+            connectionIds = new long[1];
+        } else {
+            connectionIds = Arrays.copyOf(connectionIds, connectionIds.length + 1);
+        }
+        connectionIds[connectionIds.length - 1] = connection;
+    }
 
-    public double getLat() {
+    public float getLat() {
         return lat;
     }
 
-    public double getLon() {
+    public float getLon() {
         return lon;
     }
 
     @Override
-    public double getArea() {
-        return 0;
+    public long getId() {
+        return id;
     }
 
     @Override
-    public double[] getBounds() {
-        return new double[]{lon, lat, lon, lat};
+    public void setStyleId(byte styleId) { /* Nodes have no style */ }
+
+    @Override
+    public byte getStyleId() {
+        return -1;
     }
 
     @Override
-    public void prepareDrawing(Graphics2D g2d) { /* Nothing to prepare */ }
-
-    @Override
-    public void draw(Graphics2D g2d, float strokeBaseWidth) { /* Nodes are not drawn for now */ }
+    public boolean shouldBeDrawn() {
+        return false;
+    }
 }

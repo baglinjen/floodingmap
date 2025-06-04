@@ -1,215 +1,201 @@
 package dk.itu.data.models.parser;
 
-import dk.itu.util.LoggerFactory;
+import dk.itu.util.shape.RelationPath;
 import kotlin.Pair;
-import org.apache.logging.log4j.Logger;
 
-import java.awt.*;
-import java.awt.geom.Path2D;
 import java.util.*;
 import java.util.List;
 
 import static dk.itu.util.ArrayUtils.appendExcludingN;
 import static dk.itu.util.PolygonUtils.*;
-import static dk.itu.util.ShapePreparer.*;
 
-public class ParserOsmRelation extends ParserOsmElement {
-    private static final Logger logger = LoggerFactory.getLogger();
-    private final double[] bounds = new double[4];
-    private final List<double[]> innerPolygons = new ArrayList<>();
-    private final List<double[]> outerPolygons = new ArrayList<>();
-    private Path2D.Double path = null;
+public class ParserOsmRelation implements ParserOsmElement {
+    private final long id;
+    private byte styleId;
+    private RelationPath relationPath;
 
-    public ParserOsmRelation(long id, List<Pair<ParserOsmElement, OsmRelationMemberType>> elements, OsmRelationType type) {
-        super(id);
-
+    public ParserOsmRelation(long id, List<Pair<ParserOsmElement, OsmRelationMemberType>> elements, OsmRelationType type, byte styleId) {
+        this.id = id;
+        this.styleId = styleId;
         if (type != OsmRelationType.MULTIPOLYGON) {
-            setShouldBeDrawn(false);
+            setStyleId((byte) -1);
             return;
         }
 
-        double minLat = Double.MAX_VALUE, minLon = Double.MAX_VALUE, maxLat = Double.MIN_VALUE, maxLon = Double.MIN_VALUE;
-        List<double[]> pathsToAdd = new ArrayList<>();
+        List<float[]> outerPolygons = new ArrayList<>();
+        List<float[]> innerPolygons = new ArrayList<>();
+        List<float[]> openElements = new ArrayList<>();
 
-        // Calculate raw coordinates
-        for (var pair : elements) {
-            var element = pair.getFirst();
-            var memberType = pair.getSecond();
+        // Sort elements
+        for (var elementPair : elements) {
+            var element = elementPair.getFirst();
+            var elementType = elementPair.getSecond();
 
-            element.setShouldBeDrawn(false);
+            // Disable drawing since it is now part of the relation drawing
+            element.setStyleId((byte) -1);
 
-            switch (memberType) {
-                case null -> logger.warn("Relation with id {} has invalid member", id);
-                case INNER -> {
-                    switch (element) {
-                        case ParserOsmWay osmWay -> {
-                            var coordinates = osmWay.getCoordinates();
-                            if (!osmWay.isLine()) {
-                                // Closes => add as completed polygon => ensure inners are counter clockwise
-                                coordinates = forceCounterClockwise(coordinates);
-                                innerPolygons.add(coordinates);
-                            } else {
-                                setShouldBeDrawn(false);
-                                return;
-                            }
+            switch (element) {
+                case ParserOsmWay osmWay -> {
+                    var coordinates = osmWay.getCoordinates();
+                    if (elementType == OsmRelationMemberType.INNER) {
+                        innerPolygons.add(coordinates);
+                    } else {
+                        // Outer that should be closed
+                        if (isClosed(coordinates)) {
+                            outerPolygons.add(coordinates);
+                        } else {
+                            openElements.add(coordinates);
                         }
-                        case ParserOsmRelation osmRelation -> {
-                            var outerCoordinates = osmRelation.getOuterPolygons();
-                            for (var coordinates : outerCoordinates) {
-                                if (isClosed(coordinates)) {
-                                    // Closes => add as completed polygon => ensure inners are counter clockwise
-                                    coordinates = forceCounterClockwise(coordinates);
-                                    innerPolygons.add(coordinates);
-                                } else {
-                                    setShouldBeDrawn(false);
-                                    return;
-                                }
-                            }
-
-                            var innerCoordinates = osmRelation.getInnerPolygons();
-                            for (var coordinates : innerCoordinates) {
-                                if (isClosed(coordinates)) {
-                                    // Closes => add as completed polygon => ensure inner-inners are clockwise
-                                    coordinates = forceClockwise(coordinates);
-                                    innerPolygons.add(coordinates);
-                                } else {
-                                    pathsToAdd.add(coordinates);
-                                }
-                            }
-                        }
-                        default -> {}
                     }
                 }
-                case OUTER -> {
-                    switch (element) {
-                        case ParserOsmWay osmWay -> {
-                            var coordinates = osmWay.getCoordinates();
-                            if (!osmWay.isLine()) {
-                                // Closes => add as completed polygon => ensure outers are clockwise
-                                coordinates = forceClockwise(coordinates);
-                                outerPolygons.add(coordinates);
+                case ParserOsmRelation osmRelation -> {
+                    if (elementType == OsmRelationMemberType.INNER) {
+                        innerPolygons.addAll(osmRelation.getOuterPolygons());
+                    } else {
+                        for (float[] polygon : osmRelation.getOuterPolygons()) {
+                            if (isClosed(polygon)) {
+                                outerPolygons.add(polygon);
                             } else {
-                                pathsToAdd.add(coordinates);
+                                openElements.add(polygon);
                             }
                         }
-                        case ParserOsmRelation osmRelation -> {
-                            var outerCoordinates = osmRelation.getOuterPolygons();
-                            for (var coordinates : outerCoordinates) {
-                                if (isClosed(coordinates)) {
-                                    // Closes => add as completed polygon => ensure outers are clockwise
-                                    coordinates = forceClockwise(coordinates);
-                                    outerPolygons.add(coordinates);
-                                } else {
-                                    pathsToAdd.add(coordinates);
-                                }
-                            }
-
-                            var innerCoordinates = osmRelation.getInnerPolygons();
-                            for (var coordinates : innerCoordinates) {
-                                if (isClosed(coordinates)) {
-                                    // Closes => add as completed polygon => ensure outer-inners are counter clockwise
-                                    coordinates = forceCounterClockwise(coordinates);
-                                    outerPolygons.add(coordinates);
-                                } else {
-                                    pathsToAdd.add(coordinates);
-                                }
-                            }
-                        }
-                        default -> {}
                     }
                 }
                 default -> {}
             }
-
-            double[] elementBounds = element.getBounds();
-            if (elementBounds[0] < minLon) minLon = elementBounds[0];
-            if (elementBounds[1] < minLat) minLat = elementBounds[1];
-            if (elementBounds[2] > maxLon) maxLon = elementBounds[2];
-            if (elementBounds[3] > maxLat) maxLat = elementBounds[3];
         }
-        bounds[0] = minLon;
-        bounds[1] = minLat;
-        bounds[2] = maxLon;
-        bounds[3] = maxLat;
 
-        for (int i = 0; i < pathsToAdd.size(); i++) {
-            var ii = pathsToAdd.get(i);
-
-            if (isClosed(ii)) {
-                // Test if i closes itself => ensure it is counterclockwise as outer
-                ii = forceCounterClockwise(ii);
-                outerPolygons.add(ii);
-                pathsToAdd.remove(i);
-                i = -1;
+        // Stitch open elements
+        for (int i = 0; i < openElements.size(); i++) {
+            // Iterate i trying to close j
+            var polygonI = openElements.get(i);
+            // If i is closed already => add to closed and i-- && continue
+            if (isClosed(polygonI)) {
+                openElements.remove(polygonI);
+                outerPolygons.add(polygonI);
+                i--;
                 continue;
             }
 
-            for (int j = 0; j < pathsToAdd.size(); j++) {
-                if (i == j || i == -1) continue;
-                var jj = pathsToAdd.get(j);
+            for (int j = i + 1; j < openElements.size(); j++) {
+                var polygonJ = openElements.get(j);
 
-                switch (findOpenPolygonMatchType(ii, jj)) {
+                // If i is added to j => skip through j continue with i (j = unclosedElements.size & i--)
+                switch (findOpenPolygonMatchType(polygonI, polygonJ)) {
                     case FIRST_FIRST -> {
-                        // i start - j start => reverse j and add i
-                        pathsToAdd.set(j, appendExcludingN(reversePairs(jj), ii, 2));
-                        pathsToAdd.remove(i);
-                        i = -1;
-                    }
-                    case FIRST_LAST -> {
-                        // i start - j end => add j then i
-                        pathsToAdd.set(j, appendExcludingN(jj, ii, 2));
-                        pathsToAdd.remove(i);
-                        i = -1;
+                        // Remove i to add to j
+                        openElements.remove(polygonI);
+
+                        // Add i to j
+                        var newPolygonJ = appendExcludingN(reversePairs(polygonI), polygonJ, 2);
+                        openElements.remove(polygonJ);
+
+                        // Add j to closed if it is now closed
+                        if (isClosed(newPolygonJ)) {
+                            outerPolygons.add(forceCounterClockwise(newPolygonJ));
+                        } else {
+                            openElements.add(newPolygonJ);
+                        }
+
+                        // Reset loop to restart with new element i
+                        j = openElements.size();
+                        i--;
                     }
                     case LAST_FIRST -> {
-                        // i end - j start => add j to i
-                        pathsToAdd.set(j, appendExcludingN(ii, jj, 2));
-                        pathsToAdd.remove(i);
-                        i = -1;
+                        // Remove i to add to j
+                        openElements.remove(polygonI);
+
+                        // Add i to j
+                        var newPolygonJ = appendExcludingN(polygonI, polygonJ, 2);
+                        openElements.remove(polygonJ);
+
+                        // Add j to closed if it is now closed
+                        if (isClosed(newPolygonJ)) {
+                            outerPolygons.add(forceCounterClockwise(newPolygonJ));
+                        } else {
+                            openElements.add(newPolygonJ);
+                        }
+
+                        // Reset loop to restart with new element i
+                        j = openElements.size();
+                        i--;
+                    }
+                    case FIRST_LAST -> {
+                        // Remove i to add to j
+                        openElements.remove(polygonI);
+
+                        // Add i to j
+                        var newPolygonJ = appendExcludingN(polygonJ, polygonI, 2);
+                        openElements.remove(polygonJ);
+
+                        // Add j to closed if it is now closed
+                        if (isClosed(newPolygonJ)) {
+                            outerPolygons.add(forceCounterClockwise(newPolygonJ));
+                        } else {
+                            openElements.add(newPolygonJ);
+                        }
+
+                        // Reset loop to restart with new element i
+                        j = openElements.size();
+                        i--;
                     }
                     case LAST_LAST -> {
-                        // i end - j end => reverse j and add it to i
-                        pathsToAdd.set(j, appendExcludingN(ii, reversePairs(jj), 2));
-                        pathsToAdd.remove(i);
-                        i = -1;
+                        // Remove i to add to j
+                        openElements.remove(polygonI);
+
+                        // Add i to j
+                        var newPolygonJ = appendExcludingN(polygonJ, reversePairs(polygonI), 2);
+                        openElements.remove(polygonJ);
+
+                        // Add j to closed if it is now closed
+                        if (isClosed(newPolygonJ)) {
+                            outerPolygons.add(forceCounterClockwise(newPolygonJ));
+                        } else {
+                            openElements.add(newPolygonJ);
+                        }
+
+                        // Reset loop to restart with new element i
+                        j = openElements.size();
+                        i--;
                     }
                 }
             }
         }
 
-        if (!pathsToAdd.isEmpty() || outerPolygons.isEmpty()) {
-            setShouldBeDrawn(false);
+        if (!openElements.isEmpty() || outerPolygons.isEmpty()) {
+            setStyleId((byte) -1);
+        } else {
+            relationPath = new RelationPath(outerPolygons, innerPolygons);
         }
     }
 
     @Override
-    public double getArea() {
-        return (bounds[2]-bounds[0]) * (bounds[3]-bounds[1]);
+    public long getId() {
+        return id;
     }
 
     @Override
-    public double[] getBounds() {
-        return bounds;
-    }
-
-    public List<double[]> getOuterPolygons() {
-        return outerPolygons;
-    }
-    public List<double[]> getInnerPolygons() {
-        return innerPolygons;
+    public void setStyleId(byte styleId) {
+        this.styleId = styleId;
     }
 
     @Override
-    public void prepareDrawing(Graphics2D g2d) {
-        path = prepareComplexPolygon(g2d, outerPolygons, innerPolygons, 1);
+    public byte getStyleId() {
+        return this.styleId;
     }
 
     @Override
-    public void draw(Graphics2D g2d, float strokeBaseWidth) {
-        if (path == null) return;
+    public boolean shouldBeDrawn() {
+        return this.styleId >= 0;
+    }
 
-        g2d.setColor(getColor());
-        g2d.fill(path);
+    public RelationPath getPath() {
+        return relationPath;
+    }
+
+    public List<float[]> getOuterPolygons() {
+        if (relationPath == null) return List.of();
+        return relationPath.getOuterPolygons();
     }
 
     public enum OsmRelationType {

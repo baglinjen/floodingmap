@@ -1,16 +1,12 @@
 package dk.itu.data.repositories;
 
+import dk.itu.common.models.Drawable;
 import dk.itu.data.datastructure.rtree.RStarTree;
-import dk.itu.data.models.BoundingBox;
+import dk.itu.data.datastructure.rtree.RTreeNode;
 import dk.itu.data.models.osm.OsmElement;
 import dk.itu.data.models.osm.OsmNode;
-import dk.itu.data.models.osm.OsmRelation;
-import dk.itu.data.models.osm.OsmWay;
-import dk.itu.data.models.parser.ParserOsmElement;
-import dk.itu.data.models.parser.ParserOsmNode;
-import dk.itu.data.models.parser.ParserOsmRelation;
-import dk.itu.data.models.parser.ParserOsmWay;
 import dk.itu.util.LoggerFactory;
+import it.unimi.dsi.fastutil.floats.Float2ReferenceMap;
 import org.apache.logging.log4j.Logger;
 
 import java.util.List;
@@ -32,43 +28,36 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     private final RStarTree rtree = new RStarTree(), traversable = new RStarTree();
 
     @Override
-    public void add(List<ParserOsmElement> osmElements) {
-        final int[] elementsAdded = {0};
+    public void add(List<OsmElement> osmElements) {
+        int elementsAdded = 0;
         int elementsToAdd = osmElements.size();
-        osmElements.parallelStream().map(this::mapToOsmElement).toList().forEach(element -> {
-            rtree.insert(element);
-            elementsAdded[0]++;
-            if (elementsAdded[0] % 100_000 == 0) logger.debug("Added {}/{} osm elements", elementsAdded[0], elementsToAdd);
-        });
-    }
-
-    private OsmElement mapToOsmElement(ParserOsmElement osmElement) {
-        return switch (osmElement) {
-            case ParserOsmNode node -> OsmNode.mapToOsmNode(node);
-            case ParserOsmWay way -> OsmWay.mapToOsmWay(way);
-            case ParserOsmRelation relation -> OsmRelation.mapToOsmRelation(relation);
-            default -> null;
-        };
+        for (OsmElement osmElement : osmElements) {
+            rtree.insert(osmElement);
+            elementsAdded++;
+            if (elementsAdded % 1_000_000 == 0) logger.debug("Added {}/{} osm elements", elementsAdded, elementsToAdd);
+        }
+        logger.debug("Added {} osm elements", elementsAdded);
     }
 
     @Override
-    public void addTraversable(List<ParserOsmNode> nodes) {
-        final int[] elementsAdded = {0};
+    public void addTraversable(List<OsmNode> nodes) {
+        int elementsAdded = 0;
         int elementsToAdd = nodes.size();
-        nodes.parallelStream().map(OsmNode::mapToOsmNode).toList().forEach(element -> {
-            traversable.insert(element);
-            elementsAdded[0]++;
-            if (elementsAdded[0] % 100_000 == 0) logger.debug("Added {}/{} traversable elements", elementsAdded[0], elementsToAdd);
-        });
+        for (OsmElement node : nodes) {
+            traversable.insert(node);
+            elementsAdded++;
+            if (elementsAdded % 1_000_000 == 0) logger.debug("Added {}/{} traversable elements", elementsAdded, elementsToAdd);
+        }
+        logger.debug("Added {} traversable elements", elementsAdded);
     }
 
     @Override
-    public List<OsmElement> getOsmElementsScaled(double minLon, double minLat, double maxLon, double maxLat, double minBoundingBoxArea) {
-        return rtree.searchScaled(minLon, minLat, maxLon, maxLat, minBoundingBoxArea);
+    public void getOsmElementsScaled(float minLon, float minLat, float maxLon, float maxLat, float minBoundingBoxArea, Float2ReferenceMap<Drawable> osmElements) {
+        rtree.searchScaled(minLon, minLat, maxLon, maxLat, minBoundingBoxArea, osmElements);
     }
 
     @Override
-    public List<BoundingBox> getSpatialNodes() {
+    public List<RTreeNode> getSpatialNodes() {
         return rtree.getBoundingBoxes();
     }
 
@@ -78,7 +67,7 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     }
 
     @Override
-    public OsmNode getNearestTraversableOsmNode(double lon, double lat) {
+    public OsmNode getNearestTraversableOsmNode(float lon, float lat) {
         return traversable.getNearest(lon, lat);
     }
 
@@ -89,11 +78,11 @@ public class OsmElementRepositoryMemory implements OsmElementRepository {
     }
 
     @Override
-    public double[] getBounds() {
+    public float[] getBounds() {
         if (rtree.isEmpty()) {
-            return new double[]{-180, -90, 180, 90};
+            return new float[]{-180, -90, 180, 90};
         } else {
-            return rtree.getRoot().getBoundingBoxWithArea();
+            return new float[]{rtree.getRoot().minLon(), rtree.getRoot().minLat(), rtree.getRoot().maxLon(),rtree.getRoot().maxLat()};
         }
     }
 }
