@@ -231,7 +231,7 @@ public class RoutingService {
                 if (distance < knownDistances.getOrDefault(nextNode, Float.MAX_VALUE)) {
                     knownDistances.put(nextNode, distance);
                     previousConnections.put(nextNode, node);
-                    heuristicDistances.put(nextNode, distance + (routingType == RoutingType.Dijkstra ? 0f : RoutingUtils.distanceMetersFloat(nextNode.getLat(), nextNode.getLon(), endNode.getLat(), endNode.getLon())));
+                    heuristicDistances.put(nextNode, distance + (routingType == RoutingType.Dijkstra ? 0f : RoutingUtils.distanceMeters(nextNode.getLat(), nextNode.getLon(), endNode.getLat(), endNode.getLon())));
                     pq.offer(nextNode);
                 }
             }

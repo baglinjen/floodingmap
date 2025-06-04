@@ -4,7 +4,7 @@ import dk.itu.data.models.heightcurve.HeightCurveElement;
 import dk.itu.data.models.parser.ParserOsmNode;
 import kotlin.Pair;
 
-import static dk.itu.data.utils.RoutingUtils.distanceMetersFloat;
+import static dk.itu.data.utils.RoutingUtils.distanceMeters;
 
 public class OsmNode implements OsmElement {
     private final long id;
@@ -39,7 +39,7 @@ public class OsmNode implements OsmElement {
             if (connections[i] == null) break;
         }
         connections[i] = connection;
-        distances[i] = distanceMetersFloat(this.lat, this.lon, connection.getLat(), connection.getLon());
+        distances[i] = distanceMeters(this.lat, this.lon, connection.getLat(), connection.getLon());
     }
 
     public void setContainingCurve(HeightCurveElement containingCurve){

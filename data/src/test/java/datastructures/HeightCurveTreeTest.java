@@ -22,14 +22,14 @@ public class HeightCurveTreeTest {
         HeightCurveElement heightCurveElementMin = HeightCurveElement.mapToHeightCurveElement(
                 new ParserHeightCurveElement(
                         0,
-                        new double[] {0, 0, 5, 5, 5, 0},
+                        new float[] {0, 0, 5, 5, 5, 0},
                         -5
                 )
         );
         HeightCurveElement heightCurveElementMax = HeightCurveElement.mapToHeightCurveElement(
                 new ParserHeightCurveElement(
                     0,
-                    new double[] {1, 1, 4, 4, 4, 1},
+                    new float[] {1, 1, 4, 4, 4, 1},
                     5
                 )
         );
@@ -51,21 +51,21 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {0, 0, 1, 1, 1, 0},
+                                new float[] {0, 0, 1, 1, 1, 0},
                                 1
                         )
                 ),
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {2, 2, 3, 3, 3, 2},
+                                new float[] {2, 2, 3, 3, 3, 2},
                                 2
                         )
                 ),
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {4, 4, 5, 5, 5, 4},
+                                new float[] {4, 4, 5, 5, 5, 4},
                                 3
                         )
                 )
@@ -85,21 +85,21 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {0, 0, 1, 1, 1, 0},
+                                new float[] {0, 0, 1, 1, 1, 0},
                                 1
                         )
                 ),
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {2, 2, 3, 3, 3, 2},
+                                new float[] {2, 2, 3, 3, 3, 2},
                                 2
                         )
                 ),
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {4, 4, 5, 5, 5, 4},
+                                new float[] {4, 4, 5, 5, 5, 4},
                                 3
                         )
                 )
@@ -122,21 +122,21 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {0, 0, 1, 1, 1, 0},
+                                new float[] {0, 0, 1, 1, 1, 0},
                                 1
                         )
                 ),
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {2, 2, 3, 3, 3, 2},
+                                new float[] {2, 2, 3, 3, 3, 2},
                                 2
                         )
                 ),
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {4, 4, 5, 5, 5, 4},
+                                new float[] {4, 4, 5, 5, 5, 4},
                                 5
                         )
                 )
@@ -162,7 +162,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {0, 0, 100, 100, 100, 0},
+                                new float[] {0, 0, 100, 100, 100, 0},
                                 1
                         )
                 ),
@@ -170,7 +170,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {1, 1, 6, 6, 6, 1},
+                                new float[] {1, 1, 6, 6, 6, 1},
                                 2
                         )
                 ),
@@ -178,7 +178,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {2, 2, 3, 3, 3, 2},
+                                new float[] {2, 2, 3, 3, 3, 2},
                                 1
                         )
                 ),
@@ -186,7 +186,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {4, 4, 5, 5, 5, 4},
+                                new float[] {4, 4, 5, 5, 5, 4},
                                 3
                         )
                 ),
@@ -194,7 +194,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {101, 101, 102, 102, 102, 101},
+                                new float[] {101, 101, 102, 102, 102, 101},
                                 10
                         )
                 )
@@ -216,7 +216,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {0, 0, 100, 100, 100, 0},
+                                new float[] {0, 0, 100, 100, 100, 0},
                                 1
                         )
                 ),
@@ -224,7 +224,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {1, 1, 6, 6, 6, 1},
+                                new float[] {1, 1, 6, 6, 6, 1},
                                 2
                         )
                 ),
@@ -232,7 +232,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {2, 2, 3, 3, 3, 2},
+                                new float[] {2, 2, 3, 3, 3, 2},
                                 1
                         )
                 ),
@@ -240,7 +240,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {4, 4, 5, 5, 5, 4},
+                                new float[] {4, 4, 5, 5, 5, 4},
                                 3
                         )
                 ),
@@ -248,7 +248,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {101, 101, 102, 102, 102, 101},
+                                new float[] {101, 101, 102, 102, 102, 101},
                                 10
                         )
                 )
@@ -279,7 +279,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {0, 0, 100, 100, 100, 0},
+                                new float[] {0, 0, 100, 100, 100, 0},
                                 1
                         )
                 ),
@@ -287,7 +287,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {1, 1, 6, 6, 6, 1},
+                                new float[] {1, 1, 6, 6, 6, 1},
                                 2
                         )
                 ),
@@ -295,7 +295,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {2, 2, 3, 3, 3, 2},
+                                new float[] {2, 2, 3, 3, 3, 2},
                                 1
                         )
                 ),
@@ -303,7 +303,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {4, 4, 5, 5, 5, 4},
+                                new float[] {4, 4, 5, 5, 5, 4},
                                 3
                         )
                 ),
@@ -311,7 +311,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {101, 101, 102, 102, 102, 101},
+                                new float[] {101, 101, 102, 102, 102, 101},
                                 10
                         )
                 )
@@ -343,7 +343,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {0, 0, 10, 10, 10, 0},
+                                new float[] {0, 0, 10, 10, 10, 0},
                                 1
                         )
                 ),
@@ -351,7 +351,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {20, 20, 30, 30, 30, 20},
+                                new float[] {20, 20, 30, 30, 30, 20},
                                 2
                         )
                 )
@@ -374,7 +374,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {0, 0, 10, 10, 10, 0},
+                                new float[] {0, 0, 10, 10, 10, 0},
                                 1
                         )
                 ),
@@ -382,7 +382,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {20, 20, 30, 30, 30, 20},
+                                new float[] {20, 20, 30, 30, 30, 20},
                                 2
                         )
                 )
@@ -404,14 +404,14 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {0, 0, 10, 10, 10, 0},
+                                new float[] {0, 0, 10, 10, 10, 0},
                                 1
                         )
                 ),
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {20, 20, 30, 30, 30, 20},
+                                new float[] {20, 20, 30, 30, 30, 20},
                                 1
                         )
                 )
@@ -435,7 +435,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {0, 0, 10, 10, 10, 0},
+                                new float[] {0, 0, 10, 10, 10, 0},
                                 1
                         )
                 ),
@@ -443,7 +443,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {4, 4, 5, 5, 5, 4},
+                                new float[] {4, 4, 5, 5, 5, 4},
                                 2
                         )
                 )
@@ -471,7 +471,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {4, 4, 5, 5, 5, 4},
+                                new float[] {4, 4, 5, 5, 5, 4},
                                 2
                         )
                 ),
@@ -479,7 +479,7 @@ public class HeightCurveTreeTest {
                 HeightCurveElement.mapToHeightCurveElement(
                         new ParserHeightCurveElement(
                                 0,
-                                new double[] {0, 0, 10, 10, 10, 0},
+                                new float[] {0, 0, 10, 10, 10, 0},
                                 1
                         )
                 )
