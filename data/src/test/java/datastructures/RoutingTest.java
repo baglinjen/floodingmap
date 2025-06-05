@@ -356,7 +356,11 @@ public class RoutingTest {
 
     private void resetFlooding() {
         //Ensure flooded curves are reset upon each run
-        Services.withServices(s -> s.getHeightCurveService().getElements().parallelStream().forEach(HeightCurveElement::setAboveWater));
+        List<HeightCurveElement> elements = new ArrayList<>();
+        Services.withServices(s -> {
+            s.getHeightCurveService().getElements(elements);
+        });
+        elements.parallelStream().forEach(HeightCurveElement::setAboveWater);
     }
 
     private OsmNode getNodeFromId(Long id) {

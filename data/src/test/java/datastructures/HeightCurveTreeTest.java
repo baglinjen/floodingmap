@@ -1,12 +1,12 @@
 package datastructures;
 
 import dk.itu.data.datastructure.heightcurvetree.HeightCurveTree;
-import dk.itu.data.datastructure.heightcurvetree.HeightCurveTreeNode;
 import dk.itu.data.models.heightcurve.HeightCurveElement;
 import dk.itu.data.models.parser.ParserHeightCurveElement;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.TestAbortedException;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -75,7 +75,9 @@ public class HeightCurveTreeTest {
         for (HeightCurveElement element : elements) { heightCurveTree.put(element); }
 
         // Assert
-        assertThat(heightCurveTree.getElements().size()).isEqualTo(elements.size() + 1); // +1 for root
+        List<HeightCurveElement> elementsList = new ArrayList<>();
+        heightCurveTree.getElements(elementsList);
+        assertThat(elementsList.size()).isEqualTo(elements.size() + 1); // +1 for root
     }
 
     @Test
@@ -455,11 +457,11 @@ public class HeightCurveTreeTest {
         // Assert
         var rootChildren = getChildren(getRoot(heightCurveTree));
         assertThat(rootChildren.size()).isEqualTo(1);
-        assertThat(rootChildren.getFirst().getHeightCurveElement().getHeight()).isEqualTo(1); // #1 Child containing
+        assertThat(rootChildren.getFirst().getHeight()).isEqualTo(1); // #1 Child containing
 
         var elementOneChildren = getChildren(rootChildren.getFirst());
         assertThat(elementOneChildren.size()).isEqualTo(1);
-        assertThat(elementOneChildren.getFirst().getHeightCurveElement().getHeight()).isEqualTo(2); // #2 Child contained
+        assertThat(elementOneChildren.getFirst().getHeight()).isEqualTo(2); // #2 Child contained
     }
 
     @Test
@@ -491,29 +493,29 @@ public class HeightCurveTreeTest {
         // Assert
         var rootChildren = getChildren(getRoot(heightCurveTree));
         assertThat(rootChildren.size()).isEqualTo(1);
-        assertThat(rootChildren.getFirst().getHeightCurveElement().getHeight()).isEqualTo(1); // #1 Child containing
+        assertThat(rootChildren.getFirst().getHeight()).isEqualTo(1); // #1 Child containing
 
         var elementOneChildren = getChildren(rootChildren.getFirst());
         assertThat(elementOneChildren.size()).isEqualTo(1);
-        assertThat(elementOneChildren.getFirst().getHeightCurveElement().getHeight()).isEqualTo(2); // #2 Child contained
+        assertThat(elementOneChildren.getFirst().getHeight()).isEqualTo(2); // #2 Child contained
     }
 
-    private HeightCurveTreeNode getRoot(HeightCurveTree heightCurveTree) {
+    private HeightCurveElement getRoot(HeightCurveTree heightCurveTree) {
         try {
             var rootAccessor = HeightCurveTree.class.getDeclaredField("root");
             rootAccessor.setAccessible(true);
-            return (HeightCurveTreeNode) rootAccessor.get(heightCurveTree);
+            return (HeightCurveElement) rootAccessor.get(heightCurveTree);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             fail();
             throw new TestAbortedException("Could not get root from Height Curve Tree", e);
         }
     }
 
-    private List<HeightCurveTreeNode> getChildren(HeightCurveTreeNode heightCurveTreeNode) {
+    private List<HeightCurveElement> getChildren(HeightCurveElement heightCurveTreeNode) {
         try {
-            var nodeChildrenAccessor = HeightCurveTreeNode.class.getDeclaredField("children");
+            var nodeChildrenAccessor = HeightCurveElement.class.getDeclaredField("children");
             nodeChildrenAccessor.setAccessible(true);
-            return (List<HeightCurveTreeNode>) nodeChildrenAccessor.get(heightCurveTreeNode);
+            return (List<HeightCurveElement>) nodeChildrenAccessor.get(heightCurveTreeNode);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             fail();
             throw new TestAbortedException("Could not get children from Height Curve Tree Node", e);

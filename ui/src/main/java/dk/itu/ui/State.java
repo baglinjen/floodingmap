@@ -180,8 +180,15 @@ public class State {
         Services.withServices(s -> {
             var nodes = s.getOsmService(isWithDb()).getTraversableOsmNodes();
 
+            //When nodes' height are being determined, cancel routing and potential NN
+            logger.info("Node heights are being recalculated - stopping any route calculation");
+            routingConfiguration.setStartNode(null);
+            routingConfiguration.setEndNode(null);
+            routingConfiguration.cancelRouteCalculation();
+            setShowNearestNeighbour(false);
+
             //Distribute workload across N threads
-            int threadPool = Runtime.getRuntime().availableProcessors() / 2; // Half to free up threads for other processes
+            int threadPool = Runtime.getRuntime().availableProcessors(); // Half to free up threads for other processes
             var workload = splitNodes(nodes, threadPool);
 
             List<Thread> threads = new ArrayList<>();
