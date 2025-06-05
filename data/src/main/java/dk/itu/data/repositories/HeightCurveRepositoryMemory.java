@@ -48,10 +48,6 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
                 logger.error("Found height curve element where not all gml ids have yet been added : {}", element.getGmlIds());
             }
 
-            if (element.getGmlIds().contains(3003523L)) {
-                System.out.println();
-            }
-
             heightCurveTree.put(HeightCurveElement.mapToHeightCurveElement(element));
             elementsAdded++;
             if (elementsAdded % 5_000 == 0) logger.debug("Added {}/{} height curve elements", elementsAdded, elements.size());
