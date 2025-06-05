@@ -19,9 +19,9 @@ public class HeightCurveService {
         this.repository = HeightCurveRepositoryMemory.getInstance();
     }
 
-    public List<HeightCurveElement> getElements() {
+    public void getElements(List<HeightCurveElement> heightCurves) {
         synchronized (this.repository) {
-            return this.repository.getElements();
+            this.repository.getElements(heightCurves);
         }
     }
 
@@ -137,9 +137,9 @@ public class HeightCurveService {
         synchronized (this.repository) {
             HeightCurveParserResult heightCurveParserResult = new HeightCurveParserResult(this.repository);
 
-            GmlParser.parse(quadrants, heightCurveParserResult);
-
             heightCurveParserResult.addUnconnectedElements(this.repository.getUnconnectedElements());
+
+            GmlParser.parse(quadrants, heightCurveParserResult);
 
             heightCurveParserResult.sanitize();
 

@@ -67,31 +67,38 @@ public class HeightCurveElementBuilder {
         }
     }
 
-    //If the third-placed element is NOT heights, then a lat & lon will be compared and should not be equal (except for extreme edge cases which are not relevant for Denmark)
+    // If the third-placed element is NOT heights, then a lat & lon will be compared and should not be equal (except for extreme edge cases which are not relevant for Denmark)
     private boolean containsHeightData(String[] coordsList){
-        var firstPotentialHeight = coordsList[2];
-        var lastPotentialHeight = coordsList[coordsList.length - 1];
-
-        return firstPotentialHeight.equals(lastPotentialHeight);
+        return coordsList[2].equals(coordsList[5]);
     }
 
     public void withEPSG25832CoordsWithHeight(String[] coordsList) {
-        this.coordinates = new float[coordsList.length / 3 * 2];
-        int indexCoordinates = 0;
-        for (int i = 0; i < coordsList.length; i+=3) {
-            var lonLat = utmToWgs(Float.parseFloat(coordsList[i]), Float.parseFloat(coordsList[i+1]));
-            this.coordinates[indexCoordinates++] = lonLat[0];
-            this.coordinates[indexCoordinates++] = lonLat[1];
+        try {
+            this.coordinates = new float[coordsList.length / 3 * 2];
+            int indexCoordinates = 0;
+            for (int i = 1; i < coordsList.length; i += 3) {
+                var lonLat = utmToWgs(Float.parseFloat(coordsList[i-1]), Float.parseFloat(coordsList[i]));
+                this.coordinates[indexCoordinates++] = lonLat[0];
+                this.coordinates[indexCoordinates++] = lonLat[1];
+            }
+        } catch (Exception e) {
+            logger.error("[{}]", String.join(", ", coordsList), e);
+            throw new RuntimeException(e);
         }
     }
 
     public void withEPSG25832CoordsWithoutHeight(String[] coordsList) {
-        this.coordinates = new float[coordsList.length];
-        int indexCoordinates = 0;
-        for (int i = 0; i < coordsList.length; i+=2) {
-            var lonLat = utmToWgs(Float.parseFloat(coordsList[i]), Float.parseFloat(coordsList[i+1]));
-            this.coordinates[indexCoordinates++] = lonLat[0];
-            this.coordinates[indexCoordinates++] = lonLat[1];
+        try {
+            this.coordinates = new float[coordsList.length];
+            int indexCoordinates = 0;
+            for (int i = 1; i < coordsList.length; i += 2) {
+                var lonLat = utmToWgs(Float.parseFloat(coordsList[i - 1]), Float.parseFloat(coordsList[i]));
+                this.coordinates[indexCoordinates++] = lonLat[0];
+                this.coordinates[indexCoordinates++] = lonLat[1];
+            }
+        } catch (Exception e) {
+            logger.error("[{}]", String.join(", ", coordsList), e);
+            throw new RuntimeException(e);
         }
     }
 }

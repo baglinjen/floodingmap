@@ -48,7 +48,7 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
+            services.getOsmService(state.isWithDb()).loadOsmData("denmark.osm");
 
             state.resetWindowBounds();
             state.updateMinMaxWaterLevels(services);
@@ -100,11 +100,7 @@ public class FloodingApp extends GameApplication {
                     dataFetchFutures[2] = CompletableFuture.runAsync(() -> {
                         heightCurves.clear();
                         if (state.shouldDrawGeoJson()) {
-                            heightCurves.addAll(
-                                    services
-                                            .getHeightCurveService()
-                                            .getElements()
-                            );
+                            services.getHeightCurveService().getElements(heightCurves);
                         }
                     }, executor);
 

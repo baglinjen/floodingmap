@@ -3,6 +3,7 @@ package dk.itu.data.models.heightcurve;
 import dk.itu.common.configurations.DrawingConfiguration;
 import dk.itu.common.models.Drawable;
 import dk.itu.common.models.WithBoundingBox;
+import dk.itu.common.models.WithBoundingBoxAndArea;
 import dk.itu.common.models.WithStyle;
 import dk.itu.data.models.parser.ParserHeightCurveElement;
 import dk.itu.util.PolygonUtils;
@@ -17,9 +18,9 @@ import static dk.itu.util.PolygonUtils.forceCounterClockwise;
 
 public class HeightCurveElement implements WithBoundingBox, Drawable, WithStyle {
     // Path
-    private final float[] outerPolygon;
-    private final List<float[]> innerPolygons = new ArrayList<>();
-    private HeightCurvePath heightCurvePath; // TODO: Remove the double[] outerPolygon field and only have it on the HeightCurvePath object. OuterPolygon should never change
+    private final HeightCurvePath heightCurvePath;
+    // Connection
+    private final List<HeightCurveElement> children = new ArrayList<>();
     // Bounding Box
     private final float minLon, minLat, maxLon, maxLat;
     // Features
@@ -28,7 +29,6 @@ public class HeightCurveElement implements WithBoundingBox, Drawable, WithStyle 
     private boolean isAboveWater = true;
 
     public HeightCurveElement(float[] outerPolygon, float height) {
-        this.outerPolygon = outerPolygon;
         this.height = height;
 
         // Calculate Bounding Box
@@ -51,6 +51,8 @@ public class HeightCurveElement implements WithBoundingBox, Drawable, WithStyle 
         this.maxLat = maxLat;
 
         setAboveWater();
+
+        this.heightCurvePath = new HeightCurvePath(outerPolygon);
     }
 
     public static HeightCurveElement mapToHeightCurveElement(ParserHeightCurveElement parserHeightCurveElement) {
@@ -65,27 +67,15 @@ public class HeightCurveElement implements WithBoundingBox, Drawable, WithStyle 
     }
 
     public float[] getCoordinates() {
-        return outerPolygon;
+        return heightCurvePath.getOuterPolygon();
     }
 
     public float getHeight() {
         return height;
     }
 
-    // Bounding Box and Path related functions
-    public void addInnerPolygon(float[] innerPolygon) {
-        innerPolygons.add(innerPolygon);
-        heightCurvePath = null;
-    }
-
-    public void removeInnerPolygon(float[] innerPolygon) {
-        innerPolygons.remove(innerPolygon);
-        heightCurvePath = null;
-    }
-
     public void removeAllInnerPolygons() {
-        innerPolygons.clear();
-        heightCurvePath = null;
+        heightCurvePath.removeAllInnerPolygons();
     }
 
     /**
@@ -100,7 +90,7 @@ public class HeightCurveElement implements WithBoundingBox, Drawable, WithStyle 
                 maxLon >= other.maxLon &&
                 maxLat >= other.maxLat
         ) {
-            return PolygonUtils.contains(this.outerPolygon, other.outerPolygon);
+            return PolygonUtils.contains(this.heightCurvePath.getOuterPolygon(), other.heightCurvePath.getOuterPolygon());
         } else {
             return false;
         }
@@ -119,7 +109,7 @@ public class HeightCurveElement implements WithBoundingBox, Drawable, WithStyle 
                 maxLon >= lon &&
                 maxLat >= lat
         ) {
-            return PolygonUtils.isPointInPolygon(this.outerPolygon, lon, lat);
+            return PolygonUtils.isPointInPolygon(this.heightCurvePath.getOuterPolygon(), lon, lat);
         } else {
             return false;
         }
@@ -141,7 +131,19 @@ public class HeightCurveElement implements WithBoundingBox, Drawable, WithStyle 
     }
 
     public void setUnselected() {
-        setStyleId(isAboveWater ? (byte) 1 : 0);
+        setStyleId(isAboveWater ? (byte) 0 : 1);
+    }
+
+    public List<HeightCurveElement> getChildren() {
+        return children;
+    }
+    public void addChild(HeightCurveElement child) {
+        children.add(child);
+        heightCurvePath.addInnerPolygon(child.getCoordinates());
+    }
+    public void removeChild(HeightCurveElement child) {
+        children.remove(child);
+        heightCurvePath.removeInnerPolygon(child.getCoordinates());
     }
 
     @Override
@@ -177,15 +179,12 @@ public class HeightCurveElement implements WithBoundingBox, Drawable, WithStyle 
     @Override
     public void draw(Graphics2D g2d, float strokeBaseWidth) {
         if (styleId < 0) setAboveWater();
-        if (heightCurvePath == null) {
-            this.heightCurvePath = new HeightCurvePath(outerPolygon, innerPolygons);
-        }
 
         g2d.setColor(DrawingConfiguration.getInstance().getColor(styleId));
         if (DrawingConfiguration.getInstance().getStroke(styleId) == null) {
             g2d.fill(heightCurvePath);
         } else {
-            g2d.setStroke(new BasicStroke(strokeBaseWidth * DrawingConfiguration.getInstance().getStroke(styleId)));
+            g2d.setStroke(new BasicStroke(strokeBaseWidth * 0.5f * DrawingConfiguration.getInstance().getStroke(styleId), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             g2d.draw(heightCurvePath);
         }
     }

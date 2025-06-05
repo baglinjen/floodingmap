@@ -14,6 +14,10 @@ public class SuperAffine extends AffineTransform {
         super();
     }
 
+    public SuperAffine(SuperAffine transform) {
+        super(transform);
+    }
+
     public SuperAffine reset() {
         setToIdentity();
         return this;

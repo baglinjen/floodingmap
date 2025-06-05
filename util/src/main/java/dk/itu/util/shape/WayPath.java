@@ -4,12 +4,12 @@ import java.awt.*;
 import java.awt.geom.*;
 import java.util.Arrays;
 
-import static dk.itu.util.DrawingUtils.DRAWING_TOLERANCE;
+import static dk.itu.util.DrawingUtils.DRAWING_TOLERANCE_OSM;
 import static dk.itu.util.DrawingUtils.calculateDistance;
 import static dk.itu.util.PolygonUtils.isClosed;
 
 public class WayPath implements Shape {
-    private static final AffineTransform transform = new AffineTransform();
+    private final AffineTransform transform = new AffineTransform();
     private final byte[] pointTypes;
     private final float[] outerCoordinates;
     private final PathIterator pathIteratorNodeSkip;
@@ -56,7 +56,7 @@ public class WayPath implements Shape {
                     transform.transform(outerCoordinates, pathIteratorPointer*2, coords, 0, 1);
                     var distanceToLastPoint = calculateDistance(lastCoordinateX, lastCoordinateY, coords[0], coords[1]);
 
-                    while (distanceToLastPoint < DRAWING_TOLERANCE && type == 1 && pathIteratorPointer < pointTypes.length-1) {
+                    while (distanceToLastPoint < DRAWING_TOLERANCE_OSM && type == 1 && pathIteratorPointer < pointTypes.length-1) {
                         // Point not found and has not reached end of current polygon yet
                         pathIteratorPointer++;
                         type = pointTypes[pathIteratorPointer];
@@ -64,7 +64,7 @@ public class WayPath implements Shape {
                         distanceToLastPoint = calculateDistance(lastCoordinateX, lastCoordinateY, coords[0], coords[1]);
                     }
 
-                    if (distanceToLastPoint >= DRAWING_TOLERANCE) {
+                    if (distanceToLastPoint >= DRAWING_TOLERANCE_OSM) {
                         // Point was found and it should be tracked
                         lastCoordinateX = (float) coords[0];
                         lastCoordinateY = (float) coords[1];

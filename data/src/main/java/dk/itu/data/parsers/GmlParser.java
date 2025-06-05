@@ -173,10 +173,6 @@ public class GmlParser {
                     }
                 }
             }
-        } catch (IOException e) {
-            throw new IOException(e);
-        } catch (XMLStreamException e) {
-            throw new XMLStreamException(e);
         }
     }
 

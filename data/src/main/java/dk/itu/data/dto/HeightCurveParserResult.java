@@ -14,7 +14,7 @@ public class HeightCurveParserResult {
     private static final Logger logger = LoggerFactory.getLogger();
     private final Map<Float, List<ParserHeightCurveElement>> elementsByHeight = new HashMap<>();
     private final Map<Float, List<ParserHeightCurveElement>> unconnectedElements = Collections.synchronizedMap(new HashMap<>());
-    private List<ParserHeightCurveElement> elements = Collections.synchronizedList(new ArrayList<>());
+    private final List<ParserHeightCurveElement> elements = Collections.synchronizedList(new ArrayList<>());
 
     private final HeightCurveRepository repository;
 
@@ -31,12 +31,11 @@ public class HeightCurveParserResult {
     }
 
     public void sanitize() {
-        logger.info("Starting to sanitize {} height curve elements", elementsByHeight.values().stream().mapToInt(List::size).sum());
+        logger.info("Starting to sanitize height curve elements");
         elementsByHeight.keySet().parallelStream().forEach(h -> this.closeHeightCurvesForH(h, elementsByHeight.get(h)));
         elementsByHeight.clear();
         logger.info("Split in {} elements and {} unconnected elements - sorting by area", elements.size(), unconnectedElements.size());
         elements.sort(Comparator.comparing(hc -> hc.getCoordinates().length));
-        elements = elements.parallelStream().sorted(Comparator.comparing(hc -> hc.getCoordinates().length)).toList();
         logger.info("Finished sanitizing");
     }
 
