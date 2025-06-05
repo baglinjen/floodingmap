@@ -71,8 +71,7 @@ public class HeightCurveTree {
     }
 
     public HeightCurveElement getHeightCurveForPoint(float lon, float lat) {
-        var x = getHeightCurveForPoint(root, lon, lat).orElse(root);
-        return x;
+        return getHeightCurveForPoint(root, lon, lat).orElse(root);
     }
 
     private Optional<HeightCurveElement> getHeightCurveForPoint(HeightCurveElement node, float lon, float lat) {
@@ -94,14 +93,6 @@ public class HeightCurveTree {
     public void put(HeightCurveElement heightCurveElement) {
         minWaterLevel = Math.max(Math.min(minWaterLevel, heightCurveElement.getHeight()), 0);
         maxWaterLevel = Math.max(maxWaterLevel, heightCurveElement.getHeight());
-
-        boolean badlyDrawn =
-                heightCurveElement.getHeight() == 2.5f &&
-                heightCurveElement.getCoordinates().length == 12578;
-
-        if (badlyDrawn) {
-            System.out.println("Badly drawn");
-        }
 
         put(root, heightCurveElement);
     }
