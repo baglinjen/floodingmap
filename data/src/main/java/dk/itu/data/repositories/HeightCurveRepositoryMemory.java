@@ -47,9 +47,10 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
             if (!element.getGmlIds().parallelStream().allMatch(parsedIds::contains)) {
                 logger.error("Found height curve element where not all gml ids have yet been added : {}", element.getGmlIds());
             }
+
             heightCurveTree.put(HeightCurveElement.mapToHeightCurveElement(element));
             elementsAdded++;
-            if (elementsAdded % 100 == 0) logger.debug("Added {}/{} height curve elements", elementsAdded, elements.size());
+            if (elementsAdded % 5_000 == 0) logger.debug("Added {}/{} height curve elements", elementsAdded, elements.size());
         }
 
         logger.info("Finished adding {} height curve elements in {}ms", elements.size(), String.format("%.3f", (System.nanoTime() - startTime) / 1_000_000d));
@@ -70,10 +71,8 @@ public class HeightCurveRepositoryMemory implements HeightCurveRepository {
     }
 
     @Override
-    public synchronized List<HeightCurveElement> getElements() {
-        synchronized (heightCurveTree) {
-            return heightCurveTree.getElements();
-        }
+    public void getElements(List<HeightCurveElement> heightCurves) {
+        this.heightCurveTree.getElements(heightCurves);
     }
 
     @Override

@@ -110,6 +110,7 @@ public class MouseEventOverlayComponent extends BorderPane {
                         float[] wb = state.getWindowBounds();
                         services.getHeightCurveService().loadGmlData(wb[0], wb[1], wb[2], wb[3]);
                         state.updateMinMaxWaterLevels(services);
+                        state.recalculateNodeHeight();
                     });
                     break;
                 case "B":

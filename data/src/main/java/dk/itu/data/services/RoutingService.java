@@ -102,9 +102,13 @@ public class RoutingService {
 
 //                    nodes.removeIf(node -> node.getId() == startNode.getId() || node.getId() == endNode.getId());
 
+                    long startTime = System.nanoTime();
+
                     var route = routingType == RoutingType.AStarBidirectional ?
                             createAStarBidirectional(startNode, endNode, services) :
                             createPath(createCoordinateList(createRoute(startNode, endNode, services, null), startNode, endNode));
+
+                    logger.info("Calculated route in: {}ms - touched {} nodes", String.format("%.3f", ((double)(System.nanoTime() - startTime) / 1000000)), touchedNodes.size());
 
                     if (route == null)
                         logger.warn("No possible route could be found between: {}, {}", startNode.getId(), endNode.getId());

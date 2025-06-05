@@ -12,7 +12,7 @@ public interface HeightCurveRepository {
     boolean hasIdsBeenParsed(long id);
     Map<Float, List<ParserHeightCurveElement>> getUnconnectedElements();
     void setUnconnectedElements(Map<Float, List<ParserHeightCurveElement>> elements);
-    List<HeightCurveElement> getElements();
+    void getElements(List<HeightCurveElement> heightCurves);
     List<List<HeightCurveElement>> getFloodingSteps(float waterLevel);
     HeightCurveElement getHeightCurveForPoint(float lon, float lat);
     float getMinWaterLevel();
