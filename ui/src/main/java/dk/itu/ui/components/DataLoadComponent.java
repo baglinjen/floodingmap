@@ -36,6 +36,7 @@ public class DataLoadComponent extends SplitMenuButton {
                     services.getHeightCurveService().loadGmlFileData(selectedFile);
                     setDisable(false);
                     setText(selectedFile);
+                    state.updateMinMaxWaterLevels(services);
                     state.recalculateNodeHeight();
                 }
             });

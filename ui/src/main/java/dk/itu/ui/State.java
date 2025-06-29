@@ -188,7 +188,7 @@ public class State {
             setShowNearestNeighbour(false);
 
             //Distribute workload across N threads
-            int threadPool = Runtime.getRuntime().availableProcessors(); // Half to free up threads for other processes
+            int threadPool = Runtime.getRuntime().availableProcessors() / 2;// Half to free up threads for other processes
             var workload = splitNodes(nodes, threadPool);
 
             List<Thread> threads = new ArrayList<>();
