@@ -48,7 +48,7 @@ public class FloodingApp extends GameApplication {
         Services.withServices(services -> {
 
             // Temporary whilst using in-memory
-            services.getOsmService(state.isWithDb()).loadOsmData("bornholm.osm");
+            services.getOsmService(state.isWithDb()).loadOsmData("tuna.osm");
 
             state.resetWindowBounds();
             state.updateMinMaxWaterLevels(services);
